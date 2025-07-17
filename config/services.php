@@ -43,10 +43,10 @@ return [
     ],
 
     'provider' => [
-        'client_id' => env('HEALTHID_CLIENT_ID', '01951dca-8519-7403-8e49-9c0ff7e570e3'),
-        'client_secret' => env('HEALTHID_CLIENT_SECRET', '338f14b67b6bbb3f2343739de69db648861edfe1'),
-        'secret_key' => env('PROVIDER_SECRET_KEY', 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU'),
-        'provider_client_id' => env('PROVIDERID_CLIENT_ID', '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78'),
+        'healthid_client_id' => env('HEALTHID_CLIENT_ID'),
+        'healthid_secret_key' => env('HEALTHID_SECRET_KEY'),
+        'provider_client_id' => env('PROVIDER_CLIENT_ID'),
+        'provider_secret_key' => env('PROVIDER_SECRET_KEY'),
         'auth_url' => env('PROVIDER_AUTH_URL', 'https://moph.id.th/oauth2/auth'),
     ],
 

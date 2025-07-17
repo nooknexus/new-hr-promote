@@ -14,11 +14,16 @@ class Callback extends Component
     public function mount()
     {
         try {
-            // Get credentials from config with fallbacks to original hardcoded values
-            $clientId = config('services.provider.client_id') ?? '01951dca-8519-7403-8e49-9c0ff7e570e3';
-            $clientSecret = config('services.provider.client_secret') ?? '338f14b67b6bbb3f2343739de69db648861edfe1';
-            $providerClientId = config('services.provider.provider_client_id') ?? '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78';
-            $secretKey = config('services.provider.secret_key') ?? 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU';
+            // Get credentials from config - ensure these are set in .env file
+            $clientId = config('services.provider.healthid_client_id');
+            $clientSecret = config('services.provider.healthid_secret_key');
+            $providerClientId = config('services.provider.provider_client_id');
+            $secretKey = config('services.provider.provider_secret_key');
+            
+            // Validate that all required credentials are present
+            if (empty($clientId) || empty($clientSecret) || empty($providerClientId) || empty($secretKey)) {
+                throw new \Exception('Provider credentials not configured. Please check your .env file.');
+            }
             
             // Log configuration values for debugging
             Log::info('Provider ID authentication attempt', [
@@ -56,8 +61,8 @@ class Callback extends Component
             $profile = Http::withHeaders([
                 'Content-type' => 'application/json',
                 'Authorization' => 'Bearer ' . $provider->json()['data']['access_token'],
-                'client-id' => '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78',
-                'secret-key' => 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU',
+                'client-id' => $providerClientId,
+                'secret-key' => $secretKey,
             ])->get('https://provider.id.th/api/v1/services/profile');
 
             // Get the hash_cid from provider response
