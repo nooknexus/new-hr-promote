@@ -8,6 +8,39 @@
     <title>{{ $title ?? 'Provider Connect' }}</title>
     @vite(['resources/assets/vendor/fontawesome-free/css/all.min.css', 'resources/assets/css/sb-admin-2.min.css', 'resources/assets/vendor/jquery/jquery.min.js', 'resources/assets/vendor/bootstrap/js/bootstrap.bundle.min.js', 'resources/assets/vendor/jquery-easing/jquery.easing.min.js', 'resources/assets/js/sb-admin-2.min.js'])
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .bg-gradient-custom {
+            background-color: #00897B;
+            background-image: linear-gradient(180deg, #00897B 10%, #00695C 100%);
+            background-size: cover;
+        }
+
+        /* Enhanced sidebar styles */
+        .sidebar .nav-item .nav-link {
+            padding: 1rem 1.2rem;
+        }
+
+        .sidebar .nav-item .nav-link span {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .sidebar .nav-item .nav-link i {
+            font-size: 1.1rem;
+            margin-right: 0.5rem;
+        }
+
+        .sidebar-brand-text {
+            font-size: 1.5rem !important;
+            font-weight: 700;
+        }
+
+        .sidebar-dark .nav-item.active .nav-link {
+            font-weight: 700;
+            border-left: 4px solid #fff;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body id="page-top">
@@ -16,32 +49,66 @@
     <div id="wrapper">
 
         <!-- Sidebar -->
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+        <ul class="navbar-nav bg-gradient-custom sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.html">
-                <div class="sidebar-brand-icon rotate-n-15">
-                    <i class="fas fa-laugh-wink"></i>
+            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ route('home') }}">
+                <div class="sidebar-brand-icon">
+                    <img src="{{ asset('img/logoMOPH.png') }}" alt="Logo" style="width: 55px; height: 55px;">
                 </div>
-                <div class="sidebar-brand-text mx-3">SB Admin <sup>2</sup></div>
+                <div class="sidebar-brand-text mx-3">MyPPH</div>
             </a>
 
             <!-- Divider -->
             <hr class="sidebar-divider my-0">
 
-
-            <!-- Nav Item - Charts -->
-            <li class="nav-item">
+            <!-- Nav Items -->
+            <li class="nav-item {{ request()->routeIs('home') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('home') }}" wire:navigate>
                     <i class="fas fa-fw fa-chart-area"></i>
-                    <span>หน้าแรก</span></a>
+                    <span>หน้าแรก</span>
+                </a>
             </li>
-
-            <!-- Nav Item - Tables -->
-            <li class="nav-item">
+            <li class="nav-item {{ request()->routeIs('profile.index') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('profile.index') }}" wire:navigate>
+                    <i class="fas fa-user fa-fw"></i>
+                    <span>ข้อมูลส่วนตัว</span>
+                </a>
+            </li>
+            <li class="nav-item {{ request()->routeIs('profile.payslip') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('profile.payslip') }}" wire:navigate>
+                    <i class="fas fa-file-invoice-dollar fa-fw"></i>
+                    <span>PaySlip</span>
+                </a>
+            </li>
+            
+            <!-- Tax Certificate menu item -->
+            <li class="nav-item {{ request()->routeIs('tax.certificate') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('tax.certificate') }}" wire:navigate>
+                    <i class="fas fa-receipt fa-fw"></i>
+                    <span>ใบรับรองการหักภาษี</span>
+                </a>
+            </li>
+            
+            <!-- New menu item for Salary Promotion -->
+            <li class="nav-item {{ request()->routeIs('profile.salary-promotion') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('profile.salary-promotion') }}" wire:navigate>
+                    <i class="fas fa-arrow-up fa-fw"></i>
+                    <span>เลื่อนขั้นเงินเดือน</span>
+                </a>
+            </li>
+            
+            <li class="nav-item {{ request()->routeIs('training.info') ? 'active' : '' }}">
+                <a class="nav-link" href="{{ route('training.info') }}" wire:navigate>
+                    <i class="fas fa-graduation-cap fa-fw"></i>
+                    <span>ข้อมูลการอบรม/ดูงาน</span>
+                </a>
+            </li>
+            <li class="nav-item {{ request()->routeIs('about') ? 'active' : '' }}">
                 <a class="nav-link" href="{{ route('about') }}" wire:navigate>
-                    <i class="fas fa-fw fa-table"></i>
-                    <span>เกี่ยวกับ</span></a>
+                    <i class="fas fa-fw fa-info-circle"></i>
+                    <span>เกี่ยวกับ</span>
+                </a>
             </li>
 
             <!-- Divider -->
@@ -51,7 +118,6 @@
             <div class="text-center d-none d-md-inline">
                 <button class="rounded-circle border-0" id="sidebarToggle"></button>
             </div>
-
         </ul>
         <!-- End of Sidebar -->
 
@@ -70,195 +136,15 @@
                     </button>
 
                     <!-- Topbar Search -->
-                    <form
-                        class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
-                        <div class="input-group">
-                            <input type="text" class="form-control bg-light border-0 small"
-                                placeholder="Search for..." aria-label="Search" aria-describedby="basic-addon2">
-                            <div class="input-group-append">
-                                <button class="btn btn-primary" type="button">
-                                    <i class="fas fa-search fa-sm"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+
 
                     <!-- Topbar Navbar -->
                     <ul class="navbar-nav ml-auto">
-
-                        <!-- Nav Item - Search Dropdown (Visible Only XS) -->
-                        <li class="nav-item dropdown no-arrow d-sm-none">
-                            <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-search fa-fw"></i>
-                            </a>
-                            <!-- Dropdown - Messages -->
-                            <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
-                                aria-labelledby="searchDropdown">
-                                <form class="form-inline mr-auto w-100 navbar-search">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control bg-light border-0 small"
-                                            placeholder="Search for..." aria-label="Search"
-                                            aria-describedby="basic-addon2">
-                                        <div class="input-group-append">
-                                            <button class="btn btn-primary" type="button">
-                                                <i class="fas fa-search fa-sm"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
+                        <!-- User Information and Logout -->
+                        <li class="nav-item d-flex align-items-center">
+                            <span class="mr-3 text-gray-600">{{ auth()->user()->name }}</span>
+                            <livewire:logout />
                         </li>
-
-                        <!-- Nav Item - Alerts -->
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="alertsDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-bell fa-fw"></i>
-                                <!-- Counter - Alerts -->
-                                <span class="badge badge-danger badge-counter">3+</span>
-                            </a>
-                            <!-- Dropdown - Alerts -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="alertsDropdown">
-                                <h6 class="dropdown-header">
-                                    Alerts Center
-                                </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-primary">
-                                            <i class="fas fa-file-alt text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 12, 2019</div>
-                                        <span class="font-weight-bold">A new monthly report is ready to
-                                            download!</span>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-success">
-                                            <i class="fas fa-donate text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 7, 2019</div>
-                                        $290.29 has been deposited into your account!
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="mr-3">
-                                        <div class="icon-circle bg-warning">
-                                            <i class="fas fa-exclamation-triangle text-white"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="small text-gray-500">December 2, 2019</div>
-                                        Spending Alert: We've noticed unusually high spending for your account.
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Show All
-                                    Alerts</a>
-                            </div>
-                        </li>
-
-                        <!-- Nav Item - Messages -->
-                        <li class="nav-item dropdown no-arrow mx-1">
-                            <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fas fa-envelope fa-fw"></i>
-                                <!-- Counter - Messages -->
-                                <span class="badge badge-danger badge-counter">7</span>
-                            </a>
-                            <!-- Dropdown - Messages -->
-                            <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="messagesDropdown">
-                                <h6 class="dropdown-header">
-                                    Message Center
-                                </h6>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_1.svg" alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div class="font-weight-bold">
-                                        <div class="text-truncate">Hi there! I am wondering if you can help me with a
-                                            problem I've been having.</div>
-                                        <div class="small text-gray-500">Emily Fowler · 58m</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_2.svg" alt="...">
-                                        <div class="status-indicator"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">I have the photos that you ordered last month, how
-                                            would you like them sent to you?</div>
-                                        <div class="small text-gray-500">Jae Chun · 1d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle" src="img/undraw_profile_3.svg" alt="...">
-                                        <div class="status-indicator bg-warning"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Last month's report looks great, I am very happy
-                                            with
-                                            the progress so far, keep up the good work!</div>
-                                        <div class="small text-gray-500">Morgan Alvarez · 2d</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item d-flex align-items-center" href="#">
-                                    <div class="dropdown-list-image mr-3">
-                                        <img class="rounded-circle"
-                                            src="https://source.unsplash.com/Mv9hjnEUHR4/60x60" alt="...">
-                                        <div class="status-indicator bg-success"></div>
-                                    </div>
-                                    <div>
-                                        <div class="text-truncate">Am I a good boy? The reason I ask is because someone
-                                            told me that people say this to all dogs, even if they aren't good...</div>
-                                        <div class="small text-gray-500">Chicken the Dog · 2w</div>
-                                    </div>
-                                </a>
-                                <a class="dropdown-item text-center small text-gray-500" href="#">Read More
-                                    Messages</a>
-                            </div>
-                        </li>
-
-                        <div class="topbar-divider d-none d-sm-block"></div>
-
-                        <!-- Nav Item - User Information -->
-                        <li class="nav-item dropdown no-arrow">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ auth()->user()->name }}</span>
-                                <img class="img-profile rounded-circle" src="img/undraw_profile.svg">
-                            </a>
-                            <!-- Dropdown - User Information -->
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="{{ route('profile.index') }}" wire:navigate>
-                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
-                                </a>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Settings
-                                </a>
-                                <a class="dropdown-item" href="#">
-                                    <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Activity Log
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <livewire:logout />
-
-                                
-                            </div>
-                        </li>
-
                     </ul>
 
                 </nav>
@@ -280,7 +166,7 @@
             <footer class="sticky-footer bg-white">
                 <div class="container my-auto">
                     <div class="copyright text-center my-auto">
-                        <span>Copyright &copy; Your Website 2020</span>
+                        <span>Copyright &copy; สำนักงานสาธารณสุขจังหวัดพิษณุโลก 2025</span>
                     </div>
                 </div>
             </footer>
@@ -297,8 +183,35 @@
         <i class="fas fa-angle-up"></i>
     </a>
 
+    <!-- Add login success notification script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for login success in session
+            @if(session('login_success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'เข้าสู่ระบบสำเร็จ',
+                text: '{{ session('
+                login_success ') }}',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            @endif
+        });
 
-
+        // For Livewire login success events
+        document.addEventListener('livewire:initialized', () => {
+            Livewire.on('login-success', (message) => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'เข้าสู่ระบบสำเร็จ',
+                    text: message || 'ยินดีต้อนรับเข้าสู่ระบบ',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

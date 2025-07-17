@@ -10,9 +10,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
-        "livewire/livewire": "^3.6"
+        "livewire/livewire": "^3.6",
+        "tecnickcom/tcpdf": "^6.6",
+        "firebase/php-jwt": "^6.0"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.15",

@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
@@ -35,4 +34,28 @@ return [
         ],
     ],
 
+    'thaid' => [
+        'client_id' => env('THAID_CLIENT_ID', ''),
+        'client_secret' => env('THAID_CLIENT_SECRET', ''),
+        'redirect_uri' => env('THAID_REDIRECT_URI', ''),
+        'well_known_url' => env('THAID_WELL_KNOWN_URL', 'https://imauth.bora.dopa.go.th/.well-known/openid-configuration'),
+        'scope' => env('THAID_SCOPE', 'pid openid name_en name birthdate address given_name middle_name family_name given_name_en middle_name_en family_name_en gender smartcard_code title title_en'),
+    ],
+
+    'provider' => [
+        'client_id' => env('HEALTHID_CLIENT_ID', '01951dca-8519-7403-8e49-9c0ff7e570e3'),
+        'client_secret' => env('HEALTHID_CLIENT_SECRET', '338f14b67b6bbb3f2343739de69db648861edfe1'),
+        'secret_key' => env('PROVIDER_SECRET_KEY', 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU'),
+        'provider_client_id' => env('PROVIDERID_CLIENT_ID', '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78'),
+        'auth_url' => env('PROVIDER_AUTH_URL', 'https://moph.id.th/oauth2/auth'),
+    ],
+
+    'mymoph' => [
+        'client_id' => env('MYMOPH_CLIENT_ID'),
+        'client_secret' => env('MYMOPH_CLIENT_SECRET'),
+        'redirect_uri' => env('MYMOPH_REDIRECT_URI', env('APP_URL', 'http://localhost:8000') . '/mymoph/callback'),
+        'auth_url' => 'https://auth.moph.go.th/v1/oauth2/auth',
+        'token_url' => 'https://auth.moph.go.th/v1/oauth2/token',
+        'userinfo_url' => 'https://auth.moph.go.th/v1/userinfo',
+    ],
 ];
