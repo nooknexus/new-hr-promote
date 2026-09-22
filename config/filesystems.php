@@ -58,12 +58,6 @@ return [
             'report' => false,
         ],
 
-        'temp' => [
-            'driver' => 'local',
-            'root' => public_path('temp'),
-            'url' => env('APP_URL').'/temp',
-            'visibility' => 'public',
-        ],
     ],
 
     /*

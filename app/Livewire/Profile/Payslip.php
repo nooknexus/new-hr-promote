@@ -568,8 +568,8 @@ class Payslip extends Component
             // Use the centralized PayslipPdfService to generate the PDF
             $pdfResult = PayslipPdfService::generatePdf($payslipData, $cid);
             
-            // Save the PDF to temp directory and get URL
-            $url = PayslipPdfService::savePdfToTemp($pdfResult['content'], $pdfResult['filename']);
+            // The download route rechecks authentication and ownership before streaming the PDF.
+            $url = route('payslip.download', ['id' => $id]);
             
             Log::info('PDF URL generated:', ['url' => $url]);
             

@@ -3,6 +3,7 @@
 namespace App\Livewire\Provider;
 
 use App\Models\User;
+use App\Services\ProviderOAuthState;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -14,6 +15,10 @@ class ProfileCallback extends Component
     public function mount()
     {
         try {
+            if (! ProviderOAuthState::consume(session()->driver(), request()->string('state')->toString())) {
+                throw new \Exception('การยืนยัน OAuth ไม่ถูกต้อง');
+            }
+
             // Check if this is a profile update
             if (!Session::has('profile_update') || !Session::has('user_id_for_update')) {
                 throw new \Exception('ไม่พบข้อมูลการอัพเดทโปรไฟล์');
@@ -30,15 +35,15 @@ class ProfileCallback extends Component
             $response = Http::asForm()->post('https://moph.id.th/api/v1/token', [
                 'grant_type' => 'authorization_code',
                 'code' => request()->code,
-                'client_id' => '01951dca-8519-7403-8e49-9c0ff7e570e3',
-                'client_secret' => '338f14b67b6bbb3f2343739de69db648861edfe1',
+                'client_id' => config('services.provider.healthid_client_id'),
+                'client_secret' => config('services.provider.healthid_secret_key'),
                 'redirect_uri' => route('provider.profile.callback'),
             ]);
             
             // Rest of the token/profile exchange logic from the working Callback component
             $provider = Http::post('https://provider.id.th/api/v1/services/token', [
-                'client_id' => '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78',
-                'secret_key' => 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU',
+                'client_id' => config('services.provider.provider_client_id'),
+                'secret_key' => config('services.provider.provider_secret_key'),
                 'token_by' => "Health ID",
                 'token' => $response->json()['data']['access_token'],
             ]);
@@ -46,8 +51,8 @@ class ProfileCallback extends Component
             $profile = Http::withHeaders([
                 'Content-type' => 'application/json',
                 'Authorization' => 'Bearer ' . $provider->json()['data']['access_token'],
-                'client-id' => '606dbdd4-1ee0-4977-bcf5-ce4ce0797f78',
-                'secret-key' => 'wJJ2EIbFlNIfnphZTSGcEmnab5WtfkWU',
+                'client-id' => config('services.provider.provider_client_id'),
+                'secret-key' => config('services.provider.provider_secret_key'),
             ])->get('https://provider.id.th/api/v1/services/profile');
             
             // Update user with Provider ID data

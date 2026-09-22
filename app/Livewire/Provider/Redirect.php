@@ -2,21 +2,23 @@
 
 namespace App\Livewire\Provider;
 
+use App\Services\ProviderOAuthState;
 use Livewire\Component;
 
 class Redirect extends Component
 {
 
-    public $client_id ="01951dca-8519-7403-8e49-9c0ff7e570e3";
-    public $redirect_uri ="";
-    public $response_type ="";
     public $url ='';
 
 
     public function mount(){
-        $this->redirect_uri = route('provider.callback');
-        $this->response_type = "code";
-        $this->url = "https://moph.id.th/oauth/redirect?client_id=".$this->client_id."&redirect_uri=".$this->redirect_uri."&response_type=".$this->response_type;
+        $state = ProviderOAuthState::issue(session()->driver());
+        $this->url = config('services.provider.auth_url') . '?' . http_build_query([
+            'client_id' => config('services.provider.healthid_client_id'),
+            'redirect_uri' => route('provider.callback'),
+            'response_type' => 'code',
+            'state' => $state,
+        ]);
     }
 
 

@@ -11,6 +11,22 @@ use Illuminate\Support\Facades\Log;
 class PayslipController extends Controller
 {
 
+    public function download($id)
+    {
+        $cid = Auth::user()->pid;
+        $payslipData = $this->fetchPayslipData($cid, $id);
+
+        abort_unless($payslipData, 404);
+
+        $pdf = \App\Services\PayslipPdfService::generatePdf($payslipData, $cid);
+
+        return response($pdf['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$pdf['filename'].'"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     /**
      * Display a printable view of the payslip
      */

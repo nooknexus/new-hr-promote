@@ -16,6 +16,9 @@ Route::group(['middleware' => 'guest'], function () {
         Route::get('/redirect', [AuthController::class, 'redirect'])->name('redirect');
         Route::get('/callback', [AuthController::class, 'callback'])->name('callback');
     });
+
+    Route::get('/provider/redirect', App\Livewire\Provider\Redirect::class)
+        ->name('provider.redirect');
 });
 
 Route::group(['middleware' => 'auth'], function () {
@@ -33,7 +36,7 @@ Route::group(['middleware' => 'auth'], function () {
     })->name('training.info');
 
     // Provider ID Profile Update Routes - using direct controller approach
-    Route::get('/provider/profile/update', [\App\Http\Controllers\ProviderProfileController::class, 'redirect'])
+    Route::get('/provider/profile/update', ProfileUpdate::class)
         ->name('provider.profile.update');
     Route::get('/provider/profile/callback', App\Livewire\Provider\ProfileCallback::class)
         ->name('provider.profile.callback');
@@ -60,9 +63,6 @@ Route::get('/provider-info', function () {
 })->name('provider.info');
 
 // Add this route for font conversion (run once)
-Route::get('/payslip/convert-font', [App\Http\Controllers\PayslipController::class, 'convertFont'])->name('payslip.convert-font');
-
 // MyMOPH OAuth routes
 Route::get('/mymoph/callback', [App\Http\Controllers\Auth\MyMOPHController::class, 'callback'])->name('mymoph.callback');
-
 

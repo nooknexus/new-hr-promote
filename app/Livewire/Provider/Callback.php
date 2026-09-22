@@ -3,6 +3,7 @@
 namespace App\Livewire\Provider;
 
 use App\Models\User;
+use App\Services\ProviderOAuthState;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Session;
@@ -14,6 +15,10 @@ class Callback extends Component
     public function mount()
     {
         try {
+            if (! ProviderOAuthState::consume(session()->driver(), request()->string('state')->toString())) {
+                return $this->redirectRoute('login', navigate: true);
+            }
+
             // Get credentials from config - ensure these are set in .env file
             $clientId = config('services.provider.healthid_client_id');
             $clientSecret = config('services.provider.healthid_secret_key');
@@ -77,9 +82,16 @@ class Callback extends Component
             
             // If no user found by cid_hash, check other identifiers
             if (!$user) {
-                $user = User::where('provider_id', $profile->json()['data']['provider_id'])
-                    ->orWhere('account_id', $profile->json()['data']['account_id'])
-                    ->first();
+                $providerId = $profile->json()['data']['provider_id'] ?? null;
+                $accountId = $profile->json()['data']['account_id'] ?? null;
+
+                if (filled($providerId)) {
+                    $user = User::where('provider_id', $providerId)->first();
+                }
+
+                if (!$user && filled($accountId)) {
+                    $user = User::where('account_id', $accountId)->first();
+                }
             }
 
             if ($user) {

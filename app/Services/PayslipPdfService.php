@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use TCPDF;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Storage;
 
 class PayslipPdfService
 {
@@ -80,7 +79,7 @@ class PayslipPdfService
     /**
      * Generate standardized PDF filename
      */
-    public static function generatePayslipFilename($payslipId, $cid)
+    public static function generatePayslipFilename($payslipId, $cid = null)
     {
         // Extract year and month from the ID (format: YYYYMM)
         $year = substr($payslipId, 0, 4);
@@ -89,8 +88,8 @@ class PayslipPdfService
         // Convert to Buddhist year (add 543)
         $buddhistYear = (int)$year + 543;
         
-        // Format: payslip_YYYY_MM_CID.pdf
-        $filename = "payslip_{$buddhistYear}_{$month}_{$cid}.pdf";
+        // The filename is only a download label; it must not expose a personal identifier.
+        $filename = "payslip_{$buddhistYear}_{$month}.pdf";
         
         Log::info('Generated standardized PDF filename', [
             'filename' => $filename,
@@ -98,7 +97,6 @@ class PayslipPdfService
             'year' => $year,
             'month' => $month,
             'buddhist_year' => $buddhistYear,
-            'cid' => $cid
         ]);
         
         return $filename;
@@ -417,20 +415,4 @@ class PayslipPdfService
     }
     
     
-    /**
-     * Save PDF to temp directory and return URL
-     */
-    public static function savePdfToTemp($pdfContent, $filename)
-    {
-        // ใช้ Storage แทนการใช้ file_put_contents โดยตรง
-        Storage::disk('temp')->put($filename, $pdfContent);
-        
-        return url('temp/' . $filename);
-
-        $tempFilePath = $tempPath . '/' . $filename;
-        file_put_contents($tempFilePath, $pdfContent);
-        
-        // Return URL
-        return url('temp/' . $filename);
-    }
 }
