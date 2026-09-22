@@ -39,6 +39,7 @@ return [
         'client_secret' => env('THAID_CLIENT_SECRET', ''),
         'redirect_uri' => env('THAID_REDIRECT_URI', ''),
         'well_known_url' => env('THAID_WELL_KNOWN_URL', 'https://imauth.bora.dopa.go.th/.well-known/openid-configuration'),
+        'issuer' => env('THAID_ISSUER', 'https://imauth.bora.dopa.go.th'),
         'scope' => env('THAID_SCOPE', 'pid openid name_en name birthdate address given_name middle_name family_name given_name_en middle_name_en family_name_en gender smartcard_code title title_en'),
     ],
 

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Models\User;
+use App\Services\ThaidIdTokenVerifier;
 
 class AuthController extends Controller
 {
@@ -22,7 +23,9 @@ class AuthController extends Controller
         try {
             // Generate state for CSRF protection
             $state = Str::random(40);
+            $nonce = Str::random(64);
             Session::put('thaid_state', $state);
+            Session::put('thaid_nonce', $nonce);
             
             // Get well-known configuration
             $config = $this->getWellKnownConfig();
@@ -34,6 +37,7 @@ class AuthController extends Controller
                 'response_type' => 'code',
                 'scope' => config('services.thaid.scope', 'pid openid name'),
                 'state' => $state,
+                'nonce' => $nonce,
             ]);
             
             $authUrl = $config['authorization_endpoint'] . '?' . $query;
@@ -52,7 +56,10 @@ class AuthController extends Controller
     {
         try {
             // ตรวจสอบ state
-            if ($request->state !== Session::get('thaid_state')) {
+            $expectedState = Session::pull('thaid_state');
+            $nonce = Session::pull('thaid_nonce');
+
+            if (!is_string($expectedState) || !is_string($request->state) || !hash_equals($expectedState, $request->state)) {
                 return redirect()->route('login')->with('error', 'การยืนยันตัวตนล้มเหลว: รหัสความปลอดภัยไม่ถูกต้อง');
             }
 
@@ -83,28 +90,24 @@ class AuthController extends Controller
             
             $tokenData = $response->json();
             
-            // เก็บ token ในเซสชัน
-            Session::put('thaid_access_token', $tokenData['access_token'] ?? null);
-            
-            // ดึงข้อมูลผู้ใช้จาก id_token หรือ userinfo endpoint
-            $userData = [];
-            
-            if (!empty($tokenData['id_token'])) {
-                // แยกและถอดรหัส id_token
-                $idTokenParts = explode('.', $tokenData['id_token']);
-                if (count($idTokenParts) >= 2) {
-                    $payload = base64_decode(str_replace(['-', '_'], ['+', '/'], $idTokenParts[1]));
-                    $userData = json_decode($payload, true) ?: [];
-                }
-            } elseif (!empty($tokenData['access_token']) && isset($config['userinfo_endpoint'])) {
-                // ถ้าไม่มี id_token ลองใช้ access_token ดึงข้อมูลจาก userinfo endpoint
-                $userInfoResponse = Http::withToken($tokenData['access_token'])
-                    ->get($config['userinfo_endpoint']);
-                
-                if ($userInfoResponse->successful()) {
-                    $userData = $userInfoResponse->json();
-                }
+            if (empty($tokenData['id_token']) || empty($config['jwks_uri']) || !is_string($nonce)) {
+                return redirect()->route('login')->with('error', 'การยืนยันตัวตนล้มเหลว: ไม่ได้รับข้อมูลยืนยันตัวตนที่ปลอดภัย');
             }
+
+            $jwksResponse = Http::get($config['jwks_uri']);
+            if (! $jwksResponse->successful()) {
+                return redirect()->route('login')->with('error', 'การยืนยันตัวตนล้มเหลว: ไม่สามารถตรวจสอบลายเซ็นได้');
+            }
+
+            $userData = app(ThaidIdTokenVerifier::class)->verify(
+                $tokenData['id_token'],
+                $jwksResponse->json(),
+                config('services.thaid.issuer'),
+                config('services.thaid.client_id'),
+                $nonce,
+            );
+
+            Session::put('thaid_access_token', $tokenData['access_token'] ?? null);
             
             // ถ้าไม่มีข้อมูลผู้ใช้ให้แจ้งข้อผิดพลาด
             if (empty($userData) || !isset($userData['pid'])) {
@@ -143,12 +146,7 @@ class AuthController extends Controller
                 Session::put('thaid_address', $formattedAddress);
                 
                 // บันทึกข้อมูลที่ได้รับลงใน log เพื่อตรวจสอบ
-                Log::info('ThaID user data', [
-                    'pid' => substr($pid, 0, 4) . '****',
-                    'has_address' => isset($userData['address']),
-                    'address_type' => isset($userData['address']) ? gettype($userData['address']) : 'none',
-                    'formatted_address' => $formattedAddress
-                ]);
+                Log::info('ThaID user data received', ['has_address' => isset($userData['address'])]);
                 
                 // ตรวจสอบผู้ใช้ทั้งจากฟิลด์ thaid_pid และ pid (สำหรับผู้ใช้เก่า)
                 $user = User::where('thaid_pid', $pid)
