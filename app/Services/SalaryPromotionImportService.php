@@ -140,6 +140,113 @@ class SalaryPromotionImportService
         }
     }
 
+    /** @return array{insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int} */
+    public function commit(string $path, int $actorId): array
+    {
+        return DB::transaction(function () use ($path, $actorId): array {
+            $preview = $this->preview($path);
+            if ($preview['errors'] !== []) {
+                throw ValidationException::withMessages([
+                    'file' => implode(' | ', array_slice($preview['errors'], 0, 10)),
+                ]);
+            }
+
+            $result = [
+                'insert_count' => 0,
+                'update_count' => 0,
+                'unmatched_person_count' => 0,
+                'unmatched_user_count' => 0,
+            ];
+
+            foreach ($preview['rows'] as $row) {
+                $person = null;
+                $user = null;
+                if ($row['no_position'] !== null) {
+                    $person = DB::table('person')->where('cid', $row['cid'])
+                        ->lockForUpdate()->first(['cid', 'no_position']);
+                    if ($person === null) {
+                        $result['unmatched_person_count']++;
+                    }
+                    $users = DB::table('users')->where('pid', $row['cid'])
+                        ->orWhere('thaid_pid', $row['cid'])
+                        ->lockForUpdate()->get(['id', 'no_position']);
+                    if ($users->count() > 1) {
+                        throw ValidationException::withMessages(['file' => 'พบผู้ใช้หลายบัญชีที่ตรงกับเลขบัตรเดียวกัน']);
+                    }
+                    $user = $users->first();
+                    if ($user === null) {
+                        $result['unmatched_user_count']++;
+                    }
+                }
+
+                $promotionQuery = DB::table('data_promote')
+                    ->where('CID', $row['cid'])
+                    ->where('evaluation_date', $row['evaluation_date']);
+                $existing = (clone $promotionQuery)->lockForUpdate()->first();
+                if ($existing?->deleted_at !== null) {
+                    throw ValidationException::withMessages(['file' => 'รายการเดิมถูกยกเลิกหลังแสดงตัวอย่าง']);
+                }
+
+                $values = [
+                    'CID' => $row['cid'],
+                    'evaluation_date' => $row['evaluation_date'],
+                    'promote' => $row['promote'],
+                    'ps' => $row['ps'],
+                    'office' => $row['office'],
+                    'department' => $row['department'],
+                    'before_salary' => $row['before_salary'],
+                    'base' => $row['base'],
+                    'percent' => $row['percent'],
+                    'sum' => $row['sum'],
+                    'extra' => $row['extra'],
+                    'new_salary' => $row['new_salary'],
+                    'update_date' => now(),
+                ];
+                $before = [
+                    'promotion' => $existing === null ? null : array_intersect_key((array) $existing, $values),
+                    'person_no_position' => $person?->no_position,
+                    'user_no_position' => $user?->no_position,
+                ];
+
+                if ($existing) {
+                    $promotionQuery->update($values);
+                    $promotionId = $existing->id;
+                    $action = 'imported_updated';
+                    $result['update_count']++;
+                } else {
+                    $promotionId = DB::table('data_promote')->insertGetId($values);
+                    $action = 'imported_created';
+                    $result['insert_count']++;
+                }
+
+                if ($row['no_position'] !== null) {
+                    if ($person) {
+                        DB::table('person')->where('cid', $row['cid'])->update(['no_position' => $row['no_position']]);
+                    }
+                    if ($user) {
+                        DB::table('users')->where('id', $user->id)->update(['no_position' => $row['no_position']]);
+                    }
+                }
+                $after = [
+                    'promotion' => array_diff_key($values, ['CID' => true]),
+                    'person_no_position' => $person ? $row['no_position'] : null,
+                    'user_no_position' => $user ? $row['no_position'] : null,
+                ];
+
+                DB::table('data_promote_audits')->insert([
+                    'promotion_id' => $promotionId,
+                    'actor_id' => $actorId,
+                    'action' => $action,
+                    'before_data' => json_encode($before, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                    'after_data' => json_encode($after, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                    'created_at' => now(),
+                ]);
+            }
+
+            return $result;
+        });
+    }
+
     /** @return array<string, int> */
     private function headerMap(Worksheet $sheet): array
     {
