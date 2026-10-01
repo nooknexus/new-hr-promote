@@ -26,10 +26,16 @@ class SalaryPromotionImport extends Component
     public array $warnings = [];
 
     #[Locked]
+    public int $warningCount = 0;
+
+    #[Locked]
     public array $importErrors = [];
 
     #[Locked]
     public ?string $previewHash = null;
+
+    #[Locked]
+    public ?string $baselineHash = null;
 
     public function boot(): void
     {
@@ -62,14 +68,16 @@ class SalaryPromotionImport extends Component
             'unmatched_user_count' => $preview['unmatched_user_count'],
         ];
         $this->warnings = array_slice($preview['warnings'], 0, 10);
+        $this->warningCount = count($preview['warnings']);
         $this->importErrors = array_slice($preview['errors'], 0, 20);
         $this->previewReady = $preview['errors'] === [] && $preview['rows'] !== [];
         $this->previewHash = $this->previewReady ? hash_file('sha256', $this->importFile->getRealPath()) : null;
+        $this->baselineHash = $this->previewReady ? $preview['baseline_hash'] : null;
     }
 
     public function confirmImport(SalaryPromotionImportService $importService): void
     {
-        if (! $this->previewReady || $this->importFile === null || $this->previewHash === null) {
+        if (! $this->previewReady || $this->importFile === null || $this->previewHash === null || $this->baselineHash === null) {
             $this->addError('importFile', 'กรุณาตรวจสอบตัวอย่างข้อมูลก่อนยืนยัน');
 
             return;
@@ -85,7 +93,7 @@ class SalaryPromotionImport extends Component
         }
 
         try {
-            $result = $importService->commit($path, (int) Auth::id());
+            $result = $importService->commit($path, (int) Auth::id(), $this->baselineHash);
         } catch (ValidationException $exception) {
             $this->clearPreview();
             $this->addError('importFile', $exception->validator->errors()->first('file') ?: 'ไม่สามารถนำเข้าไฟล์ Excel ได้');
@@ -124,8 +132,10 @@ class SalaryPromotionImport extends Component
         $this->previewReady = false;
         $this->previewCounts = [];
         $this->warnings = [];
+        $this->warningCount = 0;
         $this->importErrors = [];
         $this->previewHash = null;
+        $this->baselineHash = null;
     }
 
     public function render()

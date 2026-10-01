@@ -155,6 +155,24 @@ test('a file changed after preview must be previewed again before confirmation',
     expect(DB::table('data_promote')->count())->toBe(0);
 });
 
+test('preview reveals the total count when more than ten salary warnings exist', function () {
+    $rows = [];
+    foreach (range(1, 12) as $number) {
+        $row = SalaryPromotionWorkbook::ROW;
+        $row[0] = sprintf('%013d', $number);
+        $rows[] = $row;
+    }
+    $book = new SalaryPromotionWorkbook($rows);
+
+    Livewire::actingAs(salaryImportActor('ADMIN'))
+        ->test(SalaryPromotionImport::class)
+        ->set('importFile', salaryImportUpload($book))
+        ->call('previewUpload')
+        ->assertSet('previewReady', true)
+        ->assertSee('คำเตือนทั้งหมด 12 แถว')
+        ->assertSee('แสดง 10 แถวแรก');
+});
+
 test('authorization is rechecked on the confirmation request', function () {
     $actor = salaryImportActor('PROMOTE');
     $book = new SalaryPromotionWorkbook;

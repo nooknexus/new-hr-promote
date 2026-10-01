@@ -44,7 +44,7 @@ class SalaryPromotionImportService
 
     private const MONEY = ['before_salary', 'base', 'percent', 'sum', 'extra', 'new_salary'];
 
-    /** @return array{rows: array<int, array<string, mixed>>, insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, warnings: array<int, string>, errors: array<int, string>} */
+    /** @return array{rows: array<int, array<string, mixed>>, insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, warnings: array<int, string>, errors: array<int, string>, baseline_hash: string} */
     public function preview(string $path): array
     {
         if (! is_file($path) || filesize($path) > 10 * 1024 * 1024) {
@@ -80,6 +80,7 @@ class SalaryPromotionImportService
                 'errors' => [],
             ];
             $seen = [];
+            $baselines = [];
 
             for ($number = 2; $number <= $lastRow; $number++) {
                 [$row, $errors] = $this->readRow($sheet, $number, $headers);
@@ -103,27 +104,32 @@ class SalaryPromotionImportService
 
                 $existing = DB::table('data_promote')->where('CID', $row['cid'])
                     ->where('evaluation_date', $row['evaluation_date'])
-                    ->first(['id', 'deleted_at']);
+                    ->first();
                 if ($existing?->deleted_at !== null) {
                     $result['errors'][] = "แถว {$number}: รายการเดิมถูกยกเลิกแล้ว";
                     continue;
                 }
                 $existing ? $result['update_count']++ : $result['insert_count']++;
 
+                $person = null;
+                $user = null;
                 if ($row['no_position'] !== null) {
-                    if (! DB::table('person')->where('cid', $row['cid'])->exists()) {
+                    $person = DB::table('person')->where('cid', $row['cid'])->first(['cid', 'no_position']);
+                    if ($person === null) {
                         $result['unmatched_person_count']++;
                     }
-                    $userIds = DB::table('users')->where('pid', $row['cid'])
-                        ->orWhere('thaid_pid', $row['cid'])->pluck('id')->unique();
-                    if ($userIds->count() > 1) {
+                    $users = DB::table('users')->where('pid', $row['cid'])
+                        ->orWhere('thaid_pid', $row['cid'])->get(['id', 'no_position']);
+                    if ($users->count() > 1) {
                         $result['errors'][] = "แถว {$number}: พบผู้ใช้หลายบัญชีที่ตรงกับเลขบัตรเดียวกัน";
                         continue;
                     }
-                    if ($userIds->isEmpty()) {
+                    $user = $users->first();
+                    if ($user === null) {
                         $result['unmatched_user_count']++;
                     }
                 }
+                $baselines[$key] = $this->rowBaseline($existing, $person, $user);
 
                 $expected = (float) $row['before_salary'] + ((float) $row['base'] * (float) $row['percent'] / 100);
                 if (abs($expected - (float) $row['new_salary']) > 0.01
@@ -133,6 +139,7 @@ class SalaryPromotionImportService
 
                 $result['rows'][] = $row;
             }
+            $result['baseline_hash'] = $this->baselineHash($baselines);
 
             return $result;
         } finally {
@@ -141,14 +148,17 @@ class SalaryPromotionImportService
     }
 
     /** @return array{insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int} */
-    public function commit(string $path, int $actorId): array
+    public function commit(string $path, int $actorId, string $expectedBaselineHash): array
     {
-        return DB::transaction(function () use ($path, $actorId): array {
+        return DB::transaction(function () use ($path, $actorId, $expectedBaselineHash): array {
             $preview = $this->preview($path);
             if ($preview['errors'] !== []) {
                 throw ValidationException::withMessages([
                     'file' => implode(' | ', array_slice($preview['errors'], 0, 10)),
                 ]);
+            }
+            if (! hash_equals($expectedBaselineHash, $preview['baseline_hash'])) {
+                throw ValidationException::withMessages(['file' => 'ข้อมูลเปลี่ยนหลังแสดงตัวอย่าง กรุณาตรวจสอบอีกครั้ง']);
             }
 
             $result = [
@@ -157,6 +167,7 @@ class SalaryPromotionImportService
                 'unmatched_person_count' => 0,
                 'unmatched_user_count' => 0,
             ];
+            $lockedBaselines = [];
 
             foreach ($preview['rows'] as $row) {
                 $person = null;
@@ -186,6 +197,7 @@ class SalaryPromotionImportService
                 if ($existing?->deleted_at !== null) {
                     throw ValidationException::withMessages(['file' => 'รายการเดิมถูกยกเลิกหลังแสดงตัวอย่าง']);
                 }
+                $lockedBaselines[$row['cid'].'|'.$row['evaluation_date']] = $this->rowBaseline($existing, $person, $user);
 
                 $values = [
                     'CID' => $row['cid'],
@@ -242,9 +254,31 @@ class SalaryPromotionImportService
                     'created_at' => now(),
                 ]);
             }
+            if (! hash_equals($expectedBaselineHash, $this->baselineHash($lockedBaselines))) {
+                throw ValidationException::withMessages(['file' => 'ข้อมูลเปลี่ยนระหว่างยืนยัน กรุณาตรวจสอบอีกครั้ง']);
+            }
 
             return $result;
         });
+    }
+
+    private function rowBaseline(?object $promotion, ?object $person, ?object $user): array
+    {
+        return [
+            'promotion' => $this->recordHash($promotion),
+            'person' => $this->recordHash($person),
+            'user' => $this->recordHash($user),
+        ];
+    }
+
+    private function recordHash(?object $record): ?string
+    {
+        return $record === null ? null : hash('sha256', json_encode($record, JSON_THROW_ON_ERROR));
+    }
+
+    private function baselineHash(array $baselines): string
+    {
+        return hash('sha256', json_encode($baselines, JSON_THROW_ON_ERROR));
     }
 
     /** @return array<string, int> */
@@ -299,7 +333,7 @@ class SalaryPromotionImportService
         $row = [
             'cid' => $values['cid'] ?? '',
             'evaluation_date' => $values['evaluation_date'] ?? null,
-            'no_position' => $values['no_position'] ?: null,
+            'no_position' => ($values['no_position'] ?? '') === '' ? null : $values['no_position'],
             'promote' => strtoupper($values['promote'] ?? ''),
             'ps' => $values['ps'] ?? null,
             'office' => $values['office'] ?? null,
@@ -337,6 +371,10 @@ class SalaryPromotionImportService
                 continue;
             }
             $row[$field] = number_format((float) $numberText, 2, '.', '');
+        }
+        if ($row['before_salary'] !== null && $row['new_salary'] !== null
+            && (float) $row['new_salary'] < (float) $row['before_salary']) {
+            $errors[] = 'เงินเดือนใหม่ต้องไม่น้อยกว่าเงินเดือนเดิม';
         }
 
         return [$row, $errors];

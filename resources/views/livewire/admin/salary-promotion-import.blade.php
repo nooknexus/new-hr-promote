@@ -26,7 +26,8 @@
     @endif
     @if($warnings !== [])
         <div class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <p class="font-semibold">คำเตือน: ระบบจะยึดตัวเลขเงินจากไฟล์</p>
+            <p class="font-semibold">คำเตือนทั้งหมด {{ $warningCount }} แถว: ระบบจะยึดตัวเลขเงินจากไฟล์</p>
+            @if($warningCount > count($warnings))<p class="mt-1">แสดง {{ count($warnings) }} แถวแรก กรุณาตรวจไฟล์ก่อนยืนยัน</p>@endif
             <ul class="mt-1 list-disc space-y-1 pl-5">@foreach($warnings as $warning)<li>{{ $warning }}</li>@endforeach</ul>
         </div>
     @endif

@@ -101,3 +101,22 @@ test('preview rejects an invalid citizen identifier', function () {
     expect(implode(' ', app(SalaryPromotionImportService::class)->preview($file->path)['errors']))
         ->toContain('13 หลัก');
 });
+
+test('preview rejects a salary decrease rather than importing a contradictory promotion', function () {
+    $row = SalaryPromotionWorkbook::ROW;
+    $row[11] = '10,000';
+    $row[16] = '9,000';
+    $file = new SalaryPromotionWorkbook([$row]);
+
+    expect(implode(' ', app(SalaryPromotionImportService::class)->preview($file->path)['errors']))
+        ->toContain('เงินเดือนใหม่ต้องไม่น้อยกว่าเงินเดือนเดิม');
+});
+
+test('a literal zero position number remains a string rather than becoming blank', function () {
+    $row = SalaryPromotionWorkbook::ROW;
+    $row[4] = '0';
+    $file = new SalaryPromotionWorkbook([$row]);
+
+    expect(app(SalaryPromotionImportService::class)->preview($file->path)['rows'][0]['no_position'])
+        ->toBe('0');
+});

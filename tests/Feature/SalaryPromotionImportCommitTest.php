@@ -57,10 +57,17 @@ function seedPromotionIdentity(): void
     ]);
 }
 
+function confirmPromotionWorkbook(SalaryPromotionWorkbook $file): array
+{
+    $service = app(SalaryPromotionImportService::class);
+
+    return $service->commit($file->path, 9, $service->preview($file->path)['baseline_hash']);
+}
+
 test('confirmed import inserts workbook salary amounts and updates both matched position fields with an audit', function () {
     seedPromotionIdentity();
     $file = new SalaryPromotionWorkbook;
-    $result = app(SalaryPromotionImportService::class)->commit($file->path, 9);
+    $result = confirmPromotionWorkbook($file);
 
     $promotion = DB::table('data_promote')->first();
     $audit = DB::table('data_promote_audits')->first();
@@ -88,15 +95,46 @@ test('matching active promotion is updated rather than duplicated', function () 
     ]);
     $file = new SalaryPromotionWorkbook;
 
-    expect(app(SalaryPromotionImportService::class)->commit($file->path, 9)['update_count'])->toBe(1)
+    expect(confirmPromotionWorkbook($file)['update_count'])->toBe(1)
         ->and(DB::table('data_promote')->count())->toBe(1)
         ->and(DB::table('data_promote')->where('id', 3)->value('sum'))->toBe('610.00')
         ->and(DB::table('data_promote_audits')->value('action'))->toBe('imported_updated');
 });
 
+test('confirmation rejects a promotion inserted after the preview was shown', function () {
+    $file = new SalaryPromotionWorkbook;
+    $service = app(SalaryPromotionImportService::class);
+    $baseline = $service->preview($file->path)['baseline_hash'];
+    DB::table('data_promote')->insert([
+        'CID' => '3650200600388', 'evaluation_date' => '2022-10-01',
+        'sum' => '700.00', 'new_salary' => '14480.00',
+    ]);
+
+    expect(fn () => $service->commit($file->path, 9, $baseline))->toThrow(ValidationException::class);
+    expect(DB::table('data_promote')->value('new_salary'))->toBe('14480.00')
+        ->and(DB::table('data_promote_audits')->count())->toBe(0);
+});
+
+test('confirmation rejects a promotion or position changed after preview', function () {
+    seedPromotionIdentity();
+    DB::table('data_promote')->insert([
+        'CID' => '3650200600388', 'evaluation_date' => '2022-10-01',
+        'sum' => '500.00', 'new_salary' => '14280.00',
+    ]);
+    $file = new SalaryPromotionWorkbook;
+    $service = app(SalaryPromotionImportService::class);
+    $baseline = $service->preview($file->path)['baseline_hash'];
+    DB::table('person')->update(['no_position' => 'ใหม่จากแอดมินอื่น']);
+
+    expect(fn () => $service->commit($file->path, 9, $baseline))->toThrow(ValidationException::class);
+    expect(DB::table('person')->value('no_position'))->toBe('ใหม่จากแอดมินอื่น')
+        ->and(DB::table('data_promote')->value('sum'))->toBe('500.00')
+        ->and(DB::table('data_promote_audits')->count())->toBe(0);
+});
+
 test('missing person and user do not block promotion import or create identities', function () {
     $file = new SalaryPromotionWorkbook;
-    $result = app(SalaryPromotionImportService::class)->commit($file->path, 9);
+    $result = confirmPromotionWorkbook($file);
 
     expect($result['unmatched_person_count'])->toBe(1)
         ->and($result['unmatched_user_count'])->toBe(1)
@@ -108,7 +146,7 @@ test('missing person and user do not block promotion import or create identities
 test('person position updates even when no user account matches', function () {
     DB::table('person')->insert(['cid' => '3650200600388', 'no_position' => 'เดิม']);
     $file = new SalaryPromotionWorkbook;
-    $result = app(SalaryPromotionImportService::class)->commit($file->path, 9);
+    $result = confirmPromotionWorkbook($file);
 
     expect($result['unmatched_person_count'])->toBe(0)
         ->and($result['unmatched_user_count'])->toBe(1)
@@ -119,7 +157,7 @@ test('person position updates even when no user account matches', function () {
 test('user position updates even when no personnel row matches', function () {
     DB::table('users')->insert(['id' => 5, 'thaid_pid' => '3650200600388', 'no_position' => 'เดิม']);
     $file = new SalaryPromotionWorkbook;
-    $result = app(SalaryPromotionImportService::class)->commit($file->path, 9);
+    $result = confirmPromotionWorkbook($file);
 
     expect($result['unmatched_person_count'])->toBe(1)
         ->and($result['unmatched_user_count'])->toBe(0)
@@ -132,7 +170,7 @@ test('blank position cell leaves both existing position values unchanged', funct
     $row = SalaryPromotionWorkbook::ROW;
     $row[4] = '';
     $file = new SalaryPromotionWorkbook([$row]);
-    app(SalaryPromotionImportService::class)->commit($file->path, 9);
+    confirmPromotionWorkbook($file);
 
     expect(DB::table('person')->value('no_position'))->toBe('เก่า-บุคลากร')
         ->and(DB::table('users')->value('no_position'))->toBe('เก่า-ผู้ใช้');
@@ -142,7 +180,7 @@ test('ambiguous user match rejects the entire file', function () {
     seedPromotionIdentity();
     DB::table('users')->insert(['id' => 6, 'thaid_pid' => '3650200600388']);
     $file = new SalaryPromotionWorkbook;
-    expect(fn () => app(SalaryPromotionImportService::class)->commit($file->path, 9))
+    expect(fn () => confirmPromotionWorkbook($file))
         ->toThrow(ValidationException::class);
     expect(DB::table('data_promote')->count())->toBe(0);
 });
@@ -150,12 +188,12 @@ test('ambiguous user match rejects the entire file', function () {
 test('newly archived target after preview rejects the entire file', function () {
     seedPromotionIdentity();
     $file = new SalaryPromotionWorkbook;
-    app(SalaryPromotionImportService::class)->preview($file->path);
+    $baseline = app(SalaryPromotionImportService::class)->preview($file->path)['baseline_hash'];
     DB::table('data_promote')->insert([
         'CID' => '3650200600388', 'evaluation_date' => '2022-10-01',
         'deleted_at' => now(),
     ]);
-    expect(fn () => app(SalaryPromotionImportService::class)->commit($file->path, 9))
+    expect(fn () => app(SalaryPromotionImportService::class)->commit($file->path, 9, $baseline))
         ->toThrow(ValidationException::class);
     expect(DB::table('person')->value('no_position'))->toBe('เก่า-บุคลากร');
 });
@@ -165,7 +203,7 @@ test('a late audit failure rolls back promotion and both position updates', func
     $file = new SalaryPromotionWorkbook;
     Schema::drop('data_promote_audits');
 
-    expect(fn () => app(SalaryPromotionImportService::class)->commit($file->path, 9))
+    expect(fn () => confirmPromotionWorkbook($file))
         ->toThrow(QueryException::class);
     expect(DB::table('data_promote')->count())->toBe(0)
         ->and(DB::table('person')->value('no_position'))->toBe('เก่า-บุคลากร')
