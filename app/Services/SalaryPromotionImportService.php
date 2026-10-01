@@ -168,6 +168,7 @@ class SalaryPromotionImportService
                 'unmatched_user_count' => 0,
             ];
             $lockedBaselines = [];
+            $identityBaselines = [];
 
             foreach ($preview['rows'] as $row) {
                 $person = null;
@@ -188,6 +189,10 @@ class SalaryPromotionImportService
                     if ($user === null) {
                         $result['unmatched_user_count']++;
                     }
+                    $identityBaselines[$row['cid']] ??= [
+                        'person' => $this->recordHash($person),
+                        'user' => $this->recordHash($user),
+                    ];
                 }
 
                 $promotionQuery = DB::table('data_promote')
@@ -197,7 +202,12 @@ class SalaryPromotionImportService
                 if ($existing?->deleted_at !== null) {
                     throw ValidationException::withMessages(['file' => 'รายการเดิมถูกยกเลิกหลังแสดงตัวอย่าง']);
                 }
-                $lockedBaselines[$row['cid'].'|'.$row['evaluation_date']] = $this->rowBaseline($existing, $person, $user);
+                $lockedBaseline = $this->rowBaseline($existing, $person, $user);
+                if (isset($identityBaselines[$row['cid']])) {
+                    $lockedBaseline['person'] = $identityBaselines[$row['cid']]['person'];
+                    $lockedBaseline['user'] = $identityBaselines[$row['cid']]['user'];
+                }
+                $lockedBaselines[$row['cid'].'|'.$row['evaluation_date']] = $lockedBaseline;
 
                 $values = [
                     'CID' => $row['cid'],

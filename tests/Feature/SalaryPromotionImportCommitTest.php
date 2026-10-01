@@ -101,6 +101,21 @@ test('matching active promotion is updated rather than duplicated', function () 
         ->and(DB::table('data_promote_audits')->value('action'))->toBe('imported_updated');
 });
 
+test('two evaluation periods for one person import without a false baseline conflict', function () {
+    seedPromotionIdentity();
+    $later = SalaryPromotionWorkbook::ROW;
+    $later[2] = '2023-04-01';
+    $file = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $later]);
+
+    $result = confirmPromotionWorkbook($file);
+
+    expect($result['insert_count'])->toBe(2)
+        ->and(DB::table('data_promote')->count())->toBe(2)
+        ->and(DB::table('person')->value('no_position'))->toBe('01พล00139')
+        ->and(DB::table('users')->value('no_position'))->toBe('01พล00139')
+        ->and(DB::table('data_promote_audits')->count())->toBe(2);
+});
+
 test('confirmation rejects a promotion inserted after the preview was shown', function () {
     $file = new SalaryPromotionWorkbook;
     $service = app(SalaryPromotionImportService::class);
