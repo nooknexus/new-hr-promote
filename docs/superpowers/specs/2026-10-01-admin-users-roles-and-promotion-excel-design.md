@@ -4,9 +4,9 @@ Date: 2026-10-01
 
 ## Objective and scope
 
-Provide an administrator-only user-management page and import existing salary-promotion Excel workbooks from `/admin/salary-promotions`. Keep OAuth-owned identity fields intact. Implement role-based access immediately; store an office code for future office-scoped authorization without claiming that office isolation exists in this release.
+Provide an administrator-only user-management page and import existing salary-promotion Excel workbooks from `/admin/salary-promotions`. Keep OAuth-owned identity fields intact. Implement role-based access immediately; store an office code for future office-scoped authorization without claiming that office isolation exists in this release. Add `person.no_position` and synchronize the workbook's position number to both existing `person` and `users` records when safely matched.
 
-This release does not create or delete user accounts, edit passwords or OAuth identifiers, update `person`, or introduce general-purpose permission tables or configurable spreadsheet mappings.
+This release does not create or delete user accounts or personnel rows, edit passwords or OAuth identifiers, change personnel fields other than `person.no_position` from the import, or introduce general-purpose permission tables or configurable spreadsheet mappings.
 
 ## Chosen approach
 
@@ -40,18 +40,20 @@ Accept `.xlsx` using the existing PhpSpreadsheet dependency. Match the supplied 
 | เงินที่ได้เลื่อน | `data_promote.sum` |
 | เงินค่าตอบแทนพิเศษ | `data_promote.extra` |
 | เงินเดือนที่ได้รับ | `data_promote.new_salary` |
-| เลขตำแหน่ง | `users.no_position`, when one existing user can be matched safely |
+| เลขตำแหน่ง | `person.no_position` by exact `person.cid`, and `users.no_position` when one existing user can be matched safely |
 
 `ชื่อ - นามสกุล` is for preview/context only. `รหัส`, `ตำแหน่ง`, and `ระดับ` have no destination in this release and are not persisted. Do not create a `person` or `users` row from spreadsheet text.
 
 Match an existing promotion by `(CID, evaluation_date)`: insert a new row or update an active row. Reject a match to an archived row rather than silently restoring it. Reject duplicate keys within the uploaded workbook. Use the imported `sum` and `new_salary` as authoritative; do not overwrite them with `before_salary + base × percent ÷ 100`. A disagreement among the workbook's financial fields appears as a preview warning, not an automatic recalculation. Apply the same numeric/range validation used by the manual form where compatible with imported historical data.
 
-For `no_position`, match the 13-digit CID exactly against `users.pid` or `users.thaid_pid`. Update only if the union of those matches identifies exactly one existing user. If there is no user match, leave `users` untouched and report the unmatched count; do not block salary import. If multiple users match, reject the workbook before committing to avoid changing the wrong account. Never infer identity from a name or the provider-specific `cid_hash`.
+Add a nullable `person.no_position` column in a reversible migration; retain the existing `users.no_position` column. A nonblank workbook position number updates an existing `person` row by exact `person.cid`. If no person exists, leave `person` untouched and report a separate unmatched-person count; do not create a personnel row.
 
-The page shows a preview of insert/update/unmatched-user counts and row-level errors, followed by an application confirmation modal. A file with validation errors cannot be confirmed. Confirming revalidates the file and applies promotion and matched-user changes in one transaction. Audit each promotion create/update and show a toast with final counts. No partial write is left if the transaction fails.
+For `users.no_position`, match the same 13-digit CID exactly against `users.pid` or `users.thaid_pid`. Update only if the union of those matches identifies exactly one existing user. If there is no user match, leave `users` untouched and report the unmatched-user count; do not block salary import. If multiple users match, reject the workbook before committing to avoid changing the wrong account. Never infer identity from a name or the provider-specific `cid_hash`. Blank position cells leave both tables' existing values unchanged.
+
+The page shows a preview of insert/update/unmatched-person/unmatched-user counts and row-level errors, followed by an application confirmation modal. A file with validation errors cannot be confirmed. Confirming revalidates the file and applies promotion, matched-person, and matched-user changes in one transaction. Write a `data_promote_audits` entry for each imported promotion, including before/after position values for matched records, actor, and action; show a toast with final counts. No partial write is left if the transaction fails.
 
 ## Verification and boundaries
 
-Use test-first feature tests for all role/route/Livewire access cases, last-admin protection, OAuth login retaining role, Excel header/number/date parsing, duplicate and archived-row handling, preview without writes, user-position matching, and transaction rollback. Verify the existing salary-promotion and personnel flows remain unchanged, then run the full PHP test suite and Vite build. Existing unrelated failures must be reported separately, not hidden.
+Use test-first feature tests for all role/route/Livewire access cases, last-admin protection, OAuth login retaining role, Excel header/number/date parsing, duplicate and archived-row handling, preview without writes, independent person/user position matching (including absent and ambiguous matches), blank-position preservation, and transaction rollback. Verify the existing salary-promotion and personnel flows remain unchanged, then run the full PHP test suite and Vite build. Existing unrelated failures must be reported separately, not hidden.
 
 Do not run the importer against production or the local `providerid` data during development verification; use isolated test databases and synthetic workbooks. Applying the schema migration to a real database is a separate deployment step after review.
