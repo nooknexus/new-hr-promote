@@ -6,6 +6,10 @@ class TaxCertificateTxtImportService
 {
     private const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
+    private const MAX_PREVIEW_ROWS = 1000;
+
+    private const MAX_ERROR_DIAGNOSTICS = 100;
+
     /** @var array<string, string> */
     private const INCOME_TYPE_NAMES = [
         '1' => 'ภ.ง.ด.1ก',
@@ -89,29 +93,44 @@ class TaxCertificateTxtImportService
             return $result;
         }
 
+        $encoding = $this->detectSourceEncoding($stream);
+
+        if ($encoding === null) {
+            fclose($stream);
+            $result['errors'][] = 'ไม่สามารถตรวจสอบรหัสอักขระของไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
+        if ($encoding === 'TIS-620' && @stream_filter_append($stream, 'convert.iconv.TIS-620/UTF-8', STREAM_FILTER_READ) === false) {
+            fclose($stream);
+            $result['errors'][] = 'ไม่สามารถแปลงรหัสอักขระของไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
         $line = 0;
 
         try {
-            while (($fields = fgetcsv($stream, null, '$')) !== false) {
+            while (($fields = fgetcsv($stream, null, '$', '"', '\\')) !== false) {
                 $line++;
 
                 if ($this->isEmptyRow($fields)) {
                     continue;
                 }
 
-                $result['read']++;
-                $fields = $this->decodeFields($fields);
+                if ($result['read'] >= self::MAX_PREVIEW_ROWS) {
+                    $this->appendPreviewLimitError($result);
 
-                if ($fields === null) {
-                    $result['skipped']++;
-                    $result['errors'][] = 'บรรทัด '.$line.': รูปแบบข้อความไม่รองรับ';
-
-                    continue;
+                    break;
                 }
+
+                $result['read']++;
+                $fields = $this->normaliseFields($fields);
 
                 if (count($fields) !== 20) {
                     $result['skipped']++;
-                    $result['errors'][] = $this->error($line, $fields[4] ?? '', 'ต้องมีข้อมูล 20 คอลัมน์');
+                    $this->appendRowError($result, $this->error($line, $fields[4] ?? '', 'ต้องมีข้อมูล 20 คอลัมน์'));
 
                     continue;
                 }
@@ -120,7 +139,7 @@ class TaxCertificateTxtImportService
 
                 if ($reason !== null) {
                     $result['skipped']++;
-                    $result['errors'][] = $this->error($line, $fields[4], $reason);
+                    $this->appendRowError($result, $this->error($line, $fields[4], $reason));
 
                     continue;
                 }
@@ -133,6 +152,22 @@ class TaxCertificateTxtImportService
         }
 
         return $result;
+    }
+
+    /** @param array<string, mixed> $result */
+    private function appendRowError(array &$result, string $error): void
+    {
+        if (count($result['errors']) < self::MAX_ERROR_DIAGNOSTICS - 1) {
+            $result['errors'][] = $error;
+        }
+    }
+
+    /** @param array<string, mixed> $result */
+    private function appendPreviewLimitError(array &$result): void
+    {
+        if (count($result['errors']) < self::MAX_ERROR_DIAGNOSTICS) {
+            $result['errors'][] = 'ไฟล์มีข้อมูลเกิน '.self::MAX_PREVIEW_ROWS.' แถว จึงแสดงผลตัวอย่างได้เท่านี้';
+        }
     }
 
     /** @param array<int, string|null> $fields */
@@ -148,32 +183,55 @@ class TaxCertificateTxtImportService
     }
 
     /**
-     * @param array<int, string|null> $fields
-     * @return array<int, string>|null
+     * @param resource $stream
      */
-    private function decodeFields(array $fields): ?array
+    private function detectSourceEncoding($stream): ?string
     {
-        $decoded = [];
+        $contents = stream_get_contents($stream);
+
+        if ($contents === false || ! rewind($stream)) {
+            return null;
+        }
+
+        if (str_starts_with($contents, "\xEF\xBB\xBF") || ! mb_check_encoding($contents, 'UTF-8')) {
+            return str_starts_with($contents, "\xEF\xBB\xBF") ? 'UTF-8' : 'TIS-620';
+        }
+
+        if ($this->containsThai($contents)) {
+            return 'UTF-8';
+        }
+
+        $tis620 = @iconv('TIS-620', 'UTF-8', $contents);
+
+        if ($tis620 !== false && $this->containsThai($tis620)) {
+            return 'TIS-620';
+        }
+
+        return 'UTF-8';
+    }
+
+    private function containsThai(string $value): bool
+    {
+        return preg_match('/[\x{0E00}-\x{0E7F}]/u', $value) === 1;
+    }
+
+    /**
+     * @param array<int, string|null> $fields
+     * @return array<int, string>
+     */
+    private function normaliseFields(array $fields): array
+    {
+        $normalised = [];
 
         foreach ($fields as $field) {
-            $value = (string) $field;
-
-            if (! mb_check_encoding($value, 'UTF-8')) {
-                $value = @iconv('TIS-620', 'UTF-8', $value);
-
-                if ($value === false) {
-                    return null;
-                }
-            }
-
-            $decoded[] = trim($value);
+            $normalised[] = trim((string) $field);
         }
 
-        if (isset($decoded[0])) {
-            $decoded[0] = preg_replace('/^\xEF\xBB\xBF/', '', $decoded[0]) ?? $decoded[0];
+        if (isset($normalised[0])) {
+            $normalised[0] = preg_replace('/^\xEF\xBB\xBF/', '', $normalised[0]) ?? $normalised[0];
         }
 
-        return $decoded;
+        return $normalised;
     }
 
     /** @param array<int, string> $fields */
@@ -289,6 +347,10 @@ class TaxCertificateTxtImportService
 
         if ($cid === '') {
             return 'ไม่ระบุ';
+        }
+
+        if (! ctype_digit($cid)) {
+            return str_repeat('*', 13);
         }
 
         if (strlen($cid) <= 4) {

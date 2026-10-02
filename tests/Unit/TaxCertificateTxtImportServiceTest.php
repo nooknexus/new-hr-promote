@@ -128,6 +128,52 @@ test('it previews a TIS-620 central-government tax certificate row with mapped d
     }
 });
 
+// Production break caught: treating the valid-UTF-8 byte pair C2 A1 as UTF-8 corrupts the TIS-620 Thai word it represents.
+test('it detects an otherwise-ambiguous TIS-620 record before parsing its CSV fields', function () {
+    $record = taxCertificateTxtRecord([
+        1 => 'ยก',
+        3 => 'Payer address',
+        6 => 'Recipient',
+        7 => 'Recipient address',
+        15 => 'tax text',
+    ]);
+    $tis620Record = iconv('UTF-8', 'TIS-620', $record);
+
+    expect($tis620Record)->not->toBeFalse()
+        ->and(bin2hex($tis620Record))->toContain('c2a1');
+
+    $path = taxCertificateTxtFile($tis620Record."\n");
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path);
+
+        expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []])
+            ->and($result['rows'][0]['department_name'])->toBe('ยก');
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+});
+
+// Production break caught: converting native UTF-8 text as TIS-620 corrupts Thai payer and recipient details.
+test('it preserves a native UTF-8 record while detecting ambiguous TIS-620 records', function () {
+    $path = taxCertificateTxtFile(taxCertificateTxtRecord([
+        1 => 'ยก',
+        3 => 'Payer address',
+        6 => 'Recipient',
+        7 => 'Recipient address',
+        15 => 'tax text',
+    ])."\n");
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path);
+
+        expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []])
+            ->and($result['rows'][0]['department_name'])->toBe('ยก');
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+});
+
 // Production break caught: treating fixed-width zero amounts as money creates false withholding, fund, or income values.
 test('it represents empty and zero fixed-width amounts as null', function () {
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([
@@ -195,6 +241,27 @@ test('it skips a row whose CID is not exactly thirteen digits without exposing t
     }
 });
 
+// Production break caught: byte-based masking can split a multibyte malformed CID and make the preview error impossible to JSON encode.
+test('it returns a JSON-encodable masked error for a non-ASCII CID', function () {
+    $rawCid = 'กขคง';
+    $path = taxCertificateTxtFile(taxCertificateTxtRecord([4 => $rawCid])."\n");
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path);
+
+        expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
+
+        $error = implode("\n", $result['errors']);
+
+        expect($error)->toContain('CID:')
+            ->toMatch('/\\*{2,}/')
+            ->not->toContain($rawCid)
+            ->and(json_encode($result, JSON_THROW_ON_ERROR))->toBeString();
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+});
+
 // Production break caught: accepting a calendar-invalid Buddhist-era date produces a certificate with a false issue date.
 test('it skips a row with an invalid Buddhist-era issue date', function () {
     $rawCid = '0000000000000';
@@ -239,6 +306,47 @@ test('it skips a row with an unmapped certificate code', function (int $field, s
     }
 })->with('unmapped tax-certificate codes');
 
+dataset('authorized legacy tax-certificate mappings', [
+    'income type 1' => [9, '1', 'income_type_id', 'income_type_name', 'ภ.ง.ด.1ก'],
+    'income type 2' => [9, '2', 'income_type_id', 'income_type_name', 'ภ.ง.ด.1ก พิเศษ'],
+    'income type 3' => [9, '3', 'income_type_id', 'income_type_name', 'ภ.ง.ด.2'],
+    'income type 4' => [9, '4', 'income_type_id', 'income_type_name', 'ภ.ง.ด.3'],
+    'income type 5' => [9, '5', 'income_type_id', 'income_type_name', 'ภ.ง.ด.2ก'],
+    'income type 6' => [9, '6', 'income_type_id', 'income_type_name', 'ภ.ง.ด.3ก'],
+    'income type 7' => [9, '7', 'income_type_id', 'income_type_name', 'ภ.ง.ด.53'],
+    'fund 1' => [16, '1', 'outcomeType', 'outcomeName', 'กบข.'],
+    'fund 2' => [16, '2', 'outcomeType', 'outcomeName', 'กสจ.'],
+    'payment method 1' => [18, '1', 'tax_type_id', 'tax_type_name', 'หัก ณ ที่จ่าย'],
+    'payment method 2' => [18, '2', 'tax_type_id', 'tax_type_name', 'ออกให้ตลอดไป'],
+    'payment method 3' => [18, '3', 'tax_type_id', 'tax_type_name', 'ออกให้ครั้งเดียว'],
+    'payment method 4' => [18, '4', 'tax_type_id', 'tax_type_name', 'อื่นๆ'],
+]);
+
+// Production break caught: an incomplete or changed legacy code map would silently render the wrong certificate form, fund, or payment method.
+test('it maps every authorized legacy tax-certificate code to its exact output field and label', function (int $field, string $code, string $idField, string $labelField, string $label) {
+    $path = taxCertificateTxtFile(taxCertificateTxtRecord([$field => $code])."\n");
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path);
+
+        expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []]);
+
+        $row = $result['rows'][0];
+
+        expect($row)
+            ->toHaveKey('income_type_id')
+            ->toHaveKey('income_type_name')
+            ->toHaveKey('outcomeType')
+            ->toHaveKey('outcomeName')
+            ->toHaveKey('tax_type_id')
+            ->toHaveKey('tax_type_name')
+            ->and($row[$idField])->toBe($code)
+            ->and($row[$labelField])->toBe($label);
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+})->with('authorized legacy tax-certificate mappings');
+
 // Production break caught: accepting a non-TXT upload bypasses the format boundary the parser is designed to validate.
 test('it rejects a file without a TXT extension before parsing it', function () {
     $path = taxCertificateTxtFile(taxCertificateTxtRecord()."\n", 'csv');
@@ -272,6 +380,24 @@ test('it rejects a TXT file larger than five megabytes before parsing it', funct
             'skipped' => 0,
         ])
             ->and(implode("\n", $result['errors']))->toContain('5 MB');
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+});
+
+// Production break caught: accumulating one row error per short invalid line can exhaust memory before the five-megabyte file limit is reached.
+test('it bounds preview rows and diagnostics for many short invalid TXT lines', function () {
+    $path = taxCertificateTxtFile(str_repeat(taxCertificateTxtRecord([4 => '123'])."\n", 1100));
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path);
+
+        expect($result['rows'])->toBe([])
+            ->and($result['valid'])->toBe(0)
+            ->and($result['read'])->toBeLessThanOrEqual(1000)
+            ->and($result['skipped'])->toBeLessThanOrEqual(1000)
+            ->and($result['errors'])->toHaveCount(100)
+            ->and(implode("\n", $result['errors']))->toContain('1000');
     } finally {
         removeTaxCertificateTxtFile($path);
     }
