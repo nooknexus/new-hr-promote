@@ -263,56 +263,48 @@ class TaxCertificateManagement extends Component
         $validated = $this->validate($this->rules());
         $values = $this->normaliseForm($validated);
 
-        if ($this->editingCid !== null) {
-            abort_unless($this->editingIncomeYear !== null, 404);
+        try {
+            if ($this->editingCid !== null) {
+                abort_unless($this->editingIncomeYear !== null, 404);
 
-            if ($values['cid'] !== $this->editingCid || $values['income_year'] !== $this->editingIncomeYear) {
-                $this->addError('cid', 'ไม่สามารถเปลี่ยนเลขประจำตัวประชาชนหรือปีภาษีของรายการเดิมได้');
+                if ($values['cid'] !== $this->editingCid || $values['income_year'] !== $this->editingIncomeYear) {
+                    $this->addError('cid', 'ไม่สามารถเปลี่ยนเลขประจำตัวประชาชนหรือปีภาษีของรายการเดิมได้');
 
-                return;
-            }
+                    return;
+                }
 
-            $existing = DB::table('data_tax')
-                ->where('cid', $this->editingCid)
-                ->where('income_year', $this->editingIncomeYear)
-                ->first();
-            abort_unless($existing, 404);
+                $existing = DB::table('data_tax')
+                    ->where('cid', $this->editingCid)
+                    ->where('income_year', $this->editingIncomeYear)
+                    ->first();
+                abort_unless($existing, 404);
 
-            $updateValues = $values;
-            unset($updateValues['cid'], $updateValues['income_year']);
-            DB::table('data_tax')
-                ->where('cid', $this->editingCid)
-                ->where('income_year', $this->editingIncomeYear)
-                ->update($updateValues);
-            $message = 'ปรับปรุงใบรับรองภาษีแล้ว';
-        } else {
-            $exists = DB::table('data_tax')
-                ->where('cid', $values['cid'])
-                ->where('income_year', $values['income_year'])
-                ->exists();
-
-            if ($exists) {
-                $this->addError('income_year', 'มีใบรับรองภาษีของบุคลากรและปีภาษีนี้แล้ว');
-
-                return;
-            }
-
-            try {
-                DB::table('data_tax')->insert($values);
-            } catch (QueryException $exception) {
-                if (DB::table('data_tax')
+                $updateValues = $values;
+                unset($updateValues['cid'], $updateValues['income_year']);
+                DB::table('data_tax')
+                    ->where('cid', $this->editingCid)
+                    ->where('income_year', $this->editingIncomeYear)
+                    ->update($updateValues);
+                $message = 'ปรับปรุงใบรับรองภาษีแล้ว';
+            } else {
+                $exists = DB::table('data_tax')
                     ->where('cid', $values['cid'])
                     ->where('income_year', $values['income_year'])
-                    ->exists()) {
+                    ->exists();
+
+                if ($exists) {
                     $this->addError('income_year', 'มีใบรับรองภาษีของบุคลากรและปีภาษีนี้แล้ว');
 
                     return;
                 }
 
-                throw $exception;
+                DB::table('data_tax')->insert($values);
+                $message = 'เพิ่มใบรับรองภาษีแล้ว';
             }
+        } catch (QueryException) {
+            $this->addError('form', 'ไม่สามารถบันทึกใบรับรองภาษีได้ กรุณาลองใหม่อีกครั้ง');
 
-            $message = 'เพิ่มใบรับรองภาษีแล้ว';
+            return;
         }
 
         $this->resetForm();
@@ -340,6 +332,7 @@ class TaxCertificateManagement extends Component
             $this->pendingDeletionIncomeYear = $this->editingIncomeYear;
         }
 
+        $this->dispatch('tax-certificate-form-closed');
         $this->dispatch('tax-certificate-delete-confirm-opened');
     }
 
@@ -348,14 +341,21 @@ class TaxCertificateManagement extends Component
         $this->ensureAuthorized();
         abort_unless($this->pendingDeletionCid !== null && $this->pendingDeletionIncomeYear !== null, 404);
 
-        $deleted = DB::table('data_tax')
-            ->where('cid', $this->pendingDeletionCid)
-            ->where('income_year', $this->pendingDeletionIncomeYear)
-            ->delete();
+        try {
+            $deleted = DB::table('data_tax')
+                ->where('cid', $this->pendingDeletionCid)
+                ->where('income_year', $this->pendingDeletionIncomeYear)
+                ->delete();
+        } catch (QueryException) {
+            $this->addError('delete', 'ไม่สามารถลบใบรับรองภาษีได้ กรุณาลองใหม่อีกครั้ง');
+
+            return;
+        }
         abort_unless($deleted === 1, 404);
 
         $this->resetForm();
         $this->clearPendingDeletion();
+        $this->dispatch('tax-certificate-form-closed');
         $this->dispatch('tax-certificate-delete-confirm-closed');
         $this->dispatch('tax-certificate-deleted', message: 'ลบใบรับรองภาษีแล้ว');
     }
@@ -538,7 +538,7 @@ class TaxCertificateManagement extends Component
         ];
 
         foreach (self::MONEY_FIELDS as $field) {
-            $rules[$field] = ['nullable', 'numeric', 'min:0', 'max:9999999999999.99'];
+            $rules[$field] = ['nullable', 'numeric', 'decimal:0,2', 'min:0', 'max:9999999999999.99'];
         }
 
         return $rules;

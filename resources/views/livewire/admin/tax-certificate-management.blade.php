@@ -183,6 +183,7 @@
                 </div>
                 <form wire:submit="save">
                     <div class="modal-body space-y-6">
+                        @error('form')<p role="alert" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ $message }}</p>@enderror
                         <fieldset>
                             <legend class="text-sm font-bold text-brand-700">ผู้จ่ายเงิน</legend>
                             <div class="mt-3 grid gap-4 sm:grid-cols-2">
@@ -309,7 +310,7 @@
                     <div class="modal-footer">
                         <button type="button" wire:click="closeModal" data-modal-close class="btn btn-secondary">ยกเลิก</button>
                         @if($editingCid)
-                            <button type="button" wire:click="confirmDelete" onclick="window.portalModal.show('taxCertificateDeleteModal')" class="btn bg-rose-600 text-white hover:bg-rose-700">ลบรายการ</button>
+                            <button type="button" wire:click="confirmDelete" onclick="window.portalModal.hide(document.getElementById('taxCertificateFormModal')); window.portalModal.show('taxCertificateDeleteModal')" class="btn bg-rose-600 text-white hover:bg-rose-700">ลบรายการ</button>
                         @endif
                         <button type="submit" wire:loading.attr="disabled" wire:target="save" class="btn btn-primary">
                             <i wire:loading wire:target="save" class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>บันทึก</span>
@@ -328,6 +329,7 @@
             </div>
             <div class="modal-body">
                 <p class="text-sm leading-6 text-slate-700">ยืนยันการลบใบรับรองของ CID {{ $pendingDeletionCid }} ปีภาษี {{ $pendingDeletionIncomeYear }} หรือไม่? การลบนี้ไม่สามารถกู้คืนจากหน้านี้ได้</p>
+                @error('delete')<p role="alert" class="mt-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">{{ $message }}</p>@enderror
             </div>
             <div class="modal-footer">
                 <button type="button" wire:click="closeModal" data-modal-close class="btn btn-secondary">ยกเลิก</button>

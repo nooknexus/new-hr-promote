@@ -210,6 +210,69 @@ test('manual certificate validation rejects malformed cid tax year and money val
     expect(DB::table('data_tax')->count())->toBe(0);
 });
 
+// Production break caught: an insert query fault must not escape with SQL and bound certificate data; the operator receives only a generic save error.
+test('manual certificate insert failures return a generic component error', function () {
+    DB::unprepared("\n        CREATE TRIGGER reject_tax_certificate_insert\n        BEFORE INSERT ON data_tax\n        BEGIN\n            SELECT RAISE(ABORT, 'tax-certificate-insert-fault');\n        END;\n    ");
+
+    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+        ->test(TaxCertificateManagement::class)
+        ->call('openCreateModal');
+
+    foreach (taxManagementRecord() as $field => $value) {
+        if (! in_array($field, ['income_type_name', 'outcomeName', 'tax_type_name', 'r_update'], true)) {
+            $component->set($field, (string) $value);
+        }
+    }
+
+    $component->call('save')
+        ->assertHasErrors('form')
+        ->assertSee('ไม่สามารถบันทึกใบรับรองภาษีได้')
+        ->assertDontSee('tax-certificate-insert-fault');
+
+    expect(DB::table('data_tax')->count())->toBe(0);
+});
+
+// Production break caught: a delete query fault must not escape with SQL and bound certificate data; the operator receives only a generic delete error.
+test('tax certificate delete failures return a generic component error', function () {
+    DB::table('data_tax')->insert(taxManagementRecord());
+    DB::unprepared("\n        CREATE TRIGGER reject_tax_certificate_delete\n        BEFORE DELETE ON data_tax\n        BEGIN\n            SELECT RAISE(ABORT, 'tax-certificate-delete-fault');\n        END;\n    ");
+
+    Livewire::actingAs(taxManagementActor('FINANCE'))
+        ->test(TaxCertificateManagement::class)
+        ->call('confirmDelete', '1234567890123', 2567)
+        ->call('delete')
+        ->assertHasErrors('delete')
+        ->assertSee('ไม่สามารถลบใบรับรองภาษีได้')
+        ->assertDontSee('tax-certificate-delete-fault');
+
+    expect(DB::table('data_tax')->where('cid', '1234567890123')->where('income_year', 2567)->exists())->toBeTrue();
+});
+
+// Production break caught: accepting a third fractional digit rounds or truncates a tax amount after validation instead of rejecting the invalid source value.
+test('manual certificate rejects more than two fractional digits for every monetary input', function (string $field, string $cid) {
+    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+        ->test(TaxCertificateManagement::class)
+        ->call('openCreateModal');
+
+    foreach (taxManagementRecord(['cid' => $cid]) as $recordField => $value) {
+        if (! in_array($recordField, ['income_type_name', 'outcomeName', 'tax_type_name', 'r_update'], true)) {
+            $component->set($recordField, (string) $value);
+        }
+    }
+
+    $component->set($field, '0.009')
+        ->call('save')
+        ->assertHasErrors($field);
+
+    expect(DB::table('data_tax')->where('cid', $cid)->exists())->toBeFalse();
+})->with([
+    'income amount' => ['income_money', '1111111111111'],
+    'withholding tax' => ['withholding_tax', '2222222222222'],
+    'total amount' => ['total_money', '3333333333333'],
+    'tax total' => ['sumTaxAmount', '4444444444444'],
+    'fund amount' => ['outcomeAmount', '5555555555555'],
+]);
+
 // Production break caught: reading a legacy table whose physical column is CID must still load the record for an edit action that receives the canonical lowercase identity.
 test('edit normalizes the legacy uppercase CID column name', function () {
     Schema::dropIfExists('data_tax');
@@ -345,6 +408,46 @@ test('changing the selected import encoding after preview requires a new preview
         ->assertSet('importPreviewReady', false);
 
     expect(DB::table('data_tax')->count())->toBe(0);
+});
+
+// Production break caught: opening delete confirmation from the edit form leaves both dialogs active instead of replacing the form with a single confirmation dialog.
+test('the edit delete control replaces the form modal with the delete confirmation', function () {
+    DB::table('data_tax')->insert(taxManagementRecord());
+
+    Livewire::actingAs(taxManagementActor('FINANCE'))
+        ->test(TaxCertificateManagement::class)
+        ->call('edit', '1234567890123', 2567)
+        ->assertSeeHtml("wire:click=\"confirmDelete\" onclick=\"window.portalModal.hide(document.getElementById('taxCertificateFormModal')); window.portalModal.show('taxCertificateDeleteModal')\"");
+});
+
+// Production break caught: a successful delete can leave either the edit or confirmation dialog open when its close events do not precede the toast event.
+test('delete confirmation and success close every tax certificate dialog before the toast', function () {
+    DB::table('data_tax')->insert(taxManagementRecord());
+
+    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+        ->test(TaxCertificateManagement::class)
+        ->call('edit', '1234567890123', 2567)
+        ->call('confirmDelete')
+        ->assertDispatched('tax-certificate-form-closed')
+        ->assertDispatched('tax-certificate-delete-confirm-opened');
+
+    expect(array_column($component->effects['dispatches'], 'name'))->toBe([
+        'tax-certificate-form-closed',
+        'tax-certificate-delete-confirm-opened',
+    ]);
+
+    $component->call('delete')
+        ->assertHasNoErrors()
+        ->assertDispatched('tax-certificate-form-closed')
+        ->assertDispatched('tax-certificate-delete-confirm-closed')
+        ->assertDispatched('tax-certificate-deleted');
+
+    expect(array_column($component->effects['dispatches'], 'name'))->toBe([
+        'tax-certificate-form-closed',
+        'tax-certificate-delete-confirm-closed',
+        'tax-certificate-deleted',
+    ])->and(DB::table('data_tax')->where('cid', '1234567890123')->where('income_year', 2567)->exists())
+        ->toBeFalse();
 });
 
 // Production break caught: omitting portal-modal close and toast handlers leaves successful mutations invisible or traps the user in the dialog.
