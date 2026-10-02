@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\DB;
+use Throwable;
+
 class TaxCertificateTxtImportService
 {
     private const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -9,6 +12,8 @@ class TaxCertificateTxtImportService
     private const MAX_PREVIEW_ROWS = 1000;
 
     private const MAX_ERROR_DIAGNOSTICS = 100;
+
+    private const UPSERT_CHUNK_SIZE = 200;
 
     /** @var array<string, string> */
     private const INCOME_TYPE_NAMES = [
@@ -157,10 +162,215 @@ class TaxCertificateTxtImportService
         return $result;
     }
 
+    /**
+     * @return array{read: int, inserted: int, updated: int, skipped: int, failed: int, errors: array<int, string>}
+     */
+    public function commit(string $path, string $encoding = 'tis-620'): array
+    {
+        $result = [
+            'read' => 0,
+            'inserted' => 0,
+            'updated' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+            'errors' => [],
+        ];
+
+        $sourceEncoding = match (strtolower(trim($encoding))) {
+            'tis-620' => 'TIS-620',
+            'utf-8' => 'UTF-8',
+            default => null,
+        };
+
+        if ($sourceEncoding === null) {
+            $result['errors'][] = 'ไม่รองรับรหัสอักขระของไฟล์นำเข้า';
+
+            return $result;
+        }
+
+        if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'txt') {
+            $result['errors'][] = 'รองรับเฉพาะไฟล์ .txt';
+
+            return $result;
+        }
+
+        clearstatcache(true, $path);
+
+        if (! is_file($path) || ! is_readable($path)) {
+            $result['errors'][] = 'ไม่สามารถอ่านไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
+        $size = filesize($path);
+
+        if ($size === false) {
+            $result['errors'][] = 'ไม่สามารถตรวจสอบขนาดไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
+        if ($size > self::MAX_FILE_BYTES) {
+            $result['errors'][] = 'ไฟล์มีขนาดเกิน 5 MB';
+
+            return $result;
+        }
+
+        $stream = @fopen($path, 'rb');
+
+        if ($stream === false) {
+            $result['errors'][] = 'ไม่สามารถอ่านไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
+        if ($sourceEncoding === 'TIS-620' && @stream_filter_append($stream, 'convert.iconv.TIS-620/UTF-8', STREAM_FILTER_READ) === false) {
+            fclose($stream);
+            $result['errors'][] = 'ไม่สามารถแปลงรหัสอักขระของไฟล์นำเข้าได้';
+
+            return $result;
+        }
+
+        $acceptedRows = 0;
+
+        try {
+            DB::transaction(function () use ($stream, &$result, &$acceptedRows): void {
+                $chunk = [];
+                $seenKeys = [];
+                $line = 0;
+
+                try {
+                    while (($fields = fgetcsv($stream, null, '$', '"', '\\')) !== false) {
+                        $line++;
+
+                        if ($this->isEmptyRow($fields)) {
+                            continue;
+                        }
+
+                        $result['read']++;
+                        $fields = $this->normaliseFields($fields);
+
+                        if (count($fields) !== 20) {
+                            $result['skipped']++;
+                            $this->appendRowError($result, $this->error($line, $fields[4] ?? '', 'ต้องมีข้อมูล 20 คอลัมน์'));
+
+                            continue;
+                        }
+
+                        $reason = $this->validationError($fields);
+
+                        if ($reason !== null) {
+                            $result['skipped']++;
+                            $this->appendRowError($result, $this->error($line, $fields[4], $reason));
+
+                            continue;
+                        }
+
+                        $row = $this->mapRow($fields, $line);
+                        $key = $row['cid'].'|'.$row['income_year'];
+
+                        if (isset($seenKeys[$key])) {
+                            $result['skipped']++;
+                            $this->appendRowError($result, $this->error($line, $row['cid'], 'พบข้อมูลซ้ำสำหรับ CID และปีภาษีในไฟล์นำเข้า'));
+
+                            continue;
+                        }
+
+                        $seenKeys[$key] = true;
+                        unset($row['line']);
+                        $row['r_update'] = now();
+                        $chunk[] = $row;
+                        $acceptedRows++;
+
+                        if (count($chunk) === self::UPSERT_CHUNK_SIZE) {
+                            $this->upsertChunk($chunk, $result);
+                            $chunk = [];
+                        }
+                    }
+
+                    if ($chunk !== []) {
+                        $this->upsertChunk($chunk, $result);
+                    }
+                } finally {
+                    fclose($stream);
+                }
+            });
+        } catch (Throwable) {
+            $result['failed'] = $acceptedRows;
+            $result['inserted'] = 0;
+            $result['updated'] = 0;
+            $this->appendCommitError($result, 'ไม่สามารถบันทึกข้อมูลภาษีได้');
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param  array<int, array<string, int|string|\DateTimeInterface|null>>  $rows
+     * @param  array<string, mixed>  $result
+     */
+    private function upsertChunk(array $rows, array &$result): void
+    {
+        $existingKeys = DB::table('data_tax')
+            ->select(['cid as import_cid', 'income_year as import_income_year'])
+            ->where(function ($query) use ($rows): void {
+                foreach ($rows as $row) {
+                    $query->orWhere(function ($query) use ($row): void {
+                        $query->where('cid', $row['cid'])
+                            ->where('income_year', $row['income_year']);
+                    });
+                }
+            })
+            ->get()
+            ->mapWithKeys(fn (object $row): array => [$row->import_cid.'|'.$row->import_income_year => true])
+            ->all();
+
+        foreach ($rows as $row) {
+            if (isset($existingKeys[$row['cid'].'|'.$row['income_year']])) {
+                $result['updated']++;
+            } else {
+                $result['inserted']++;
+            }
+        }
+
+        DB::table('data_tax')->upsert($rows, ['cid', 'income_year'], [
+            'running_code1',
+            'department_name',
+            'department_tax_id',
+            'department_addr',
+            'tax_id',
+            'fullname',
+            'addr',
+            'running_code2',
+            'income_type_id',
+            'income_type_name',
+            'income_money',
+            'withholding_tax',
+            'total_money',
+            'sumTaxAmount',
+            'sumTaxText',
+            'outcomeType',
+            'outcomeName',
+            'outcomeAmount',
+            'tax_type_id',
+            'tax_type_name',
+            'date_report',
+            'r_update',
+        ]);
+    }
+
     /** @param array<string, mixed> $result */
     private function appendRowError(array &$result, string $error): void
     {
         if (count($result['errors']) < self::MAX_ERROR_DIAGNOSTICS - 1) {
+            $result['errors'][] = $error;
+        }
+    }
+
+    /** @param array<string, mixed> $result */
+    private function appendCommitError(array &$result, string $error): void
+    {
+        if (count($result['errors']) < self::MAX_ERROR_DIAGNOSTICS) {
             $result['errors'][] = $error;
         }
     }
@@ -186,7 +396,7 @@ class TaxCertificateTxtImportService
     }
 
     /**
-     * @param array<int, string|null> $fields
+     * @param  array<int, string|null>  $fields
      * @return array<int, string>
      */
     private function normaliseFields(array $fields): array
@@ -259,7 +469,7 @@ class TaxCertificateTxtImportService
     }
 
     /**
-     * @param array<int, string> $fields
+     * @param  array<int, string>  $fields
      * @return array<string, int|string|null>
      */
     private function mapRow(array $fields, int $line): array
