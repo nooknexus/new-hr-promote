@@ -47,7 +47,7 @@ class TaxCertificateTxtImportService
     /**
      * @return array{rows: array<int, array<string, int|string|null>>, errors: array<int, string>, read: int, valid: int, skipped: int}
      */
-    public function preview(string $path): array
+    public function preview(string $path, string $encoding = 'tis-620'): array
     {
         $result = [
             'rows' => [],
@@ -56,6 +56,18 @@ class TaxCertificateTxtImportService
             'valid' => 0,
             'skipped' => 0,
         ];
+
+        $sourceEncoding = match (strtolower(trim($encoding))) {
+            'tis-620' => 'TIS-620',
+            'utf-8' => 'UTF-8',
+            default => null,
+        };
+
+        if ($sourceEncoding === null) {
+            $result['errors'][] = 'ไม่รองรับรหัสอักขระของไฟล์นำเข้า';
+
+            return $result;
+        }
 
         if (strtolower(pathinfo($path, PATHINFO_EXTENSION)) !== 'txt') {
             $result['errors'][] = 'รองรับเฉพาะไฟล์ .txt';
@@ -93,16 +105,7 @@ class TaxCertificateTxtImportService
             return $result;
         }
 
-        $encoding = $this->detectSourceEncoding($stream);
-
-        if ($encoding === null) {
-            fclose($stream);
-            $result['errors'][] = 'ไม่สามารถตรวจสอบรหัสอักขระของไฟล์นำเข้าได้';
-
-            return $result;
-        }
-
-        if ($encoding === 'TIS-620' && @stream_filter_append($stream, 'convert.iconv.TIS-620/UTF-8', STREAM_FILTER_READ) === false) {
+        if ($sourceEncoding === 'TIS-620' && @stream_filter_append($stream, 'convert.iconv.TIS-620/UTF-8', STREAM_FILTER_READ) === false) {
             fclose($stream);
             $result['errors'][] = 'ไม่สามารถแปลงรหัสอักขระของไฟล์นำเข้าได้';
 
@@ -180,39 +183,6 @@ class TaxCertificateTxtImportService
         }
 
         return true;
-    }
-
-    /**
-     * @param resource $stream
-     */
-    private function detectSourceEncoding($stream): ?string
-    {
-        $contents = stream_get_contents($stream);
-
-        if ($contents === false || ! rewind($stream)) {
-            return null;
-        }
-
-        if (str_starts_with($contents, "\xEF\xBB\xBF") || ! mb_check_encoding($contents, 'UTF-8')) {
-            return str_starts_with($contents, "\xEF\xBB\xBF") ? 'UTF-8' : 'TIS-620';
-        }
-
-        if ($this->containsThai($contents)) {
-            return 'UTF-8';
-        }
-
-        $tis620 = @iconv('TIS-620', 'UTF-8', $contents);
-
-        if ($tis620 !== false && $this->containsThai($tis620)) {
-            return 'TIS-620';
-        }
-
-        return 'UTF-8';
-    }
-
-    private function containsThai(string $value): bool
-    {
-        return preg_match('/[\x{0E00}-\x{0E7F}]/u', $value) === 1;
     }
 
     /**

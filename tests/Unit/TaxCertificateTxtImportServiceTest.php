@@ -128,8 +128,8 @@ test('it previews a TIS-620 central-government tax certificate row with mapped d
     }
 });
 
-// Production break caught: treating the valid-UTF-8 byte pair C2 A1 as UTF-8 corrupts the TIS-620 Thai word it represents.
-test('it detects an otherwise-ambiguous TIS-620 record before parsing its CSV fields', function () {
+// Production break caught: treating the valid-UTF-8 byte pair C2 A1 as UTF-8 corrupts the legacy TIS-620 Thai word it represents by default.
+test('it defaults an otherwise-ambiguous TIS-620 record to legacy TIS-620 before parsing its CSV fields', function () {
     $record = taxCertificateTxtRecord([
         1 => 'ยก',
         3 => 'Payer address',
@@ -154,10 +154,10 @@ test('it detects an otherwise-ambiguous TIS-620 record before parsing its CSV fi
     }
 });
 
-// Production break caught: converting native UTF-8 text as TIS-620 corrupts Thai payer and recipient details.
-test('it preserves a native UTF-8 record while detecting ambiguous TIS-620 records', function () {
+// Production break caught: interpreting explicitly selected native UTF-8 C2 A1 bytes as TIS-620 changes the payer name from ¡ to ยก.
+test('it preserves a native UTF-8 C2 A1 character only when UTF-8 is explicit', function () {
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([
-        1 => 'ยก',
+        1 => '¡',
         3 => 'Payer address',
         6 => 'Recipient',
         7 => 'Recipient address',
@@ -165,10 +165,31 @@ test('it preserves a native UTF-8 record while detecting ambiguous TIS-620 recor
     ])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'UTF-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []])
-            ->and($result['rows'][0]['department_name'])->toBe('ยก');
+            ->and($result['rows'][0]['department_name'])->toBe('¡');
+    } finally {
+        removeTaxCertificateTxtFile($path);
+    }
+});
+
+// Production break caught: accepting an unspecified encoding can silently choose a decoder and expose data from a malformed upload.
+test('it rejects an unsupported encoding without exposing certificate identifiers', function () {
+    $rawCid = '0000000000000';
+    $path = taxCertificateTxtFile(taxCertificateTxtRecord([4 => $rawCid])."\n");
+
+    try {
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'windows-874');
+
+        expect($result)->toMatchArray([
+            'rows' => [],
+            'read' => 0,
+            'valid' => 0,
+            'skipped' => 0,
+        ])
+            ->and(implode("\n", $result['errors']))->toContain('รหัสอักขระ')
+            ->not->toContain($rawCid);
     } finally {
         removeTaxCertificateTxtFile($path);
     }
@@ -185,7 +206,7 @@ test('it represents empty and zero fixed-width amounts as null', function () {
     ])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []])
             ->and($result['rows'][0])
@@ -209,7 +230,7 @@ test('it skips a row that does not contain all twenty TXT columns', function () 
     $path = taxCertificateTxtFile(implode('$', $fields)."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
 
@@ -228,7 +249,7 @@ test('it skips a row whose CID is not exactly thirteen digits without exposing t
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([4 => $rawCid])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
 
@@ -247,7 +268,7 @@ test('it returns a JSON-encodable masked error for a non-ASCII CID', function ()
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([4 => $rawCid])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
 
@@ -268,7 +289,7 @@ test('it skips a row with an invalid Buddhist-era issue date', function () {
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([19 => '31022567'])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
 
@@ -293,7 +314,7 @@ test('it skips a row with an unmapped certificate code', function (int $field, s
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([$field => $code])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 0, 'skipped' => 1, 'rows' => []]);
 
@@ -327,7 +348,7 @@ test('it maps every authorized legacy tax-certificate code to its exact output f
     $path = taxCertificateTxtFile(taxCertificateTxtRecord([$field => $code])."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []]);
 
@@ -352,7 +373,7 @@ test('it rejects a file without a TXT extension before parsing it', function () 
     $path = taxCertificateTxtFile(taxCertificateTxtRecord()."\n", 'csv');
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray([
             'rows' => [],
@@ -371,7 +392,7 @@ test('it rejects a TXT file larger than five megabytes before parsing it', funct
     $path = taxCertificateTxtFile(str_repeat('0', (5 * 1024 * 1024) + 1));
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray([
             'rows' => [],
@@ -390,7 +411,7 @@ test('it bounds preview rows and diagnostics for many short invalid TXT lines', 
     $path = taxCertificateTxtFile(str_repeat(taxCertificateTxtRecord([4 => '123'])."\n", 1100));
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result['rows'])->toBe([])
             ->and($result['valid'])->toBe(0)
@@ -413,7 +434,7 @@ test('it previews a valid TXT row without inserting a tax record', function () {
     $path = taxCertificateTxtFile(taxCertificateTxtRecord()."\n");
 
     try {
-        $result = (new TaxCertificateTxtImportService)->preview($path);
+        $result = (new TaxCertificateTxtImportService)->preview($path, 'utf-8');
 
         expect($result)->toMatchArray(['read' => 1, 'valid' => 1, 'skipped' => 0, 'errors' => []])
             ->and(DB::table('data_tax')->count())->toBe(0);
