@@ -9,17 +9,7 @@
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">ข้อมูลส่วนตัว</h6>
                     <div class="btn-group">
-                        <button class="btn btn-info mr-2" wire:click="updateFromThaID" wire:loading.attr="disabled" wire:target="updateFromThaID">
-                            <i class="fas fa-sync-alt mr-1"></i>
-                            <span wire:loading.remove wire:target="updateFromThaID">อัพเดทข้อมูลจาก ThaID</span>
-                            <span wire:loading wire:target="updateFromThaID">กำลังอัพเดท...</span>
-                        </button>
-                        <button class="btn btn-success mr-2" wire:click="updateFromProviderID" wire:loading.attr="disabled" wire:target="updateFromProviderID">
-                            <i class="fas fa-sync-alt mr-1"></i>
-                            <span wire:loading.remove wire:target="updateFromProviderID">อัพเดทข้อมูลจาก Provider ID</span>
-                            <span wire:loading wire:target="updateFromProviderID">กำลังอัพเดท...</span>
-                        </button>
-                        <a href="{{ route('profile.edit', auth()->user()->id) }}" class="btn btn-warning" wire:navigate>แก้ไข</a>
+                        <button type="button" wire:click="openEdit" wire:loading.attr="disabled" wire:target="openEdit" class="btn btn-warning">แก้ไข</button>
                     </div>
                 </div>
                 <div class="card-body">
@@ -108,26 +98,71 @@
 
         </div>
     </div>
+    <div class="modal" id="profileEditModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="profile-edit-title" class="text-lg font-bold text-slate-900">แก้ไขข้อมูลส่วนตัว</h2>
+                    <button type="button" wire:click="closeEdit" data-modal-close aria-label="ปิดหน้าต่าง"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </div>
+                <form wire:submit="saveProfile">
+                    <div class="modal-body space-y-4">
+                        @php($profileInputClass = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100')
+                        <div>
+                            <label for="profile-edit-name" class="block text-sm font-semibold text-slate-700">ชื่อ-สกุล <span class="text-rose-600">*</span></label>
+                            <input id="profile-edit-name" type="text" wire:model="editName" autocomplete="name" maxlength="255" required class="{{ $profileInputClass }}">
+                            @error('editName')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="profile-edit-name-en" class="block text-sm font-semibold text-slate-700">ชื่อ-สกุล ภาษาอังกฤษ</label>
+                            <input id="profile-edit-name-en" type="text" wire:model="editNameEn" maxlength="255" class="{{ $profileInputClass }}">
+                            @error('editNameEn')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="profile-edit-email" class="block text-sm font-semibold text-slate-700">อีเมล <span class="text-rose-600">*</span></label>
+                            <input id="profile-edit-email" type="email" wire:model="editEmail" autocomplete="email" maxlength="255" required class="{{ $profileInputClass }}">
+                            @error('editEmail')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="profile-edit-address" class="block text-sm font-semibold text-slate-700">ที่อยู่ตามบัตรประชาชน</label>
+                            <textarea id="profile-edit-address" wire:model="editAddress" autocomplete="street-address" rows="3" maxlength="5000" class="{{ $profileInputClass }}"></textarea>
+                            @error('editAddress')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" wire:click="closeEdit" data-modal-close class="btn btn-secondary">ยกเลิก</button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="saveProfile" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="modal" id="profileEditNoticeModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profile-edit-notice-title" aria-describedby="profile-edit-notice-message" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="profile-edit-notice-title" class="text-lg font-bold text-slate-900">การแก้ไขข้อมูลส่วนตัว</h2>
+                    <button type="button" data-modal-close aria-label="ปิดข้อความ"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </div>
+                <div class="modal-body">
+                    <p id="profile-edit-notice-message" class="text-sm leading-7 text-slate-700">การแก้ไขนี้มีผลเฉพาะครั้งนี้เท่านั้น เมื่อท่านเข้าสู่ระบบใหม่ ข้อมูลจะถูกแทนที่ด้วยข้อมูลจากแอพฯภาครัฐ ให้ท่านอัพเดทข้อมูลจากต้นทางให้เป็นปัจจุบัน</p>
+                </div>
+                <div class="modal-footer justify-end">
+                    <button type="button" data-modal-close class="btn btn-primary">รับทราบ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 @script
     <script>
-        $wire.on('profile-updated', (source) => {
-            Swal.fire({
-                position: "top-end",
-                icon: "success",
-                title: `อัพเดทข้อมูลจาก ${source} สำเร็จ`,
-                showConfirmButton: false,
-                timer: 1500
-            });
-        });
-
-        $wire.on('profile-update-error', (message) => {
-            Swal.fire({
-                icon: "error",
-                title: "เกิดข้อผิดพลาด",
-                text: message,
-            });
+        $wire.on('profile-edit-opened', () => window.portalModal.show('profileEditModal'));
+        $wire.on('profile-saved', ({ message }) => {
+            window.portalModal.hide(document.getElementById('profileEditModal'));
+            window.portalToast.show(message);
+            window.portalModal.show('profileEditNoticeModal');
         });
     </script>
 @endscript

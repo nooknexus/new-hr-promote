@@ -2,11 +2,10 @@
 
 namespace App\Livewire\Provider;
 
-use App\Models\User;
 use App\Services\ProviderOAuthState;
+use App\Services\SsoUserProvisioner;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 
@@ -16,148 +15,126 @@ class Callback extends Component
     {
         try {
             if (! ProviderOAuthState::consume(session()->driver(), request()->string('state')->toString())) {
-                return $this->redirectRoute('login', navigate: true);
+                return $this->deny();
             }
 
-            // Get credentials from config - ensure these are set in .env file
-            $clientId = config('services.provider.healthid_client_id');
-            $clientSecret = config('services.provider.healthid_secret_key');
+            $healthClientId = config('services.provider.healthid_client_id');
+            $healthSecret = config('services.provider.healthid_secret_key');
             $providerClientId = config('services.provider.provider_client_id');
-            $secretKey = config('services.provider.provider_secret_key');
-            
-            // Validate that all required credentials are present
-            if (empty($clientId) || empty($clientSecret) || empty($providerClientId) || empty($secretKey)) {
-                throw new \Exception('Provider credentials not configured. Please check your .env file.');
+            $providerSecret = config('services.provider.provider_secret_key');
+
+            if (! filled($healthClientId) || ! filled($healthSecret)
+                || ! filled($providerClientId) || ! filled($providerSecret)) {
+                throw new \RuntimeException('ProviderID configuration is incomplete.');
             }
-            
-            // Log configuration values for debugging
-            Log::info('Provider ID authentication attempt', [
-                'client_id_from_config' => config('services.provider.client_id'),
-                'using_client_id' => $clientId,
-                'redirect_uri' => route('provider.callback')
-            ]);
-            
-            // Health ID token request
-            $response = Http::asForm()->post('https://moph.id.th/api/v1/token', [
+
+            $healthResponse = Http::post('https://moph.id.th/api/v1/token', [
                 'grant_type' => 'authorization_code',
-                'code' => request()->code,
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
+                'code' => request()->string('code')->toString(),
+                'client_id' => $healthClientId,
+                'client_secret' => $healthSecret,
                 'redirect_uri' => route('provider.callback'),
             ]);
-            
-            if (!$response->successful() || !isset($response->json()['data']['access_token'])) {
-                throw new \Exception('Failed to get access token from Health ID. Response: ' . $response->body());
+            $healthAccessToken = $this->healthAccessToken($healthResponse->json());
+            $healthClaims = $healthAccessToken === null ? null : $this->decodeJwtPayload($healthAccessToken);
+            $cid = data_get($healthClaims, 'scopes_detail.id_card');
+
+            if (! $healthResponse->successful() || ! is_string($cid) || ! preg_match('/^\d{13}$/', $cid)) {
+                return $this->deny();
             }
-            
-            // Provider ID token request
-            $provider = Http::post('https://provider.id.th/api/v1/services/token', [
+
+            $providerResponse = Http::post('https://provider.id.th/api/v1/services/token', [
                 'client_id' => $providerClientId,
-                'secret_key' => $secretKey,
-                'token_by' => "Health ID",
-                'token' => $response->json()['data']['access_token'],
+                'secret_key' => $providerSecret,
+                'token_by' => 'Health ID',
+                'token' => $healthAccessToken,
             ]);
-            
-            if (!$provider->successful() || !isset($provider->json()['data']['access_token'])) {
-                throw new \Exception('Failed to get access token from Provider ID. Response: ' . $provider->body());
+            $providerAccessToken = $providerResponse->json('data.access_token');
+            if (! $providerResponse->successful() || ! is_string($providerAccessToken) || $providerAccessToken === '') {
+                throw new \RuntimeException('ProviderID token exchange failed.');
             }
-            
-            // Get provider profile
-            $profile = Http::withHeaders([
+
+            $profileResponse = Http::withHeaders([
                 'Content-type' => 'application/json',
-                'Authorization' => 'Bearer ' . $provider->json()['data']['access_token'],
+                'Authorization' => 'Bearer '.$providerAccessToken,
                 'client-id' => $providerClientId,
-                'secret-key' => $secretKey,
+                'secret-key' => $providerSecret,
             ])->get('https://provider.id.th/api/v1/services/profile');
-
-            // Get the hash_cid from provider response
-            $hash_cid = $profile->json()['data']['hash_cid'] ?? null;
-            
-            if (empty($hash_cid)) {
-                throw new \Exception('Missing hash_cid from Provider ID');
-            }
-            
-            // First, check if user exists by cid_hash (highest priority for linking accounts)
-            $user = User::where('cid_hash', $hash_cid)->first();
-            
-            // If no user found by cid_hash, check other identifiers
-            if (!$user) {
-                $providerId = $profile->json()['data']['provider_id'] ?? null;
-                $accountId = $profile->json()['data']['account_id'] ?? null;
-
-                if (filled($providerId)) {
-                    $user = User::where('provider_id', $providerId)->first();
-                }
-
-                if (!$user && filled($accountId)) {
-                    $user = User::where('account_id', $accountId)->first();
-                }
+            $profile = $profileResponse->json('data');
+            if (! $profileResponse->successful() || ! is_array($profile)) {
+                throw new \RuntimeException('ProviderID profile lookup failed.');
             }
 
-            if ($user) {
-                // User exists, update their info
-                Log::info('Updating existing user with Provider ID data', ['user_id' => $user->id]);
-                
-                // Create update data array
-                $updateData = [
-                    'name_en' => $profile->json()['data']['name_eng'] ?? $user->name_en,
-                    'email' => $profile->json()['data']['email'] ?? $user->email,
-                    'cid_hash' => $hash_cid, // Ensure cid_hash is updated
-                    'account_id' => $profile->json()['data']['account_id'] ?? $user->account_id,
-                    'provider_id' => $profile->json()['data']['provider_id'] ?? $user->provider_id,
-                    'hcode' => $profile->json()['data']['organization'][0]['hcode'] ?? $user->hcode,
-                    'hname' => $profile->json()['data']['organization'][0]['hname_th'] ?? $user->hname,
-                ];
-                
-                // Only update name if title_th is available
-                $titleTh = $profile->json()['data']['title_th'] ?? null;
-                if (!empty($titleTh)) {
-                    $nameTh = $profile->json()['data']['name_th'] ?? '';
-                    $updateData['name'] = $titleTh . ' ' . $nameTh;
-                }
-                
-                $user->update($updateData);
-
-                // Login the user
-                Auth::login($user);
-                
-                // Add login success message to display SweetAlert
-                session()->flash('login_success', 'ยินดีต้อนรับ ' . $user->name . ' เข้าสู่ระบบ');
-                
-                // Also dispatch a Livewire event for the alert
-                $this->dispatch('login-success', 'ยินดีต้อนรับ ' . $user->name . ' เข้าสู่ระบบ');
-                
-                // Redirect to home page
-                return $this->redirectRoute('home', navigate: true);
-            } else {
-                // User doesn't exist, store data in session for registration
-                $titleTh = $profile->json()['data']['title_th'] ?? null;
-                $nameTh = $profile->json()['data']['name_th'] ?? '';
-                
-                Session::put('provider_data', [
-                    'account_id' => $profile->json()['data']['account_id'],
-                    'hash_cid' => $hash_cid,
-                    'provider_id' => $profile->json()['data']['provider_id'],
-                    'name_th' => !empty($titleTh) ? $titleTh . ' ' . $nameTh : $nameTh,
-                    'name_eng' => $profile->json()['data']['name_eng'] ?? null,
-                    'email' => $profile->json()['data']['email'],
-                    'hcode' => $profile->json()['data']['organization'][0]['hcode'] ?? null,
-                    'hname' => $profile->json()['data']['organization'][0]['hname_th'] ?? null,
-                    'title_th' => $titleTh, // Store title separately in case needed
-                ]);
-
-                // Set error flag to show registration modal
-                session()->flash('provider_error', 'ไม่พบบัญชีผู้ใช้ในระบบ กรุณาลงทะเบียนบัญชีก่อนใช้งาน');
-                return $this->redirectRoute('login', navigate: true);
-            }
-        } catch (\Throwable $th) {
-            Log::error('Provider ID authentication error', [
-                'message' => $th->getMessage(),
-                'trace' => $th->getTraceAsString()
+            $name = trim(implode(' ', array_filter([
+                data_get($profile, 'title_th'),
+                data_get($profile, 'name_th'),
+            ])));
+            $user = app(SsoUserProvisioner::class)->provision($cid, [
+                'name' => $name,
+                'name_en' => data_get($profile, 'name_eng'),
+                'email' => data_get($profile, 'email'),
+                'provider_id' => data_get($profile, 'provider_id') ?? data_get($healthClaims, 'sub'),
+                'hcode' => data_get($profile, 'organization.0.hcode'),
+                'hname' => data_get($profile, 'organization.0.hname_th'),
             ]);
-            session()->flash('error', 'เกิดข้อผิดพลาด: ' . $th->getMessage());
-            return $this->redirectRoute('login', navigate: true);
+
+            if ($user === null) {
+                return $this->deny();
+            }
+
+            Auth::login($user);
+            request()->session()->regenerate();
+            session()->flash('login_success', 'ยินดีต้อนรับ '.$user->name.' เข้าสู่ระบบ');
+
+            return $this->redirectRoute('home', navigate: true);
+        } catch (\Throwable $exception) {
+            // Never log OAuth responses, tokens, or identity attributes.
+            Log::warning('ProviderID authentication failed.', [
+                'exception' => $exception::class,
+            ]);
+
+            return $this->deny('เกิดข้อผิดพลาดในการเชื่อมต่อกับ ProviderID');
         }
+    }
+
+    /**
+     * Provider documentation has used both data.access_token and data.data.access_token.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function healthAccessToken(array $payload): ?string
+    {
+        $accessToken = data_get($payload, 'data.data.access_token') ?? data_get($payload, 'data.access_token');
+
+        return is_string($accessToken) && $accessToken !== '' ? $accessToken : null;
+    }
+
+    /** @return array<string, mixed>|null */
+    private function decodeJwtPayload(string $token): ?array
+    {
+        $parts = explode('.', $token);
+        if (count($parts) !== 3) {
+            return null;
+        }
+
+        $payload = strtr($parts[1], '-_', '+/');
+        $payload .= str_repeat('=', (4 - strlen($payload) % 4) % 4);
+        $decoded = base64_decode($payload, true);
+        if ($decoded === false) {
+            return null;
+        }
+
+        $claims = json_decode($decoded, true);
+
+        return is_array($claims) ? $claims : null;
+    }
+
+    private function deny(string $message = 'ไม่พบสิทธิ์เข้าใช้งานระบบ'): mixed
+    {
+        session()->forget('provider_data');
+        session()->flash('provider_error', $message);
+
+        return $this->redirectRoute('login', navigate: true);
     }
 
     public function render()

@@ -4,12 +4,20 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\Title;
-use App\Models\User;
+use App\Models\PayslipSignatory;
+use App\Services\TaxCertificatePdfService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Locked;
 
 class TaxCertificate extends Component
 {
+    #[Locked]
+    public array $years = [];
+
+    #[Locked]
+    public ?int $selectedYear = null;
+
     public $availableCertificates = [];
     public $selectedCertificate = null;
     public $selectedIndex = null;
@@ -19,7 +27,20 @@ class TaxCertificate extends Component
     
     public function mount()
     {
-        $this->loadAvailableCertificates();
+        $pid = Auth::user()->pid ?? null;
+
+        if (!$pid) {
+            return;
+        }
+
+        $this->years = DB::table('data_tax')
+            ->where('CID', $pid)
+            ->distinct()
+            ->orderByDesc('income_year')
+            ->pluck('income_year')
+            ->map(static fn ($year): int => (int) $year)
+            ->values()
+            ->all();
     }
     
     // Helper function to format Thai dates from "ddmmyyyy" to "dd month yyyy"
@@ -54,15 +75,34 @@ class TaxCertificate extends Component
         return "$day $monthName $year";
     }
     
-    public function loadAvailableCertificates()
+    public function selectYear(int $year): void
     {
+        if (!in_array($year, $this->years, true)) {
+            return;
+        }
+
+        $this->selectedYear = $year;
+        $this->selectedCertificate = null;
+        $this->selectedIndex = null;
+        $this->previewCertificate = null;
+        $this->previewIndex = null;
+        $this->loadCertificatesForYear();
+    }
+
+    private function loadCertificatesForYear(): void
+    {
+        $this->availableCertificates = [];
+
+        if (!$this->selectedYear) {
+            return;
+        }
+
         $this->isLoading = true;
-        
+
         try {
             $user = Auth::user();
-            $pid = $user->pid ?? ''; // Get user's personal ID
-            
-            // Fetch data from database using the provided SQL query with ORDER BY income_year DESC
+            $pid = $user->pid ?? '';
+
             $taxRecords = DB::select("
                 SELECT
                     income_year AS 'ปีภาษี',
@@ -76,15 +116,13 @@ class TaxCertificate extends Component
                     r_update 
                 FROM
                     data_tax 
-                WHERE CID = ?
-                ORDER BY income_year DESC
-            ", [$pid]);
-            
-            $this->availableCertificates = [];
+                WHERE CID = ? AND income_year = ?
+                ORDER BY income_year DESC, running_code1 DESC
+            ", [$pid, $this->selectedYear]);
             
             // Process the data
             foreach ($taxRecords as $record) {
-                $formattedDate = $this->formatThaiDate($record->date_report);
+                $formattedDate = $this->formatThaiDate($record->date_report ?? '');
                 
                 // Initialize fund values
                 $gpfAmount = 0;
@@ -142,7 +180,26 @@ class TaxCertificate extends Component
     public function previewDocument($index)
     {
         if (isset($this->availableCertificates[$index])) {
-            $this->previewCertificate = $this->availableCertificates[$index];
+            $certificate = $this->availableCertificates[$index];
+            $pid = Auth::user()?->pid;
+
+            if (! $pid) {
+                return;
+            }
+
+            $record = DB::table('data_tax')
+                ->where('CID', $pid)
+                ->where('income_year', $certificate['taxYear'])
+                ->where('running_code1', $certificate['certificateNo'])
+                ->first();
+
+            if (! $record) {
+                return;
+            }
+
+            $signatory = PayslipSignatory::forTaxIncomeYear((int) $record->income_year);
+            $this->previewCertificate = TaxCertificatePdfService::fromTaxRecord($record);
+            $this->previewCertificate['signatureDataUri'] = $signatory?->signature_data_uri;
             $this->previewIndex = $index;
         }
     }
@@ -156,16 +213,6 @@ class TaxCertificate extends Component
     public function printDocument()
     {
         $this->dispatch('print-document');
-    }
-    
-    public function downloadPDFFile($index)
-    {
-        if (isset($this->availableCertificates[$index])) {
-            // For now just show a notification - in a real app you would generate a PDF
-            $this->dispatch('show-pdf-download-message', [
-                'year' => $this->availableCertificates[$index]['taxYear']
-            ]);
-        }
     }
     
     #[Title('ใบรับรองการหักภาษี')]

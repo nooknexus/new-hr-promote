@@ -1,4 +1,4 @@
-<div>
+<div class="dashboard space-y-6">
     <!-- Dashboard Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">Dashboard</h1>
@@ -15,10 +15,10 @@
                 </div>
                 <!-- Card Body -->
                 <div class="card-body">
-                    <div class="row justify-content-center"> <!-- Added row and justify-content-center -->
+                    <div class="dashboard-metrics"> <!-- Added row and justify-content-center -->
                         <!-- เงินเดือนปัจจุบัน Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2"> <!-- Reduced width by changing from col-xl-3 to col-xl-2 and added margin (mx-2) -->
-                            <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card border-left-primary shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -36,7 +36,7 @@
 
                         <!-- เงินเพิ่มพิเศษ Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2"> <!-- Reduced width and added margin -->
-                            <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card border-left-success shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -54,7 +54,7 @@
 
                         <!-- เงินที่หัก Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2"> <!-- Reduced width and added margin -->
-                            <div class="card border-left-info shadow h-100 py-2">
+                            <div class="card border-left-info shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -73,7 +73,7 @@
 
                         <!-- รายรับสุทธิ Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2"> <!-- Reduced width and added margin -->
-                            <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card border-left-warning shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -104,10 +104,10 @@
                 </div>
                 <!-- Card Body -->
                 <div class="card-body">
-                    <div class="row justify-content-center">
+                    <div class="dashboard-metrics dashboard-metrics--tax">
                         <!-- เงินได้ทั้งสิ้น Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2">
-                            <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card border-left-primary shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -125,7 +125,7 @@
 
                         <!-- ภาษีที่ถูกหัก Card -->
                         <div class="col-xl-2 col-md-5 mb-4 mx-2">
-                            <div class="card border-left-danger shadow h-100 py-2">
+                            <div class="card border-left-danger shadow py-2">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
@@ -145,9 +145,42 @@
             </div>
         </div>
     </div>
+
+    @php
+        $leaveSummary = $currentFiscalLeaveSummary ?? [
+            'fiscal_year' => null,
+            'total_days' => 0.0,
+            'totals' => ['ลาพักผ่อน' => 0.0, 'ลาป่วย' => 0.0, 'ลากิจ' => 0.0],
+        ];
+        $formatLeaveDays = static fn (float $days): string => rtrim(rtrim(number_format($days, 2), '0'), '.');
+    @endphp
+    <section class="card shadow" data-dashboard-current-leave>
+        <div class="card-header py-3">
+            <h2 class="m-0 text-sm font-bold text-brand-600">ประวัติวันลาปี {{ $leaveSummary['fiscal_year'] ?? 'ปัจจุบัน' }}</h2>
+        </div>
+        <div class="card-body grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            @foreach([
+                ['ลาพักผ่อน', 'fa-umbrella-beach', 'border-emerald-200 bg-emerald-50 text-emerald-800'],
+                ['ลาป่วย', 'fa-notes-medical', 'border-sky-200 bg-sky-50 text-sky-800'],
+                ['ลากิจ', 'fa-briefcase', 'border-violet-200 bg-violet-50 text-violet-800'],
+            ] as [$type, $icon, $style])
+                <div class="rounded-xl border p-4 {{ $style }}">
+                    <div class="flex items-start justify-between gap-3">
+                        <p class="text-sm font-semibold">{{ $type }}</p>
+                        <i class="fas {{ $icon }} text-lg opacity-70" aria-hidden="true"></i>
+                    </div>
+                    <p class="mt-4 text-2xl font-bold tabular-nums">{{ $formatLeaveDays((float) ($leaveSummary['totals'][$type] ?? 0)) }} <span class="text-sm font-medium">วัน</span></p>
+                </div>
+            @endforeach
+            <div class="rounded-xl border border-brand-200 bg-brand-50 p-4 text-brand-800">
+                <div class="flex items-start justify-between gap-3"><p class="text-sm font-semibold">รวมวันลา</p><i class="fas fa-calendar-check text-lg opacity-70" aria-hidden="true"></i></div>
+                <p class="mt-4 text-2xl font-bold tabular-nums">{{ $formatLeaveDays((float) $leaveSummary['total_days']) }} <span class="text-sm font-medium">วัน</span></p>
+            </div>
+        </div>
+    </section>
     
     <!-- Content Row for Charts -->
-    <div class="row">
+    <div class="dashboard-charts">
         <!-- Area Chart -->
         <div class="col-xl-8 col-lg-7">
             <div class="card shadow mb-4"  style="height: 450px;">
@@ -380,8 +413,8 @@
     </div>
 
     <!-- Salary Promotion History Chart -->
-    <div class="row">
-        <div class="col-12">
+    <div class="dashboard-promotion-chart">
+        <div class="dashboard-promotion-panel">
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                     <h6 class="m-0 font-weight-bold text-primary">ประวัติร้อยละการเลื่อนขั้นเงินเดือน</h6>

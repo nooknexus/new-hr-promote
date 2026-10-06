@@ -1,11 +1,340 @@
 @import 'tailwindcss';
+@import '../assets/vendor/fontawesome-free/css/all.min.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'THSarabunNew';
+    src: url('/fonts/THSarabunNew-BoldItalic.ttf') format('truetype');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Bai Jamjuree', Tahoma, ui-sans-serif, system-ui, sans-serif;
+    --color-brand-50: #eefaf7;
+    --color-brand-100: #d7f2ea;
+    --color-brand-500: #07834c;
+    --color-brand-600: #056b3e;
+    --color-brand-700: #045534;
+    --animate-progress-indeterminate: progress-indeterminate 1.2s ease-in-out infinite;
+
+    @keyframes progress-indeterminate {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(300%); }
+    }
+}
+
+@layer base {
+    body { @apply min-h-screen bg-slate-50 font-sans text-slate-700 antialiased; }
+    button, a, input, select, textarea { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2; }
+}
+
+@layer components {
+    .app-shell { @apply min-h-screen lg:grid lg:grid-cols-[17rem_1fr]; }
+    .app-sidebar { @apply fixed inset-y-0 start-0 z-50 flex w-72 -translate-x-full flex-col bg-brand-700 px-4 py-5 text-white shadow-2xl transition-transform lg:static lg:w-auto lg:translate-x-0 lg:shadow-none; }
+    html[data-mobile-menu-open='true'] .app-sidebar { @apply translate-x-0; }
+    .mobile-menu-backdrop { @apply fixed inset-0 z-40 hidden bg-slate-950/45 lg:hidden; }
+    html[data-mobile-menu-open='true'] .mobile-menu-backdrop { @apply block; }
+    .app-nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-50 hover:bg-white/15 hover:text-white; }
+    .app-nav-link.is-active { @apply bg-white text-brand-700 shadow-sm; }
+    .app-main { @apply min-w-0; }
+    .app-topbar { @apply sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-8; }
+    .page-content { @apply mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-8; }
+    .card { @apply overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm; }
+    .card-header { @apply border-b border-slate-100 bg-white px-5 py-4; }
+    .card-body { @apply p-5; }
+    .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition hover:-translate-y-px disabled:pointer-events-none disabled:opacity-60; }
+    .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700; }
+    .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+    .btn-info { @apply bg-sky-600 text-white hover:bg-sky-700; }
+    .btn-warning { @apply bg-amber-400 text-slate-900 hover:bg-amber-500; }
+    .btn-secondary { @apply bg-slate-100 text-slate-700 hover:bg-slate-200; }
+    .btn-light { @apply bg-white text-slate-600 hover:bg-slate-100; }
+    .form-control, .custom-select { @apply block w-full rounded-xl border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500; }
+    .alert { @apply rounded-xl border px-4 py-3 text-sm; }
+    .alert-danger { @apply border-rose-200 bg-rose-50 text-rose-800; }
+    .alert-success { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
+    .alert-info { @apply border-sky-200 bg-sky-50 text-sky-800; }
+    .badge { @apply inline-flex rounded-full px-2.5 py-1 text-xs font-semibold; }
+    .table-responsive { @apply overflow-x-auto rounded-xl border border-slate-200; }
+    .table { @apply min-w-full divide-y divide-slate-200 text-sm; }
+    .table th { @apply whitespace-nowrap bg-slate-50 px-4 py-3 text-start text-xs font-semibold uppercase tracking-wide text-slate-500; }
+    .table td { @apply px-4 py-3 align-middle; }
+    .table tbody tr { @apply border-b border-slate-100 hover:bg-slate-50/80; }
+    .modal { @apply fixed inset-0 z-50 hidden overflow-y-auto bg-slate-950/50 p-4; }
+    .modal.show { @apply block; }
+    .modal-dialog { @apply mx-auto flex min-h-full max-w-lg items-center; }
+    .modal-dialog.modal-lg { @apply max-w-3xl; }
+    .modal-dialog.modal-xl { @apply max-w-6xl; }
+    .modal-content { @apply my-8 w-full overflow-hidden rounded-2xl bg-white shadow-2xl; }
+    .modal-header, .modal-footer { @apply flex items-center justify-between gap-3 px-5 py-4; }
+    .modal-header { @apply border-b border-slate-200; }
+    .modal-footer { @apply border-t border-slate-200; }
+    .modal-body { @apply p-5; }
+    .close { @apply rounded-lg p-2 text-xl leading-none text-slate-500 hover:bg-slate-100; }
+    .shadow, .shadow-lg, .shadow-sm { @apply shadow-sm; }
+    .text-primary { @apply text-brand-600; }
+    .text-success { @apply text-emerald-600; }
+    .text-danger { @apply text-rose-600; }
+    .text-gray-800 { @apply text-slate-800; }
+    .text-gray-600, .text-muted { @apply text-slate-500; }
+
+    /* Compatibility layer while Livewire views are progressively moved from Bootstrap markup. */
+    .container { @apply mx-auto w-full max-w-7xl px-4 sm:px-6; }
+    .row { @apply flex flex-wrap -mx-2; }
+    .row > [class*='col-'] { @apply px-2; }
+    .col { @apply min-w-0 flex-1; }
+    .col-auto { @apply w-auto flex-none; }
+    .col-sm-6 { @apply w-full sm:w-1/2; }
+    .col-sm-12 { @apply w-full sm:w-full; }
+    .col-md-5 { @apply w-full md:w-5/12; }
+    .col-md-6 { @apply w-full md:w-1/2; }
+    .col-md-8 { @apply w-full md:w-2/3; }
+    .col-lg-3 { @apply w-full lg:w-1/4; }
+    .col-lg-5 { @apply w-full lg:w-5/12; }
+    .col-lg-6 { @apply w-full lg:w-1/2; }
+    .col-lg-7 { @apply w-full lg:w-7/12; }
+    .col-lg-9 { @apply w-full lg:w-3/4; }
+    .col-lg-12, .col-lg-14 { @apply w-full lg:w-full; }
+    .col-xl-2 { @apply w-full xl:w-1/6; }
+    .col-xl-3 { @apply w-full xl:w-1/4; }
+    .col-xl-4 { @apply w-full xl:w-1/3; }
+    .col-xl-8 { @apply w-full xl:w-2/3; }
+    .col-xl-10 { @apply w-full xl:w-10/12; }
+    .col-xl-12 { @apply w-full xl:w-full; }
+    .d-flex { @apply flex; }
+    .d-none { @apply hidden; }
+    .d-lg-block { @apply lg:block; }
+    .d-sm-flex { @apply sm:flex; }
+    .flex-column { @apply flex-col; }
+    .flex-row { @apply flex-row; }
+    .align-items-center { @apply items-center; }
+    .justify-content-center { @apply justify-center; }
+    .justify-content-between { @apply justify-between; }
+    .text-left { @apply text-left; }
+    .text-right { @apply text-right; }
+    .font-weight-bold, .fw-bold { @apply font-bold; }
+    .h3 { @apply text-2xl font-bold tracking-tight; }
+    .h4 { @apply text-xl font-bold; }
+    .h5 { @apply text-lg font-semibold; }
+    .h6 { @apply text-sm font-semibold; }
+    .small { @apply text-sm; }
+    .text-xs { @apply text-xs; }
+    .text-uppercase { @apply uppercase tracking-wide; }
+    .border-left-primary { @apply border-s-4 border-brand-500; }
+    .border-left-success { @apply border-s-4 border-emerald-500; }
+    .border-left-info { @apply border-s-4 border-sky-500; }
+    .border-left-warning { @apply border-s-4 border-amber-400; }
+    .border-left-danger { @apply border-s-4 border-rose-500; }
+    .list-group { @apply overflow-hidden rounded-xl border border-slate-200; }
+    .list-group-item { @apply block w-full border-b border-slate-200 px-4 py-3 text-start text-sm font-medium last:border-b-0 hover:bg-brand-50; }
+    .list-group-item.active { @apply bg-brand-600 text-white; }
+    .btn-block { @apply w-full; }
+    .btn-user { @apply min-h-14; }
+    .btn-user img { @apply h-10 w-auto max-w-12 object-contain; }
+    .btn-sm { @apply rounded-lg px-3 py-1.5 text-xs; }
+    .form-group { @apply mb-4; }
+    .form-group > label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+
+    .dashboard > .row { @apply gap-y-6; }
+    .dashboard .card-header { @apply flex items-center justify-between bg-slate-50/80; }
+    .dashboard .border-left-primary,
+    .dashboard .border-left-success,
+    .dashboard .border-left-info,
+    .dashboard .border-left-warning,
+    .dashboard .border-left-danger { @apply rounded-xl bg-white; }
+    .dashboard .card-body > .row.justify-content-center { @apply gap-y-4; }
+    .dashboard canvas { @apply max-h-80; }
+    .dashboard-metrics { @apply grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4; }
+    .dashboard-metrics > [class*='col-'] { @apply m-0 w-auto px-0; }
+    .dashboard-metrics--tax { @apply xl:mx-auto xl:max-w-2xl xl:grid-cols-2; }
+    .dashboard-charts { @apply grid grid-cols-1 gap-6 xl:grid-cols-3; }
+    .dashboard-charts > [class*='col-'] { @apply m-0 w-auto px-0; }
+    .dashboard-charts > :first-child { @apply xl:col-span-2; }
+    .dashboard-promotion-chart { @apply grid grid-cols-1; }
+    .dashboard-promotion-chart > [class*='col-'] { @apply m-0 w-auto px-0; }
+    .dashboard-promotion-panel { @apply min-w-0; }
+
+    /* The payslip modal intentionally renders the same Bootstrap-era document
+       geometry as /payslip/print-view. Keep these rules scoped so app UI
+       primitives do not change the document being reviewed before download. */
+    .payslip-preview-stage { @apply flex w-full justify-center overflow-auto bg-slate-100 p-3; }
+    .pdf-preview {
+        flex: 0 0 210mm;
+        box-sizing: border-box;
+        color: #212529;
+        font-family: 'THSarabunNew', sans-serif;
+        font-size: 20px;
+        line-height: 1.5;
+    }
+    .pdf-preview *, .pdf-preview *::before, .pdf-preview *::after { box-sizing: border-box; }
+    .pdf-preview .row { display: flex; flex-wrap: wrap; margin-right: -12px; margin-left: -12px; }
+    .pdf-preview .row > [class*='col-'] { padding-right: 12px; padding-left: 12px; }
+    .pdf-preview .col-6 { flex: 0 0 auto; width: 50%; }
+    .pdf-preview .col-12 { flex: 0 0 auto; width: 100%; }
+    .pdf-preview p { margin-top: 0; margin-bottom: 1rem; }
+    .pdf-preview h4 { margin-top: 0; margin-bottom: .5rem; font-size: 26px; font-weight: 500; line-height: 1.2; }
+    .pdf-preview h5 { margin-top: 0; margin-bottom: .5rem; font-size: 22px; font-weight: 500; line-height: 1.2; }
+    .pdf-preview .mb-4 { margin-bottom: 1.5rem !important; }
+    .pdf-preview .mt-4 { margin-top: 1.5rem !important; }
+    .pdf-preview .mt-5 { margin-top: 3rem !important; }
+    .pdf-preview .mt-2 { margin-top: .5rem !important; }
+    .pdf-preview .mt-1 { margin-top: .25rem !important; }
+    .pdf-preview .mb-0 { margin-bottom: 0 !important; }
+    .pdf-preview .pb-2 { padding-bottom: .5rem !important; }
+    .pdf-preview .border-bottom { border-bottom: 1px solid #dee2e6 !important; }
+    .pdf-preview .table { width: 100%; margin-bottom: 1rem; vertical-align: top; border-color: #dee2e6; font-size: 17px; }
+    .pdf-preview .table tr:last-child { font-size: 20px; }
+    .pdf-preview .table > :not(caption) > * > * { padding: .25rem .25rem; border-bottom-width: 1px; border-color: #dee2e6; }
+    .pdf-preview .text-center { text-align: center; }
+    .pdf-preview .text-left { text-align: left; }
+    .pdf-preview .text-right { text-align: right; }
+    .pdf-preview .d-flex { display: flex; }
+    .pdf-preview .justify-content-between { justify-content: space-between; }
+    .pdf-preview .justify-content-end { justify-content: flex-end; }
+    .pdf-preview .align-items-center { align-items: center; }
+    .pdf-preview .text-muted { color: #6c757d !important; }
+    .pdf-preview .small { font-size: 14px; }
+    .pdf-preview .payslip-signature { width: 12mm; height: auto; object-fit: contain; }
+    .pdf-preview .payslip-signature-block { width: 85mm; margin-left: auto; margin-right: 1cm; text-align: center; font-size: 17px; }
+    .pdf-preview .payslip-signature-line { justify-content: center; }
+    .pdf-preview .payslip-signature-details { width: 100%; margin-left: 0 !important; text-align: center; }
+
+    /* Tax form geometry is drawn with borders and cells in both HTML and TCPDF.
+       One cqw equals 12.25 design pixels on the original 1225 x 1566 canvas. */
+    .tax-certificate-preview-stage { display: flex; justify-content: center; overflow: auto; background: #e2e8f0; padding: 1rem; }
+    .tax-certificate-document {
+        position: relative;
+        box-sizing: border-box;
+        width: min(1225px, 100%);
+        min-width: 760px;
+        aspect-ratio: 1225 / 1566;
+        margin: 0 auto;
+        overflow: hidden;
+        container-type: inline-size;
+        background: #fff;
+        color: #27272a;
+        font-family: 'THSarabunNew', sans-serif;
+        font-size: 1.5cqw;
+        line-height: 1.15;
+    }
+    .tax-certificate-document *, .tax-certificate-document *::before, .tax-certificate-document *::after { box-sizing: border-box; }
+    .tax-certificate-document p { margin: 0; }
+    .tax-certificate-document::before { content: ''; position: absolute; left: 6.612%; top: 7.471%; width: 88.163%; height: 83.397%; border: .08cqw solid #4b4b4b; pointer-events: none; }
+    .tax-certificate-copies { position: absolute; top: 2.68%; left: 8.82%; font-size: 1.2cqw; line-height: 1.35; }
+    .tax-certificate-title { position: absolute; top: 7.55%; left: 30%; width: 40%; text-align: center; font-size: 1.55cqw; line-height: 1.18; }
+    .tax-certificate-title strong, .tax-certificate-title span { display: block; }
+    .tax-certificate-title strong { font-size: 1.95cqw; font-weight: 700; }
+    .tax-certificate-number { position: absolute; top: 8.8%; left: 79.592%; width: 13.714%; display: grid; gap: .15cqw; font-size: 1.3cqw; }
+    .tax-certificate-number > div { display: grid; grid-template-columns: 5.306cqw 1fr; align-items: end; height: 2cqw; }
+    .tax-certificate-number > div > span:first-child { text-align: right; padding-right: .35cqw; }
+    .tax-certificate-number-field { height: 1.8cqw; border-bottom: .08cqw dotted #666; text-align: center; }
+    .tax-certificate-party { position: absolute; left: 8.082%; width: 85.224%; border: .08cqw solid #4b4b4b; }
+    .tax-certificate-agent { top: 12.644%; height: 14.694cqw; }
+    .tax-certificate-recipient { top: 25.287%; height: 25.061cqw; }
+    .tax-certificate-party > strong { position: absolute; top: .73cqw; left: 1.15cqw; font-size: 1.65cqw; line-height: 1.1; font-weight: 400; white-space: nowrap; }
+    .tax-certificate-party p { position: absolute; height: 2cqw; padding: 0; font-size: 1.4cqw; line-height: 1.1; white-space: nowrap; }
+    .tax-certificate-party-id { top: .73cqw; left: 42.61cqw; width: 40cqw; }
+    .tax-certificate-party-id span { position: absolute; left: 20.98cqw; }
+    .tax-certificate-party-name { top: 3.27cqw; left: 5.47cqw; width: 79cqw; }
+    .tax-certificate-party-name .tax-certificate-value { position: absolute; left: 6.37cqw; }
+    .tax-certificate-tax-id { position: absolute; left: 43.76cqw; }
+    .tax-certificate-party-hint { top: 6.2cqw; left: 5.47cqw; }
+    .tax-certificate-party-hint span { position: absolute; left: 44.5cqw; }
+    .tax-certificate-party-address { top: 8.33cqw; left: 5.47cqw; }
+    .tax-certificate-party-address .tax-certificate-value { position: absolute; left: 6.37cqw; }
+    .tax-certificate-party-address-hint { top: 11.43cqw; left: 5.47cqw; }
+    .tax-certificate-recipient .tax-certificate-party-id { top: .82cqw; }
+    .tax-certificate-recipient .tax-certificate-party-name { top: 3.35cqw; }
+    .tax-certificate-recipient .tax-certificate-party-hint { top: 6.94cqw; }
+    .tax-certificate-recipient .tax-certificate-party-address { top: 9.31cqw; }
+    .tax-certificate-recipient .tax-certificate-party-address-hint { top: 12.16cqw; }
+    .tax-certificate-recipient .tax-certificate-party-name::after { top: 3.27cqw; }
+    .tax-certificate-hint { font-size: .95cqw !important; color: #555; }
+    .tax-certificate-party-name::after, .tax-certificate-party-address::after { content: ''; position: absolute; left: 0; top: 2.55cqw; width: 36cqw; border-bottom: .08cqw dotted #777; }
+    .tax-certificate-party-address::after { width: 76cqw; }
+    .tax-certificate-form-reference { position: absolute; top: 36.782%; left: 9.224%; width: 82.7%; height: 7.7cqw; font-size: 1.3cqw; }
+    .tax-certificate-sequence { display: flex; align-items: center; gap: 1cqw; white-space: nowrap; }
+    .tax-certificate-sequence > span:first-child { flex: 0 0 5.224cqw; }
+    .tax-certificate-sequence strong { display: flex; align-items: center; justify-content: center; width: 8.163cqw; height: 2.939cqw; border: .08cqw solid #4b4b4b; font-weight: 400; }
+    .tax-certificate-options { position: absolute; top: 0; left: 31.18cqw; display: grid; grid-template-columns: 12.49cqw 16.16cqw 14.78cqw 1fr; gap: 1.47cqw 0; width: 53cqw; }
+    .tax-certificate-options > span, .tax-certificate-fund-option, .tax-certificate-payment-row > span { display: flex; align-items: center; gap: .45cqw; white-space: nowrap; }
+    .tax-certificate-options > span:nth-child(4) { font-size: 1.05cqw; }
+    .tax-certificate-box { position: relative; display: inline-flex; flex: 0 0 2.204cqw; align-items: center; justify-content: center; width: 2.204cqw; height: 2.204cqw; border: .08cqw solid #4b4b4b; font-style: normal; }
+    .tax-certificate-box.is-checked::before, .tax-certificate-box.is-checked::after { content: ''; position: absolute; top: 49%; left: 10%; width: 80%; border-top: .18cqw solid #222; transform: rotate(45deg); }
+    .tax-certificate-box.is-checked::after { transform: rotate(-45deg); }
+    .tax-certificate-income-table { position: absolute; top: 45.977%; left: 8.082%; width: 85.224%; height: 29.388cqw; border: .08cqw solid #4b4b4b; border-collapse: collapse; table-layout: fixed; font-size: 1.38cqw; }
+    .tax-certificate-income-table tr { border-bottom: .08cqw solid #4b4b4b; }
+    .tax-certificate-income-table th, .tax-certificate-income-table td { border-right: .08cqw solid #4b4b4b; padding: .65cqw .8cqw; font-weight: 400; }
+    .tax-certificate-income-table thead tr { height: 5.878cqw; }
+    .tax-certificate-income-table thead th { text-align: center; vertical-align: middle; }
+    .tax-certificate-income-table tbody tr { height: 15.51cqw; }
+    .tax-certificate-income-table tbody td { vertical-align: top; }
+    .tax-certificate-income-table tbody td:not(:first-child) { text-align: center; }
+    .tax-certificate-income-table tbody td:nth-child(3), .tax-certificate-income-table tbody td:nth-child(5) { text-align: right; }
+    .tax-certificate-income-table tfoot .tax-certificate-total-row { height: 2.939cqw; }
+    .tax-certificate-total-row td { border-right: 0; vertical-align: middle; text-align: center; }
+    .tax-certificate-total-row td:first-child { text-align: right; }
+    .tax-certificate-total-row td:nth-child(2), .tax-certificate-total-row td:nth-child(4) { text-align: right; }
+    .tax-certificate-income-table tfoot .tax-certificate-words-row { height: 5.061cqw; border-bottom: 0; }
+    .tax-certificate-words-row td { position: relative; vertical-align: middle; }
+    .tax-certificate-words-row span { position: absolute; left: 1.4cqw; top: 2.15cqw; }
+    .tax-certificate-words-row strong { position: absolute; left: 24.2cqw; top: 1.4cqw; width: 61cqw; min-height: 2.94cqw; padding: .45cqw 1cqw; background: #c6c6c6; font-weight: 400; }
+    .tax-certificate-fund-row, .tax-certificate-payment-row { position: absolute; left: 8.082%; width: 85.224%; height: 4.49cqw; border: .08cqw solid #4b4b4b; font-size: 1.3cqw; }
+    .tax-certificate-fund-row { top: 70.69%; }
+    .tax-certificate-payment-row { top: 75.287%; }
+    .tax-certificate-fund-row > span, .tax-certificate-payment-row > span { position: absolute; top: 1.43cqw; }
+    .tax-certificate-fund-row > span:first-child, .tax-certificate-payment-row > span:first-child { left: 1.4cqw; }
+    .tax-certificate-fund-row > span:first-child, .tax-certificate-payment-row > span:first-child { top: 1.9cqw; }
+    .tax-certificate-fund-row > span:nth-child(2) { left: 18.37cqw; }
+    .tax-certificate-fund-row > span:nth-child(3) { left: 56.57cqw; }
+    .tax-certificate-payment-row > span:nth-child(2) { left: 12.49cqw; }
+    .tax-certificate-payment-row > span:nth-child(3) { left: 26.45cqw; }
+    .tax-certificate-payment-row > span:nth-child(4) { left: 42.69cqw; }
+    .tax-certificate-payment-row > span:nth-child(5) { left: 59.51cqw; }
+    .tax-certificate-warning, .tax-certificate-declaration { position: absolute; top: 79.885%; height: 12.49cqw; border: .08cqw solid #4b4b4b; font-size: 1.2cqw; }
+    .tax-certificate-warning { left: 8.082%; width: 34.94%; display: flex; gap: .6cqw; padding: 1.7cqw 1.4cqw; }
+    .tax-certificate-warning > span { flex: none; }
+    .tax-certificate-warning p { line-height: 1.28; }
+    .tax-certificate-declaration { left: 43.673%; width: 49.633%; padding: 1.7cqw 1.2cqw; text-align: center; }
+    .tax-certificate-signature-image { position: absolute; z-index: 1; top: 3.5cqw; left: 50%; width: auto; height: auto; max-width: 8.16cqw; max-height: 3.59cqw; object-fit: contain; transform: translateX(-50%); }
+    .tax-certificate-signature { position: absolute; top: 5cqw; left: 5cqw; right: 5cqw; line-height: 1.65; }
+    .tax-certificate-signature p:first-child { display: flex; align-items: baseline; justify-content: center; gap: .5cqw; }
+    .tax-certificate-signature span { display: inline-block; width: 28cqw; border-bottom: .08cqw dotted #4b4b4b; }
+
+    @media (max-width: 767px) {
+        .payslip-preview-stage { height: 142mm; justify-content: flex-start; }
+        .pdf-preview { zoom: .45; }
+    }
+
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .payslip-preview-stage { height: 220mm; }
+        .pdf-preview { zoom: .72; }
+    }
 }

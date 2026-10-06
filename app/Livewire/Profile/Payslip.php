@@ -6,9 +6,6 @@ use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use TCPDF;
-use Carbon\Carbon;
-use App\Services\PayslipPdfService;
 
 class Payslip extends Component
 {
@@ -540,55 +537,6 @@ class Payslip extends Component
             $this->dispatch('pdf-generation-error', 'ไม่สามารถดึงข้อมูลสำหรับดาวน์โหลดได้: ' . $e->getMessage());
         }
     }
-    
-    /**
-     * Generate and download a PDF of the payslip
-     */
-    public function generatePDF($id)
-    {
-        try {
-            Log::info('PDF Generation Started', ['payslip_id' => $id, 'user_id' => auth()->id()]);
-            
-            // Get user's personal ID (CID)
-            $cid = auth()->user()->pid;
-            
-            // Find the payslip data
-            $payslipData = $this->selectedPayslip && $this->selectedPayslip['id'] == $id 
-                ? $this->selectedPayslip
-                : $this->fetchPayslipData($id);
-            
-            if (!$payslipData) {
-                Log::error('Payslip data not found for PDF generation', ['id' => $id]);
-                $this->dispatch('pdf-generation-error', 'ไม่พบข้อมูลใบรับรองการจ่ายค่าตอบแทน');
-                return;
-            }
-            
-            Log::info('TCPDF class found, checking payslip data');
-            
-            // Use the centralized PayslipPdfService to generate the PDF
-            $pdfResult = PayslipPdfService::generatePdf($payslipData, $cid);
-            
-            // The download route rechecks authentication and ownership before streaming the PDF.
-            $url = route('payslip.download', ['id' => $id]);
-            
-            Log::info('PDF URL generated:', ['url' => $url]);
-            
-            // Emit event to the frontend with the download URL - updated to use dispatch()
-            $this->dispatch('serve-pdf-download', $url);
-            
-        } catch (\Exception $e) {
-            Log::error('PDF Generation Error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString(),
-                'id' => $id
-            ]);
-            
-            // Updated to use dispatch() instead of dispatchBrowserEvent()
-            $this->dispatch('pdf-generation-error', 'เกิดข้อผิดพลาดในการสร้าง PDF: ' . $e->getMessage());
-        }
-    }
-    
-   
-    
     
     public function render()
     {

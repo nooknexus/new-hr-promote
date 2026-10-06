@@ -47,25 +47,22 @@ class SalaryPromotion extends Component
         }
     }
 
-    /**
-     * Get unique calendar years that have promotion data for the user
-     */
+    /** Get fiscal years with active promotion data for the user. */
     private function getAvailableFiscalYears($pid)
     {
-        $rawYears = DB::select("
-            SELECT DISTINCT
-                YEAR(evaluation_date) AS calendar_year
-            FROM
-                data_promote
-            WHERE
-                CID = ?
-            ORDER BY
-                calendar_year DESC
-        ", [$pid]);
-        
-        return collect($rawYears)->pluck('calendar_year')->map(function($year) {
-            return $year + 543; // Convert to Buddhist Era
-        })->toArray();
+        return DB::table('data_promote')
+            ->where('CID', $pid)
+            ->whereNull('deleted_at')
+            ->pluck('evaluation_date')
+            ->map(function ($date) {
+                $evaluationDate = Carbon::parse($date);
+
+                return $evaluationDate->year + ($evaluationDate->month >= 10 ? 544 : 543);
+            })
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
     }
 
     public function selectYear($year)
@@ -83,52 +80,43 @@ class SalaryPromotion extends Component
             return;
         }
         
-        // Calculate the date range for the selected calendar year
-        $calendarYear = $this->selectedYear - 543; // Convert from BE to CE
-        
-        $startDate = "{$calendarYear}-01-01";
-        $endDate = "{$calendarYear}-12-31";
-        
-        // Get data from database using the provided SQL with additional fields
-        $promotionData = DB::select("
-            SELECT
-                evaluation_date,
-                update_date,
-                CASE 
-                    WHEN MONTH(evaluation_date) = 4 THEN 'รอบ1 เมษายน'
-                    WHEN MONTH(evaluation_date) = 10 THEN 'รอบ2 ตุลาคม'
-                    ELSE 'รอบพิเศษ'
-                END AS round_month,
-                ROW_NUMBER() OVER (
-                    PARTITION BY YEAR(evaluation_date), MONTH(evaluation_date)
-                    ORDER BY evaluation_date
-                ) AS round_number,
-                before_salary AS old_salary,
-                new_salary,
-                `sum` AS increase_amount,
-                percent AS increase_percent,
-                base,
-                promote,
-                department,
-                office,
-                ps,
-                extra
-            FROM
-                data_promote
-            WHERE
-                CID = ?
-                AND evaluation_date BETWEEN ? AND ?
-            ORDER BY
-                evaluation_date DESC
-        ", [$pid, $startDate, $endDate]);
+        $calendarYear = (int) $this->selectedYear - 543;
+        $startDate = ($calendarYear - 1) . '-10-01';
+        $endDate = "{$calendarYear}-09-30";
+
+        $promotionData = DB::table('data_promote')
+            ->where('CID', $pid)
+            ->whereNull('deleted_at')
+            ->whereBetween('evaluation_date', [$startDate, $endDate])
+            ->orderBy('evaluation_date')
+            ->orderBy('id')
+            ->select([
+                'id', 'evaluation_date', 'update_date', 'before_salary as old_salary',
+                'new_salary', 'sum as increase_amount', 'percent as increase_percent',
+                'base', 'promote', 'department', 'office', 'ps', 'extra',
+            ])
+            ->get();
+
+        $roundCounts = [];
+        foreach ($promotionData as $item) {
+            $date = Carbon::parse($item->evaluation_date);
+            $key = $date->format('Y-m');
+            $roundCounts[$key] = ($roundCounts[$key] ?? 0) + 1;
+            $item->round_number = $roundCounts[$key];
+            $item->round_month = match ($date->month) {
+                4 => 'รอบ1 เมษายน',
+                10 => 'รอบ2 ตุลาคม',
+                default => 'รอบพิเศษ',
+            };
+        }
         
         // Process the data to format it properly for the view
-        $this->promotions = collect($promotionData)->map(function($item) {
+        $this->promotions = $promotionData->reverse()->values()->map(function($item) {
             $evaluationDate = Carbon::parse($item->evaluation_date);
             $calendarYearBE = $evaluationDate->year + 543; // Convert to Buddhist Era
             
             return [
-                'id' => $evaluationDate->format('Ymd') . '_' . $item->round_number,
+                'id' => (int) $item->id,
                 'round' => "{$item->round_month} {$calendarYearBE}",
                 'round_number' => $item->round_number,
                 'round_type' => $item->round_month,

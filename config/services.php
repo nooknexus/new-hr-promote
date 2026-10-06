@@ -48,15 +48,23 @@ return [
         'healthid_secret_key' => env('HEALTHID_SECRET_KEY'),
         'provider_client_id' => env('PROVIDER_CLIENT_ID'),
         'provider_secret_key' => env('PROVIDER_SECRET_KEY'),
-        'auth_url' => env('PROVIDER_AUTH_URL', 'https://moph.id.th/oauth2/auth'),
+        'auth_url' => env('PROVIDER_AUTH_URL', 'https://moph.id.th/oauth/redirect'),
     ],
 
     'mymoph' => [
         'client_id' => env('MYMOPH_CLIENT_ID'),
         'client_secret' => env('MYMOPH_CLIENT_SECRET'),
-        'redirect_uri' => env('MYMOPH_REDIRECT_URI', env('APP_URL', 'http://localhost:8000') . '/mymoph/callback'),
+        'redirect_uri' => env('MYMOPH_REDIRECT_URI', env('APP_URL', 'http://localhost:8000').'/mymoph/callback'),
         'auth_url' => 'https://auth.moph.go.th/v1/oauth2/auth',
         'token_url' => 'https://auth.moph.go.th/v1/oauth2/token',
         'userinfo_url' => 'https://auth.moph.go.th/v1/userinfo',
+    ],
+
+    'leave_sheet' => [
+        'max_csv_bytes' => (int) env('LEAVE_SHEET_MAX_BYTES', 5242880),
+        'excluded_types' => array_filter(array_map(
+            'trim',
+            explode(',', env('LEAVE_SYNC_EXCLUDED_TYPES', 'WFH,ปฏิบัติงานที่บ้าน'))
+        )),
     ],
 ];

@@ -27,7 +27,6 @@ class User extends Authenticatable
         'birthdate',
         'address',
         'provider_id',
-        'account_id',
         'cid_hash',
         'hcode',
         'hname',
@@ -65,6 +64,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'is_active' => 'boolean',
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'birthdate' => 'date',
