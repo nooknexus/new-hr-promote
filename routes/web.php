@@ -2,8 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Thaid\AuthController;
-use App\Livewire\Provider\ProfileUpdate;
-use App\Livewire\Provider\ProfileCallback;
 
 
 //
@@ -31,27 +29,48 @@ Route::group(['middleware' => 'auth'], function () {
     // New route for salary promotion
     Route::get('/profile/salary-promotion', App\Livewire\SalaryPromotion::class)->name('profile.salary-promotion');
     
-    Route::get('/training-info', function () {
-        return view('training-info');
-    })->name('training.info');
-
-    // Provider ID Profile Update Routes - using direct controller approach
-    Route::get('/provider/profile/update', ProfileUpdate::class)
-        ->name('provider.profile.update');
-    Route::get('/provider/profile/callback', App\Livewire\Provider\ProfileCallback::class)
-        ->name('provider.profile.callback');
+    Route::get('/leave-history', App\Livewire\LeaveHistory::class)->name('leave.history');
 
     // Tax Certificate route
     Route::get('/tax-certificate', App\Livewire\TaxCertificate::class)
         ->middleware(['auth'])
         ->name('tax.certificate');
+    Route::get('/tax-certificate/download/{taxYear}/{certificateNo}', [\App\Http\Controllers\TaxCertificateController::class, 'download'])
+        ->whereNumber('taxYear')
+        ->where('certificateNo', '[A-Za-z0-9_-]+')
+        ->middleware(['auth'])
+        ->name('tax.certificate.download');
 
     // Add this route to your existing web routes
     Route::get('/payslip/download/{id}', [\App\Http\Controllers\PayslipController::class, 'download'])->name('payslip.download')->middleware(['auth']);
 
     // Add these routes for direct access to print view and test PDF
     Route::get('/payslip/print-view/{id}', [\App\Http\Controllers\PayslipController::class, 'printView'])->name('payslip.print-view')->middleware(['auth']);
+
+});
+
+Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', App\Livewire\Admin\UserManagement::class)->middleware('admin:users')->name('users.index');
+    Route::get('/payslips', App\Livewire\Admin\PayslipManagement::class)->middleware('admin:payslip')->name('payslips.index');
+    Route::get('/salary-promotions', App\Livewire\Admin\SalaryPromotionManagement::class)->middleware('admin:promotions')->name('salary-promotions.index');
+    Route::get('/signatories', App\Livewire\Admin\Signatories::class)->middleware('admin:signatories')->name('signatories');
+    Route::get('/tax-certificates', App\Livewire\Admin\TaxCertificateManagement::class)->middleware('admin:tax-certificates')->name('tax-certificates.index');
+    Route::get('/leave-sheet-sync', App\Livewire\Admin\LeaveSheetSync::class)->middleware('admin:leave-sync')->name('leave-sheet-sync');
+    Route::get('/leaves', App\Livewire\Admin\LeaveManagement::class)->middleware('admin:leave')->name('leaves.index');
+    Route::get('/personnel', App\Livewire\Admin\PersonnelManagement::class)->middleware('admin:personnel')->name('personnel.index');
+    Route::get('/personnel/template', function () {
+        $path = resource_path('templates/personnel-import-template.xlsx');
+        abort_unless(is_file($path), 404);
+
+        return response()->download($path, 'personnel-import-template.xlsx');
+    })->middleware('admin:personnel')->name('personnel.template');
     
+    Route::get('/payslips/template', function () {
+        $path = resource_path('templates/payslip-import-template.xlsx');
+        abort_unless(is_file($path), 404);
+
+        return response()->download($path, 'payslip-import-template.xlsx');
+    })->middleware('admin:payslip')->name('payslips.template');
 });
 
 // Ensure these routes are accessible without auth for the callbacks
@@ -65,4 +84,3 @@ Route::get('/provider-info', function () {
 // Add this route for font conversion (run once)
 // MyMOPH OAuth routes
 Route::get('/mymoph/callback', [App\Http\Controllers\Auth\MyMOPHController::class, 'callback'])->name('mymoph.callback');
-
