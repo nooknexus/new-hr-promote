@@ -147,7 +147,11 @@ extension ต่อไปนี้มักติดตั้งมาแล้�
 
 - **Running directory:** เลือก `/public` แล้ว Save
   - **สำคัญมาก:** ห้ามให้เว็บเปิดโฟลเดอร์โปรเจกต์ตรง ๆ ไม่อย่างนั้นไฟล์ `.env` จะถูกเปิดอ่านได้จากภายนอก
-- **Anti-XSS attack (open_basedir):** เปิดไว้ได้ ถ้าเจอ error `open_basedir restriction in effect` ให้ปิดตัวเลือกนี้
+- **Site directory** ต้องเป็นรากของโปรเจกต์ (โฟลเดอร์ที่มี `artisan`, `vendor/`, `.env`) **ไม่ใช่** `.../public`
+  - ถ้าตั้ง Site directory เป็น `public` aaPanel จะจำกัด open_basedir ไว้แค่ `public/`
+  - Laravel จะอ่าน `vendor/autoload.php` ไม่ได้ และขึ้น `open_basedir restriction in effect`
+- **Anti-XSS attack (open_basedir):** เปิดไว้ได้เมื่อ Site directory ถูกต้อง ถ้ายังเจอ error `open_basedir restriction in effect` ให้ปิดตัวเลือกนี้แล้ว Restart PHP
+  - ถ้ายังไม่หาย ให้ลบ `.user.ini` ที่ค้างใน `public/` ด้วย `sudo chattr -i public/.user.ini && sudo rm -f public/.user.ini`
 
 **URL rewrite:** เลือกชุด `laravel5` แล้ว Save ซึ่งจะได้
 
@@ -284,14 +288,17 @@ chmod 640 .env
 - `php artisan optimize` สร้าง cache ของ config, route, view และ event
   - หลังแก้ `.env` ทุกครั้งต้องรัน `php artisan optimize` ใหม่ ไม่อย่างนั้นระบบยังใช้ค่าเดิม
 
-**Queue worker:** ตอนนี้โค้ดยังไม่มี job ที่ส่งเข้า queue จึงยังไม่ต้องตั้ง worker ถ้าอนาคตมี job ให้ติดตั้ง
-**Supervisor Manager** จาก App Store แล้วเพิ่มคำสั่ง
+**Queue worker: ข้ามได้ ยังไม่ต้องทำ**
 
-```bash
+ตอนนี้โค้ดยังไม่ส่งงานเข้า queue เลย จึงยังไม่ต้องตั้ง worker
+
+> **ห้ามพิมพ์คำสั่ง `queue:work` เองใน SSH** คำสั่งนี้รันค้างตลอดเพื่อรอ job ใหม่ หน้าจอจะดูเหมือนค้าง ถ้าเผลอรันไปแล้วให้กด `Ctrl + C` เพื่อหยุด ไม่มีผลเสียกับระบบ
+
+ถ้าอนาคตมี job ค่อยติดตั้ง **Supervisor Manager** จาก App Store แล้วให้ Supervisor รันคำสั่งนี้เบื้องหลังด้วยผู้ใช้ `www`
+
+```
 /www/server/php/82/bin/php /www/wwwroot/hr.example.go.th/artisan queue:work --sleep=3 --tries=3 --max-time=3600
 ```
-
-ตั้งให้รันด้วยผู้ใช้ `www`
 
 ## 9. ฟอนต์ภาษาไทยสำหรับ PDF
 
