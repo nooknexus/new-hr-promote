@@ -4,102 +4,107 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * Creates data_salary in the shape the application uses (an id for payslip
+ * downloads, decimal amounts, one row per cid/year/month). Databases that
+ * already hold the legacy table are left untouched.
+ */
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+        if (Schema::hasTable('data_salary')) {
+            return;
+        }
+
         Schema::create('data_salary', function (Blueprint $table) {
-            $table->string('yearNO', 4);
-            $table->string('monthNO', 2);
-            $table->string('cid', 13);
-            $table->string('ministry', 80)->nullable();
-            $table->string('depart', 80)->nullable();
-            $table->string('bankId', 4)->nullable();
-            $table->string('bankName', 50)->nullable();
-            $table->string('bankBranchId', 4)->nullable();
-            $table->string('bankBranchName', 50)->nullable();
-            $table->string('bankNo', 15)->nullable();
-            $table->string('incomeSalaryAmount', 12)->nullable();
-            $table->string('incomeSalaryBackPayAmount', 12)->nullable();
-            $table->string('incomeManagerMoneyAmount', 12)->nullable();
-            $table->string('incomeManagerMoneyBackPayAmount', 12)->nullable();
-            $table->string('incomePositionKingAmount', 12)->nullable();
-            $table->string('incomeWarAmount', 12)->nullable();
-            $table->string('incomeCourseFeeAmount', 12)->nullable();
-            $table->string('incomeBreakLawAmount', 12)->nullable();
-            $table->string('incomeSpecialPlaceAmount', 12)->nullable();
-            $table->string('incomeSouthAmount', 12)->nullable();
-            $table->string('incomePositionMoneyAmount', 12)->nullable();
-            $table->string('incomePositionMoneyBackPayAmount', 12)->nullable();
-            $table->string('incomeLv8Amount', 12)->nullable();
-            $table->string('incomeLv8BackPayAmount', 12)->nullable();
-            $table->string('incomeLv1to7Amount', 12)->nullable();
-            $table->string('incomeSpecialHightAmount', 12)->nullable();
-            $table->string('incomeHouseRentAmount', 12)->nullable();
-            $table->string('incomeChildFeeAmount', 12)->nullable();
-            $table->string('incomeChildEducationFeeAmount', 12)->nullable();
-            $table->string('incomeRewardAmount', 12)->nullable();
-            $table->string('incomeAdd1Name', 40)->nullable();
-            $table->string('incomeAdd1Amount', 12)->nullable();
-            $table->string('incomeAdd2Name', 40)->nullable();
-            $table->string('incomeAdd2Amount', 12)->nullable();
-            $table->string('incomeAdd3Name', 40)->nullable();
-            $table->string('incomeAdd3Amount', 12)->nullable();
-            $table->string('incomeAdd4Name', 40)->nullable();
-            $table->string('incomeAdd4Amount', 12)->nullable();
-            $table->string('incomeOtherAmount', 12)->nullable();
-            $table->string('summaryIncomeAmount', 12)->nullable();
-            $table->string('outcomeTaxAmount', 12)->nullable();
-            $table->string('outcomeHomeLoanAmount', 12)->nullable();
-            $table->string('outcomeCoopAmount', 12)->nullable();
-            $table->string('outcomeEduLoanAmount', 12)->nullable();
-            $table->string('outcomeGPFAmount', 12)->nullable();
-            $table->string('outcomeGPFAddAmount', 12)->nullable();
-            $table->string('outcomeGHBankAmount', 12)->nullable();
-            $table->string('outcomeGSBankAmount', 12)->nullable();
-            $table->string('outcomeUniverLoanAmount', 12)->nullable();
-            $table->string('outcomeTorPorLoanAmount', 12)->nullable();
-            $table->string('outcomeCivilPenaltyAmount', 12)->nullable();
-            $table->string('outcomeRestoreAmount', 12)->nullable();
-            $table->string('outcomeUtilitieAmount', 12)->nullable();
-            $table->string('outcomeClubAmount', 12)->nullable();
-            $table->string('outcomeTeacherDeadAmount', 12)->nullable();
-            $table->string('outcomeCoopDeadAmount', 12)->nullable();
-            $table->string('outcomeAdd1Name', 40)->nullable();
-            $table->string('outcomeAdd1Amount', 12)->nullable();
-            $table->string('outcomeAdd2Name', 40)->nullable();
-            $table->string('outcomeAdd2Amount', 12)->nullable();
-            $table->string('outcomeAdd3Name', 40)->nullable();
-            $table->string('outcomeAdd3Amount', 12)->nullable();
-            $table->string('outcomeAdd4Name', 40)->nullable();
-            $table->string('outcomeAdd4Amount', 12)->nullable();
-            $table->string('outcomeAdd5Name', 40)->nullable();
-            $table->string('outcomeAdd5Amount', 12)->nullable();
-            $table->string('outcomeAdd6Name', 40)->nullable();
-            $table->string('outcomeAdd6Amount', 12)->nullable();
-            $table->string('outcomeAdd7Name', 40)->nullable();
-            $table->string('outcomeAdd7Amount', 12)->nullable();
-            $table->string('outcomeAdd8Name', 40)->nullable();
-            $table->string('outcomeAdd8Amount', 12)->nullable();
-            $table->string('outcomeOtherAmount', 40)->nullable();
-            $table->string('summaryOutcomeAmount', 12)->nullable();
-            $table->string('summaryTotalAmount', 12)->nullable();
-            $table->string('verifyDate', 15)->nullable();
-            $table->datetime('r_update')->nullable();
-            
-            // Set primary key
-            $table->primary(['yearNO', 'monthNO', 'cid']);
+                $table->increments('id');
+                $table->string('yearNO', 10)->nullable();
+                $table->string('monthNO', 10)->nullable();
+                $table->string('cid', 20)->nullable();
+                $table->string('pname', 50)->nullable();
+                $table->string('fname', 100)->nullable();
+                $table->string('lname', 100)->nullable();
+                $table->string('ministry', 100)->nullable();
+                $table->string('depart', 100)->nullable();
+                $table->string('bankId', 10)->nullable();
+                $table->string('bankName', 100)->nullable();
+                $table->string('bankBranchId', 10)->nullable();
+                $table->string('bankBranchName', 100)->nullable();
+                $table->string('bankNo', 20)->nullable();
+                $table->decimal('incomeSalaryAmount', 10, 2)->nullable();
+                $table->decimal('incomeSalaryBackPayAmount', 10, 2)->nullable();
+                $table->decimal('incomeManagerMoneyAmount', 10, 2)->nullable();
+                $table->decimal('incomeManagerMoneyBackPayAmount', 10, 2)->nullable();
+                $table->decimal('incomePositionKingAmount', 10, 2)->nullable();
+                $table->decimal('incomeWarAmount', 10, 2)->nullable();
+                $table->decimal('incomeCourseFeeAmount', 10, 2)->nullable();
+                $table->decimal('incomeBreakLawAmount', 10, 2)->nullable();
+                $table->decimal('incomeSpecialPlaceAmount', 10, 2)->nullable();
+                $table->decimal('incomeSouthAmount', 10, 2)->nullable();
+                $table->decimal('incomePositionMoneyAmount', 10, 2)->nullable();
+                $table->decimal('incomePositionMoneyBackPayAmount', 10, 2)->nullable();
+                $table->decimal('incomeLv8Amount', 10, 2)->nullable();
+                $table->decimal('incomeLv8BackPayAmount', 10, 2)->nullable();
+                $table->decimal('incomeLv1to7Amount', 10, 2)->nullable();
+                $table->decimal('incomeSpecialHightAmount', 10, 2)->nullable();
+                $table->decimal('incomeHouseRentAmount', 10, 2)->nullable();
+                $table->decimal('incomeChildFeeAmount', 10, 2)->nullable();
+                $table->decimal('incomeChildEducationFeeAmount', 10, 2)->nullable();
+                $table->decimal('incomeRewardAmount', 10, 2)->nullable();
+                $table->string('incomeAdd1Name', 100)->nullable();
+                $table->decimal('incomeAdd1Amount', 10, 2)->nullable();
+                $table->string('incomeAdd2Name', 100)->nullable();
+                $table->decimal('incomeAdd2Amount', 10, 2)->nullable();
+                $table->string('incomeAdd3Name', 100)->nullable();
+                $table->decimal('incomeAdd3Amount', 10, 2)->nullable();
+                $table->string('incomeAdd4Name', 100)->nullable();
+                $table->decimal('incomeAdd4Amount', 10, 2)->nullable();
+                $table->decimal('incomeOtherAmount', 10, 2)->nullable();
+                $table->decimal('summaryIncomeAmount', 10, 2)->nullable();
+                $table->decimal('outcomeTaxAmount', 10, 2)->nullable();
+                $table->decimal('outcomeHomeLoanAmount', 10, 2)->nullable();
+                $table->decimal('outcomeCoopAmount', 10, 2)->nullable();
+                $table->decimal('outcomeEduLoanAmount', 10, 2)->nullable();
+                $table->decimal('outcomeGPFAmount', 10, 2)->nullable();
+                $table->decimal('outcomeGPFAddAmount', 10, 2)->nullable();
+                $table->decimal('outcomeGHBankAmount', 10, 2)->nullable();
+                $table->decimal('outcomeGSBankAmount', 10, 2)->nullable();
+                $table->decimal('outcomeUniverLoanAmount', 10, 2)->nullable();
+                $table->decimal('outcomeTorPorLoanAmount', 10, 2)->nullable();
+                $table->decimal('outcomeCivilPenaltyAmount', 10, 2)->nullable();
+                $table->decimal('outcomeRestoreAmount', 10, 2)->nullable();
+                $table->decimal('outcomeUtilitieAmount', 10, 2)->nullable();
+                $table->decimal('outcomeClubAmount', 10, 2)->nullable();
+                $table->decimal('outcomeTeacherDeadAmount', 10, 2)->nullable();
+                $table->decimal('outcomeCoopDeadAmount', 10, 2)->nullable();
+                $table->string('outcomeAdd1Name', 100)->nullable();
+                $table->decimal('outcomeAdd1Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd2Name', 100)->nullable();
+                $table->decimal('outcomeAdd2Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd3Name', 100)->nullable();
+                $table->decimal('outcomeAdd3Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd4Name', 100)->nullable();
+                $table->decimal('outcomeAdd4Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd5Name', 100)->nullable();
+                $table->decimal('outcomeAdd5Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd6Name', 100)->nullable();
+                $table->decimal('outcomeAdd6Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd7Name', 100)->nullable();
+                $table->decimal('outcomeAdd7Amount', 10, 2)->nullable();
+                $table->string('outcomeAdd8Name', 100)->nullable();
+                $table->decimal('outcomeAdd8Amount', 10, 2)->nullable();
+                $table->decimal('outcomeOtherAmount', 10, 2)->nullable();
+                $table->decimal('summaryOutcomeAmount', 10, 2)->nullable();
+                $table->decimal('summaryTotalAmount', 10, 2)->nullable();
+                $table->date('verifyDate')->nullable();
+                $table->dateTime('r_update')->nullable();
+                $table->unique(['cid', 'yearNO', 'monthNO'], 'cid');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('data_salary');
+        // data_salary holds payslip records that may predate this migration.
     }
 };
