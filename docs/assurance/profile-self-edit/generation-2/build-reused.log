@@ -1,0 +1,36 @@
+
+> build
+> vite build
+
+vite v6.4.3 building for production...
+transforming...
+
+/fonts/THSarabunNew.ttf referenced in /fonts/THSarabunNew.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/THSarabunNew-Bold.ttf referenced in /fonts/THSarabunNew-Bold.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/THSarabunNew-Italic.ttf referenced in /fonts/THSarabunNew-Italic.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
+
+/fonts/THSarabunNew-BoldItalic.ttf referenced in /fonts/THSarabunNew-BoldItalic.ttf didn't resolve at build time, it will remain unchanged to be resolved at runtime
+✓ 59 modules transformed.
+rendering chunks...
+computing gzip size...
+public/build/manifest.json                           3.45 kB │ gzip:   0.48 kB
+public/build/assets/fa-regular-400-CeL5tBMC.woff2   13.28 kB
+public/build/assets/fa-regular-400-ypGq6Ymr.woff    16.28 kB
+public/build/assets/fa-regular-400-D6psiunw.ttf     33.74 kB
+public/build/assets/fa-regular-400-DC-0mCsK.eot     34.03 kB
+public/build/assets/fa-brands-400-CQ9wNAI5.woff2    76.76 kB
+public/build/assets/fa-solid-900-ClZaRJOS.woff2     78.20 kB
+public/build/assets/fa-brands-400-BrNqf9Ps.woff     90.06 kB
+public/build/assets/fa-solid-900-Ch--Nxnh.woff     101.65 kB
+public/build/assets/fa-brands-400-GzH33SHB.ttf     134.04 kB
+public/build/assets/fa-brands-400-D3wvMVi2.eot     134.35 kB
+public/build/assets/fa-regular-400-C6K8o2wy.svg    144.71 kB │ gzip:  37.37 kB
+public/build/assets/fa-solid-900-BttSODt4.ttf      202.74 kB
+public/build/assets/fa-solid-900-Dqbwa24Z.eot      203.03 kB
+public/build/assets/fa-brands-400-B2fI82dS.svg     747.55 kB │ gzip: 255.01 kB
+public/build/assets/fa-solid-900-BzItJ-zV.svg      918.99 kB │ gzip: 257.12 kB
+public/build/assets/app-bUcxgApd.css               147.53 kB │ gzip:  28.80 kB
+public/build/assets/app-BpY8RQ28.js                324.72 kB │ gzip: 106.46 kB
+✓ built in 1.24s

@@ -1,0 +1,36 @@
+
+   FAIL  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.16s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.03s  
+  ⨯ ThaiD callback handles the address object decoded from a real signe… 0.02s  
+  ✓ ThaiD callback handles the address object decoded from a real signe… 0.01s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD callback handles t…   
+  Failed asserting that two strings are identical.
+  -'ที่อยู่ล่าสุดจาก ThaiD'
+  +'ที่อยู่ที่แก้ไขเอง'
+  
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:146
+    142▕         ->get('/thaid/callback?state=state&code=code')
+    143▕         ->assertRedirect(route('home'));
+    144▕ 
+    145▕     $this->assertAuthenticatedAs($user);
+  ➜ 146▕     expect($user->fresh()->address)->toBe($expectedAddress);
+    147▕ })->with([
+    148▕     'nonempty object' => [' ที่อยู่ล่าสุดจาก ThaiD ', 'ที่อยู่ล่าสุดจาก ThaiD'],
+    149▕     'blank object preserves local value' => ['   ', 'ที่อยู่ที่แก้ไขเอง'],
+    150▕ ]);
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:146
+
+
+  Tests:    1 failed, 9 passed (66 assertions)
+  Duration: 0.58s
+

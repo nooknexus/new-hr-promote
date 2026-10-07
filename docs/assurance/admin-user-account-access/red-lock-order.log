@@ -1,0 +1,190 @@
+
+   FAIL  Tests\Feature\UserAccountStatusTest
+  ⨯ SSO reads account status before personnel and locks personnel befor… 0.13s  
+  ⨯ SSO rechecks account status if suspension occurs after the prelimin… 0.03s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > SSO reads account status be…   
+  Failed asserting that two arrays are identical.
+   Array &0 [
+       0 => 'users',
+       1 => 'person',
+  -    2 => 'users',
+   ]
+  
+
+  at tests/Feature/UserAccountStatusTest.php:72
+     68▕             if (str_contains($query->sql, 'from "person"')) $tables[] = 'person';
+     69▕         }
+     70▕     });
+     71▕     expect(app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Refreshed']))->not->toBeNull();
+  ➜  72▕     expect(array_slice($tables, 0, 3))->toBe(['users', 'person', 'users']);
+     73▕ });
+     74▕ 
+     75▕ test('SSO rechecks account status if suspension occurs after the preliminary read', function () {
+     76▕     $suspended = false;
+
+  1   tests/Feature/UserAccountStatusTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > SSO rechecks account status…   
+  Failed asserting that App\Models\User Object #3018 (
+    'connection' => 'sqlite',
+    'table' => 'users',
+    'primaryKey' => 'id',
+    'keyType' => 'int',
+    'incrementing' => true,
+    'with' => Array &0 [],
+    'withCount' => Array &1 [],
+    'preventsLazyLoading' => false,
+    'perPage' => 15,
+    'exists' => true,
+    'wasRecentlyCreated' => false,
+    'escapeWhenCastingToString' => false,
+    'attributes' => Array &2 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$HzY9P1pZ4C/.3cyiDFk1kujwph1xIq8JeVLoCdhONFj2GshNlR51u',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 1,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #2980 (
+            'endOfTime' => false,
+            'startOfTime' => false,
+            'constructedObjectId' => '0000000000000ba40000000000000000',
+            'clock' => null,
+            'localMonthsOverflow' => null,
+            'localYearsOverflow' => null,
+            'localStrictModeEnabled' => null,
+            'localHumanDiffOptions' => null,
+            'localToStringFormat' => null,
+            'localSerializer' => null,
+            'localMacros' => null,
+            'localGenericMacros' => null,
+            'localFormatFunction' => null,
+            'localTranslator' => null,
+            'dumpProperties' => Array &3 [
+                0 => 'date',
+                1 => 'timezone_type',
+                2 => 'timezone',
+            ],
+            'dumpLocale' => null,
+            'dumpDateProperties' => null,
+            'date' => '2026-10-06 22:21:21.304976',
+            'timezone_type' => 3,
+            'timezone' => 'Asia/Bangkok',
+        ),
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 22:21:21',
+        'updated_at' => '2026-10-06 22:21:21',
+    ],
+    'original' => Array &4 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$HzY9P1pZ4C/.3cyiDFk1kujwph1xIq8JeVLoCdhONFj2GshNlR51u',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 1,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #2980,
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 22:21:21',
+        'updated_at' => '2026-10-06 22:21:21',
+    ],
+    'changes' => Array &5 [
+        'name' => 'Remote name',
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'last_login_at' => Illuminate\Support\Carbon Object #2980,
+    ],
+    'previous' => Array &6 [
+        'name' => 'Local Name',
+        'cid_hash' => null,
+        'last_login_at' => null,
+    ],
+    'casts' => Array &7 [
+        'is_active' => 'boolean',
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'birthdate' => 'date',
+    ],
+    'classCastCache' => Array &8 [],
+    'attributeCastCache' => Array &9 [],
+    'dateFormat' => null,
+    'appends' => Array &10 [],
+    'dispatchesEvents' => Array &11 [],
+    'observables' => Array &12 [],
+    'relations' => Array &13 [],
+    'touches' => Array &14 [],
+    'relationAutoloadCallback' => null,
+    'relationAutoloadContext' => null,
+    'timestamps' => true,
+    'usesUniqueIds' => false,
+    'hidden' => Array &15 [
+        0 => 'password',
+        1 => 'remember_token',
+        2 => 'cid_hash',
+    ],
+    'visible' => Array &16 [],
+    'fillable' => Array &17 [
+        0 => 'name',
+        1 => 'name_en',
+        2 => 'email',
+        3 => 'password',
+        4 => 'thaid_pid',
+        5 => 'pid',
+        6 => 'birthdate',
+        7 => 'address',
+        8 => 'provider_id',
+        9 => 'account_id',
+        10 => 'cid_hash',
+        11 => 'hcode',
+        12 => 'hname',
+    ],
+    'guarded' => Array &18 [
+        0 => '*',
+    ],
+    'authPasswordName' => 'password',
+    'rememberTokenName' => 'remember_token',
+) is null.
+
+  at tests/Feature/UserAccountStatusTest.php:83
+     79▕             $suspended = true;
+     80▕             DB::table('users')->where('id', 2)->update(['is_active' => false]);
+     81▕         }
+     82▕     });
+  ➜  83▕     expect(app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Remote name']))->toBeNull();
+     84▕     expect(User::find(2)->name)->toBe('Local Name')->and(User::find(2)->is_active)->toBeFalse();
+     85▕ });
+     86▕ 
+     87▕ test('disabling and reenabling an account is audited and does not alter its identity or role', function () {
+
+  1   tests/Feature/UserAccountStatusTest.php:83
+
+
+  Tests:    2 failed (3 assertions)
+  Duration: 0.26s
+

@@ -1,0 +1,49 @@
+
+   FAIL  Tests\Feature\UserAccountStatusTest
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.26s  
+  ⨯ a disabled account cannot be revived by the legacy ProviderID regis… 0.22s  
+  ⨯ a disabled account cannot be revived by the legacy ProviderID regis… 0.05s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled account cannot b…   
+  Failed asserting that two strings are identical.
+  -'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้'
+  +'เกิดข้อผิดพลาด: SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: users.provider_id (Connection: sqlite, SQL: insert into "users" ("name", "name_en", "email", "password", "pid", "provider_id", "account_id", "cid_hash", "hcode", "hname", "updated_at", "created_at") values (Remote name, , , $2y$04$4e60meFPOMLpt90TO2cfROFTE.3e7NolxkrSjer6P3cl0cI.mChWe, 9876543210123, linked-identity, , , , , 2026-10-06 21:55:57, 2026-10-06 21:55:57))'
+  
+
+  at tests/Feature/UserAccountStatusTest.php:156
+    152▕     DB::table('users')->where('id', 2)->update([$link => $value, 'is_active' => false]);
+    153▕     session(['provider_data' => [($link === 'cid_hash' ? 'hash_cid' : $link) => $value, 'name_th' => 'Remote name']]);
+    154▕     $component = Livewire::test(Login::class)->set('pid', '9876543210123')->set('password', 'password123')->call('registerWithProvider')
+    155▕         ->assertHasErrors('general');
+  ➜ 156▕     expect($component->instance()->getErrorBag()->first('general'))->toBe('บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
+    157▕     $this->assertGuest();
+    158▕     expect(User::find(2)->pid)->toBe('1234567890123')->and(User::find(2)->name)->toBe('Local Name');
+    159▕ })->with(['cid_hash', 'provider_id', 'account_id']);
+    160▕
+
+  1   tests/Feature/UserAccountStatusTest.php:156
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled account cannot b…   
+  Failed asserting that two strings are identical.
+  -'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้'
+  +'เกิดข้อผิดพลาด: SQLSTATE[23000]: Integrity constraint violation: 19 UNIQUE constraint failed: users.account_id (Connection: sqlite, SQL: insert into "users" ("name", "name_en", "email", "password", "pid", "provider_id", "account_id", "cid_hash", "hcode", "hname", "updated_at", "created_at") values (Remote name, , , $2y$04$FI7I0zO8A1yeHWRZwIrBZelT5bksZ0aAmH0N53Hz5/6acq56MrLC., 9876543210123, , linked-identity, , , , 2026-10-06 21:55:57, 2026-10-06 21:55:57))'
+  
+
+  at tests/Feature/UserAccountStatusTest.php:156
+    152▕     DB::table('users')->where('id', 2)->update([$link => $value, 'is_active' => false]);
+    153▕     session(['provider_data' => [($link === 'cid_hash' ? 'hash_cid' : $link) => $value, 'name_th' => 'Remote name']]);
+    154▕     $component = Livewire::test(Login::class)->set('pid', '9876543210123')->set('password', 'password123')->call('registerWithProvider')
+    155▕         ->assertHasErrors('general');
+  ➜ 156▕     expect($component->instance()->getErrorBag()->first('general'))->toBe('บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
+    157▕     $this->assertGuest();
+    158▕     expect(User::find(2)->pid)->toBe('1234567890123')->and(User::find(2)->name)->toBe('Local Name');
+    159▕ })->with(['cid_hash', 'provider_id', 'account_id']);
+    160▕
+
+  1   tests/Feature/UserAccountStatusTest.php:156
+
+
+  Tests:    2 failed, 1 passed (15 assertions)
+  Duration: 0.69s
+

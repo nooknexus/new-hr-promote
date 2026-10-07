@@ -1,0 +1,9 @@
+{
+  "VERDICT": "fix-first",
+  "AUDIT_COMPLETENESS": "complete",
+  "FINDING_CLASS": "assurance-metadata-only",
+  "BEHAVIOR_BLOCKERS": "none",
+  "CANDIDATE_CHANGE_REQUIRED": "no",
+  "finding": "Generation2 build receipt reused from changed generation1 candidate; fresh candidate-bound npm build required.",
+  "FINDING_ORIGIN": "acceptance-mismatch"
+}

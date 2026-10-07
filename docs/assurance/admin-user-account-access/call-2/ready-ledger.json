@@ -1,0 +1,174 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/admin/user-account-access",
+  "REOPEN_GENERATION": 0,
+  "UNIT_STATUS": "open",
+  "REVIEW_READY": true,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 1,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "scope": [
+    "app/Livewire/Admin/UserManagement.php",
+    "resources/views/livewire/admin/user-management.blade.php",
+    "app/Services/UserAccessService.php",
+    "app/Services/SsoUserProvisioner.php",
+    "app/Models/User.php",
+    "app/Support/AdminAccess.php",
+    "app/Livewire/Login.php",
+    "app/Http/Middleware/EnsureUserIsActive.php",
+    "bootstrap/app.php",
+    "database/migrations/2026_10_06_150000_add_account_status_to_users.php",
+    "tests/Feature/AdminUserManagementTest.php",
+    "tests/Feature/UserAccountStatusTest.php",
+    "tests/Feature/UserAccountStatusMigrationTest.php",
+    "tests/Support/UserAccountConcurrencyProbe.php"
+  ],
+  "TDD_REQUIRED": true,
+  "authority": "New user-authorized admin account lifecycle: inline role/office editing and reversible disable preventing all login/access. Distinct from terminal profile self-edit unit; no prior account-status ledger exists. Profile unit3/3 counters unchanged.",
+  "objective": "Inline admin access edits and enforced account suspension across SSO/password/existing sessions",
+  "coordination": "atomic os.mkdir docs/assurance/admin-user-account-access/coordination.lock; os.rmdir release",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "current parent rollout turn_context observed"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/AdminUserManagementTest.php tests/Feature/UserAccountStatusTest.php tests/Feature/UserAccountStatusMigrationTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable established direct macOS Laravel workflow"
+  },
+  "acceptance": [
+    "Role/office dropdown changes persist immediately, preserve other concurrent field",
+    "Disable/enable confirmation modal and toast; audit each change",
+    "Disabled identity rejected before personnel auto-provision; role/office never reset",
+    "Password and legacy login reject disabled accounts; existing session/remember access blocked",
+    "No self disable or removal of final active ADMIN; service reauthorizes actor",
+    "Reversible additive migration defaults existing users enabled; rollback refuses unlocking disabled accounts"
+  ],
+  "plan": [
+    "TDD focused expected failures",
+    "Backend guarded state/identity/session enforcement",
+    "Inline UI and confirmation with audit",
+    "Complete delta/adversarial and full tests/build",
+    "Fresh final-strict review then additive local migration only on verified local database"
+  ],
+  "FROZEN_CANDIDATE_ID": "sha256:a825635662bc741239647e630fa6678207bfb8e39c9488b29e6ebe32dc4f3b9b",
+  "ASSURANCE_PACKET_ID": "sha256:68ba63a5e6dc70af72824d1767461d456cd29e4005fd082b417622e65f58bfd8",
+  "PARENT_ADVERSARIAL_READY": true,
+  "REVIEWABILITY": "pass",
+  "candidateManifest": "candidate-manifest.json",
+  "deliveryManifest": "delivery-manifest.txt",
+  "deliveryRecipe": "delivery-recipe.txt",
+  "FINAL_STRICT_READINESS_RECORD_LOCATION": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/readiness.json",
+  "TDD": {
+    "RED": "17fail5pass beforeproduction; linkedlegacy2fail1pass beforehelper",
+    "GREEN": "final-focused30pass156assertions; integration45pass242",
+    "REFACTOR": "simplified merge and Tailwind class aftergreen",
+    "secondCandidate": "lockorder/race observed2fail before fix then green; tamper mutations are sensitivity not retroactive TDD"
+  },
+  "candidateVerification": {
+    "candidate": "sha256:a825635662bc741239647e630fa6678207bfb8e39c9488b29e6ebe32dc4f3b9b",
+    "fullTests": {
+      "command": "php artisan test",
+      "exit": 0,
+      "count": 302,
+      "assertions": 1867,
+      "receipt": "full-tests-candidate2.log"
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "receipt": "build-candidate2.log"
+    },
+    "nativeConcurrency": {
+      "exit": 0,
+      "receipt": "mysql-concurrency-green.log"
+    }
+  },
+  "adversarial": [
+    {
+      "surface": "SSO/personnel/import concurrency",
+      "counterexample": "SSO users lock -> person; salary import person -> users deadlocks",
+      "interaction": "unchanged SalaryPromotionImportService lines177-184",
+      "mitigation": "nonlocking early users read then person lock then users current locking read",
+      "evidence": [
+        "red-lock-order.log",
+        "mysql-concurrency-red.log",
+        "mysql-concurrency-green.log"
+      ],
+      "regression": "existing import commit tests remain green"
+    },
+    {
+      "surface": "suspension racing SSO",
+      "counterexample": "active preliminary read then local disable",
+      "mitigation": "locked current read rechecks inactive and refuses writes",
+      "evidence": [
+        "red-lock-order.log",
+        "focused-candidate2.log"
+      ]
+    },
+    {
+      "surface": "disabled exact/link identities",
+      "counterexample": "CID exists person or remote identifier tries alternate linked user",
+      "mitigation": "deny before person; no recreate/refresh, ambiguous identity denies",
+      "evidence": [
+        "focused-candidate2.log",
+        "full-tests-candidate2.log"
+      ]
+    },
+    {
+      "surface": "admin write authorization/concurrent fields",
+      "counterexample": "stale inactive admin, selfdisable, final activeadmin loss, overwrite concurrent otherfield",
+      "mitigation": "service transaction fresh locks, field patch, count active admins",
+      "evidence": [
+        "focused-candidate2.log"
+      ]
+    },
+    {
+      "surface": "confirmation client tampering",
+      "counterexample": "client substitutes pending target/status",
+      "mitigation": "Livewire Locked id and bool",
+      "evidence": [
+        "mutation-confirmation-target.log",
+        "mutation-confirmation-status.log",
+        "focused-candidate2.log"
+      ],
+      "historicalLimitation": "Dedicated target tamper RED was not preimplementation; mutation evidence establishes sensitivity only, not retroactive TDD"
+    },
+    {
+      "surface": "password/session/remember/legacy callbacks",
+      "counterexample": "existing session, remember cookie, fallback Provider/ThaiD registration bypass suspension",
+      "mitigation": "password predicate + middleware + revoke sessions/token + linked identity guards",
+      "evidence": [
+        "mutation-session.log",
+        "full-tests-candidate2.log"
+      ]
+    },
+    {
+      "surface": "migration/data integrity",
+      "counterexample": "rollback reactivates disabled account or drops status audits",
+      "mitigation": "additive default active; rollback refuses disabled or audited status",
+      "evidence": [
+        "focused-candidate2.log",
+        "mysql-migration-plan.log"
+      ]
+    },
+    {
+      "surface": "UI close/save/cancel",
+      "counterexample": "cancel writes or success toast behind openmodal",
+      "mitigation": "cancel reset only; modalclose beforetoast tested actual Blade script",
+      "evidence": [
+        "focused-candidate2.log"
+      ]
+    }
+  ],
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "No external live IdP / browser E2E",
+    "Historical dedicated confirmation target tamper test first added after Locked attributes; mutation sensitivity now verified, not preimplementation TDD"
+  ],
+  "fullGateRuns": 2,
+  "protectedBoundaryCrossed": false,
+  "activationBoundary": "After independent ship only additive new migration on verified local loopback MySQL; no actualaccountstatus mutations requested for a specific user"
+}

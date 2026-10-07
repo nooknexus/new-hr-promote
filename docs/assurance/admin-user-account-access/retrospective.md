@@ -1,0 +1,1 @@
+No current behavior blocker. Native concurrency evidence closed introduced lock inversion. Historical RED chronology cannot be recreated. Improvements proposed, not self-applied: enumerate every behavior seam before production; bind exact recipe and call identity in canonical packet; inspect cross-service lock ordering before candidate freeze.

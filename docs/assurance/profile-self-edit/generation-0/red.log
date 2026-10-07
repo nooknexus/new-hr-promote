@@ -1,0 +1,274 @@
+
+   FAIL  Tests\Feature\ProfileSelfEditTest
+  ⨯ the profile edit button opens a prefilled modal on the profile page  0.14s  
+  ⨯ saving a profile updates only owner editable fields and emits modal… 0.01s  
+  ⨯ unchanged email stays verified and optional profile fields may be c… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ⨯ cancelling and reopening reloads persisted values and clears errors  0.01s  
+  ⨯ a session change cannot save another owners already opened form      0.01s  
+  ⨯ saving without an opened edit form is forbidden                      0.01s  
+  ⨯ guests cannot open the profile component or save a stale form        0.01s  
+  ⨯ legacy edit links return to the owners profile and reject other use… 0.02s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > the profile edit button opens…   
+  Expected: <div wire:snapshot="{&quot;data&quot;:[],&quot;memo&quot;:{&quot;id&quot;:&quot;T6M28CjMpn6yAXPJYrqC&quot;,&quot;name&quot;:103152840,&quot;path&quot;:&quot;livewire-unit-test-endpoint\/xinfhkSGNm9OYM35wDhD&quot;,&quot;method&quot;:&quot;GET&quot;,&quot;children&quot;:[],&quot;scripts&quot;:[&quot;2305839840-0&quot;],&quot;assets&quot;:[],&quot;errors&quot;:[],&quot;locale&quot;:&quot;en&quot;},&quot;checksum&quot;:&quot;2a606f108808763f6c91e9c787b138e0d3cbed9fafef27b3bebdd20a9347dc63&quot;}" wire:effects="{&quot;scripts&quot;:{&quot;2305839840-0&quot;:&quot;    &lt;script&gt;\n        $wire.on(&#039;profile-updated&#039;, (source) =&gt; {\n            Swal.fire({\n                position: \&quot;top-end\&quot;,\n                icon: \&quot;success\&quot;,\n                title: `\u0e2d\u0e31\u0e1e\u0e40\u0e14\u0e17\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e08\u0e32\u0e01 ${source} \u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08`,\n                showConfirmButton: false,\n                timer: 1500\n            });\n        });\n\n        $wire.on(&#039;profile-update-error&#039;, (message) =&gt; {\n            Swal.fire({\n                icon: \&quot;error\&quot;,\n                title: \&quot;\u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14\&quot;,\n                text: message,\n            });\n        });\n    &lt;\/script&gt;\n    &quot;}}" wire:id="T6M28CjMpn6yAXPJYrqC">\n
+      <div class="row">\n
+  \n
+  ... (76 more lines)
+
+  To contain: wire:click="openEdit"
+
+  at vendor/livewire/livewire/src/Features/SupportTesting/MakesAssertions.php:38
+     34▕ 
+     35▕     function assertSeeHtml($values)
+     36▕     {
+     37▕         foreach (Arr::wrap($values) as $value) {
+  ➜  38▕             PHPUnit::assertStringContainsString(
+     39▕                 $value,
+     40▕                 $this->html()
+     41▕             );
+     42▕         }
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/ProfileSelfEditTest.php:39
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > savi…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:52
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > unch…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:71
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > inva…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:81
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > canc…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:91
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > a se…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:99
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTes…  PublicPropertyNotFoundException   
+  Unable to set component data. Public property [$editName] not found on component: [103152840]
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:318
+    314▕         $finish = trigger('update', $component, $path, $value);
+    315▕ 
+    316▕         // Ensure that it's a public property, not on the base class first...
+    317▕         if (! in_array($property, array_keys(Utils::getPublicPropertiesDefinedOnSubclass($component)))) {
+  ➜ 318▕             throw new PublicPropertyNotFoundException($property, $component->getName());
+    319▕         }
+    320▕ 
+    321▕         // If this isn't a "deep" set, set it directly, otherwise we have to
+    322▕         // recursively get up and set down the value through the synths...
+
+      [2m+29 vendor frames [22m
+  30  tests/Feature/ProfileSelfEditTest.php:106
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > gues…  MethodNotFoundException   
+  Unable to call component method. Public method [openEdit] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/ProfileSelfEditTest.php:111
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > legacy edit links return to t…   
+  Expected response status code [201, 301, 302, 303, 307, 308] but received 200.
+Failed asserting that false is true.
+
+  at tests/Feature/ProfileSelfEditTest.php:119
+    115▕     $this->get('/profile')->assertRedirect(route('login'));
+    116▕ });
+    117▕ 
+    118▕ test('legacy edit links return to the owners profile and reject other user ids', function () {
+  ➜ 119▕     $this->get('/profile/'.$this->owner->id.'/edit')->assertRedirect(route('profile.index'));
+    120▕     $this->get('/profile/'.$this->other->id.'/edit')->assertForbidden();
+    121▕ });
+    122▕
+
+
+  Tests:    14 failed (2 assertions)
+  Duration: 0.37s
+

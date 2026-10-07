@@ -1,0 +1,65 @@
+{
+  "unit": "new-hrpromote/profile/self-edit",
+  "generation": 1,
+  "attempts": [
+    {
+      "id": "profile-self-edit-call-1",
+      "call": 1,
+      "state": "completed",
+      "candidate": "sha256:6ae7f5463fbc2f63d59b6ed337200f97d25573d65ad385b8dce89cc234701e87",
+      "packet": "sha256:0d867a43866c54e1ae58685d9f16bceb8b664f17f37665d8984fd6c271c95ecb",
+      "reservedAt": "2026-10-06T13:13:54.875427+00:00",
+      "runtime": "pass",
+      "verdict": "ship",
+      "agentPath": "/root/profile_review",
+      "startedAt": "2026-10-06T13:14:16.706987+00:00",
+      "runtimeProof": "reviewer-runtime.json",
+      "outcome": "accepted",
+      "completedAt": "2026-10-06T13:26:27.597700+00:00"
+    }
+  ],
+  "events": [
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "pre-readiness lock probe; unit open, generation0, calls0, no reservation; protected state unchanged",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same unit/gen open ready checked; calls0 max3 active none; reserve profile-self-edit-call-1 occupies1",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "spawn tool successful /root/profile_review; reserved -> started; REVIEW_CALLS_USED 0 ->1",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "accepted complete ship with observed rollout-bound gpt-5.6-sol/max; candidate delivery unchanged; clear reservation; UNIT_STATUS open ->ship",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "explicit materially new user scope reopens ship generation0 ->open generation1; preserves used1/max3; archives prior terminal proof",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "generation1 readiness finalized; open, used1 max3, no reservation, exact identities checked",
+      "release": "os.rmdir"
+    }
+  ]
+}

@@ -1,0 +1,844 @@
+--- base/app/Livewire/Admin/UserManagement.php
++++ app/Livewire/Admin/UserManagement.php
+@@ -6,7 +6,6 @@
+ use App\Support\AdminAccess;
+ use Illuminate\Support\Facades\Auth;
+ use Illuminate\Support\Facades\DB;
+-use Illuminate\Validation\Rule;
+ use Livewire\Attributes\Locked;
+ use Livewire\Component;
+ use Livewire\WithPagination;
+@@ -18,16 +17,18 @@
+     public string $search = '';
+     public string $roleFilter = '';
+     public string $officeFilter = '';
+-    public string $role = '';
+-    public string $office = '';
+-    public string $editingName = '';
++    public string $pendingName = '';
+ 
+     #[Locked]
+-    public ?int $editingId = null;
++    public ?int $pendingUserId = null;
++
++    #[Locked]
++    public bool $pendingActive = false;
+ 
+     public function boot(): void
+     {
+         abort_unless(AdminAccess::allows(Auth::user(), 'users'), 403);
++        abort_unless(DB::table('users')->where('id', Auth::id())->where('role', 'ADMIN')->where('is_active', true)->exists(), 403);
+     }
+ 
+     public function updatedSearch(): void
+@@ -45,42 +46,45 @@
+         $this->resetPage();
+     }
+ 
+-    public function edit(int $userId): void
++    public function updateRole(int $userId, string $role, UserAccessService $service): void
+     {
+-        $user = DB::table('users')->where('id', $userId)->first(['id', 'name', 'role', 'office']);
+-        abort_unless($user, 404);
+-
+-        $this->editingId = (int) $user->id;
+-        $this->editingName = (string) $user->name;
+-        $this->role = (string) ($user->role ?? '');
+-        $this->office = (string) ($user->office ?? '');
++        $service->updateRole((int) Auth::id(), $userId, $role === '' ? null : $role);
+         $this->resetErrorBag();
+-        $this->dispatch('user-access-form-opened');
+-    }
+-
+-    public function save(UserAccessService $service): void
+-    {
+-        abort_unless($this->editingId !== null, 404);
+-        $data = $this->validate([
+-            'role' => ['nullable', Rule::in(['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'])],
+-            'office' => ['nullable', 'string', 'max:2', Rule::exists('person', 'office_id')],
+-        ]);
+-
+-        $service->update(
+-            (int) Auth::id(),
+-            $this->editingId,
+-            $data['role'] ?: null,
+-            $data['office'] ?: null,
+-        );
+-        $this->closeForm();
+         $this->dispatch('user-access-saved', message: 'บันทึกสิทธิ์ผู้ใช้แล้ว');
+     }
+ 
+-    public function closeForm(): void
++    public function updateOffice(int $userId, string $office, UserAccessService $service): void
+     {
+-        $this->reset(['editingId', 'editingName', 'role', 'office']);
++        $service->updateOffice((int) Auth::id(), $userId, $office === '' ? null : $office);
+         $this->resetErrorBag();
+-        $this->dispatch('user-access-form-closed');
++        $this->dispatch('user-access-saved', message: 'บันทึกหน่วยงานผู้ใช้แล้ว');
++    }
++
++    public function requestStatusChange(int $userId, bool $active): void
++    {
++        $user = DB::table('users')->where('id', $userId)->first(['id', 'name']);
++        abort_unless($user, 404);
++        $this->pendingUserId = (int) $user->id;
++        $this->pendingName = (string) $user->name;
++        $this->pendingActive = $active;
++        $this->resetErrorBag();
++        $this->dispatch('user-status-form-opened');
++    }
++
++    public function confirmStatusChange(UserAccessService $service): void
++    {
++        abort_unless($this->pendingUserId !== null, 404);
++        $active = $this->pendingActive;
++        $service->setActive((int) Auth::id(), $this->pendingUserId, $active);
++        $this->cancelStatusChange();
++        $this->dispatch('user-access-saved', message: $active ? 'เปิดการใช้งานบัญชีแล้ว' : 'ปิดการใช้งานบัญชีแล้ว');
++    }
++
++    public function cancelStatusChange(): void
++    {
++        $this->reset(['pendingUserId', 'pendingName', 'pendingActive']);
++        $this->resetErrorBag();
++        $this->dispatch('user-status-form-closed');
+     }
+ 
+     public function render()
+@@ -89,7 +93,7 @@
+ 
+         return view('livewire.admin.user-management', [
+             'users' => DB::table('users')
+-                ->select(['id', 'name', 'email', 'role', 'office'])
++                ->select(['id', 'name', 'email', 'role', 'office', 'is_active'])
+                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
+                     $query->where('name', 'like', "%{$search}%")
+                         ->orWhere('email', 'like', "%{$search}%");
+--- base/resources/views/livewire/admin/user-management.blade.php
++++ resources/views/livewire/admin/user-management.blade.php
+@@ -31,6 +31,8 @@
+                 </select>
+             </div>
+         </div>
++        @error('role')<p role="alert" class="px-5 py-3 text-sm text-rose-700">{{ $message }}</p>@enderror
++        @error('office')<p role="alert" class="px-5 py-3 text-sm text-rose-700">{{ $message }}</p>@enderror
+         <div class="overflow-x-auto">
+             <table class="min-w-full divide-y divide-slate-200 text-sm">
+                 <thead class="bg-slate-50 text-left text-xs font-semibold text-slate-500">
+@@ -47,11 +49,28 @@
+                             <td class="whitespace-nowrap px-4 py-3">
+                                 <p class="font-semibold text-slate-900">{{ $user->name }}</p>
+                                 <p class="text-xs text-slate-500">{{ $user->email }}</p>
++                                @if(!$user->is_active)<span class="mt-1 inline-block rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">ปิดการใช้งาน</span>@endif
+                             </td>
+-                            <td class="whitespace-nowrap px-4 py-3">{{ $user->role ?: 'ผู้ใช้ทั่วไป' }}</td>
+-                            <td class="px-4 py-3">{{ $offices->firstWhere('office_id', $user->office)?->office_name ?: ($user->office ?: '—') }}</td>
++                            <td class="whitespace-nowrap px-4 py-3">
++                                <label class="sr-only" for="user-role-{{ $user->id }}">บทบาทของ {{ $user->name }}</label>
++                                <select id="user-role-{{ $user->id }}" wire:change="updateRole({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
++                                    <option value="" @selected(!$user->role)>ผู้ใช้ทั่วไป</option>
++                                    @foreach(['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'] as $option)
++                                        <option value="{{ $option }}" @selected($user->role === $option)>{{ $option }}</option>
++                                    @endforeach
++                                </select>
++                            </td>
++                            <td class="px-4 py-3">
++                                <label class="sr-only" for="user-office-{{ $user->id }}">หน่วยงานของ {{ $user->name }}</label>
++                                <select id="user-office-{{ $user->id }}" wire:change="updateOffice({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
++                                    <option value="" @selected(!$user->office)>ยังไม่ระบุหน่วยงาน</option>
++                                    @foreach($offices as $option)
++                                        <option value="{{ $option->office_id }}" @selected($user->office === (string) $option->office_id)>{{ $option->office_name ?: $option->office_id }}</option>
++                                    @endforeach
++                                </select>
++                            </td>
+                             <td class="whitespace-nowrap px-4 py-3 text-right">
+-                                <button type="button" wire:click="edit({{ $user->id }})" onclick="window.portalModal.show('userAccessModal')" class="btn btn-info btn-sm">แก้ไขสิทธิ์</button>
++                                <button type="button" wire:click="requestStatusChange({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})" wire:loading.attr="disabled" @disabled($user->id === auth()->id()) class="btn {{ $user->is_active ? 'bg-rose-600 text-white hover:bg-rose-700' : 'btn-success' }} btn-sm">{{ $user->is_active ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน' }}</button>
+                             </td>
+                         </tr>
+                     @empty
+@@ -63,39 +82,23 @@
+         @if($users->hasPages())<div class="border-t border-slate-100 px-5 py-4">{{ $users->links() }}</div>@endif
+     </section>
+ 
+-    <div class="modal" id="userAccessModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-access-title" aria-hidden="true" wire:ignore.self>
++    <div class="modal" id="userStatusModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-status-title" aria-hidden="true" wire:ignore.self>
+         <div class="modal-dialog" role="document">
+             <div class="modal-content">
+                 <div class="modal-header">
+-                    <h2 id="user-access-title" class="text-lg font-bold text-slate-900">แก้ไขสิทธิ์ {{ $editingName }}</h2>
+-                    <button type="button" wire:click="closeForm" data-modal-close aria-label="ปิดหน้าต่าง"><i class="fas fa-times" aria-hidden="true"></i></button>
++                    <h2 id="user-status-title" class="text-lg font-bold text-slate-900">{{ $pendingActive ? 'เปิดการใช้งานบัญชี' : 'ปิดการใช้งานบัญชี' }}</h2>
++                    <button type="button" wire:click="cancelStatusChange" data-modal-close aria-label="ปิดหน้าต่าง"><i class="fas fa-times" aria-hidden="true"></i></button>
+                 </div>
+-                <form wire:submit="save">
+-                    <div class="modal-body space-y-4">
+-                        <div>
+-                            <label for="user-role" class="block text-sm font-semibold text-slate-700">บทบาท</label>
+-                            <select id="user-role" wire:model="role" class="{{ $inputClass }}">
+-                                <option value="">ผู้ใช้ทั่วไป</option>
+-                                @foreach(['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'] as $option)
+-                                    <option value="{{ $option }}">{{ $option }}</option>
+-                                @endforeach
+-                            </select>
+-                            @error('role')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+-                        </div>
+-                        <div>
+-                            <label for="user-office" class="block text-sm font-semibold text-slate-700">หน่วยงาน</label>
+-                            <select id="user-office" wire:model="office" class="{{ $inputClass }}">
+-                                <option value="">ยังไม่ระบุ</option>
+-                                @foreach($offices as $option)
+-                                    <option value="{{ $option->office_id }}">{{ $option->office_name ?: $option->office_id }}</option>
+-                                @endforeach
+-                            </select>
+-                            @error('office')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
+-                        </div>
++                <form wire:submit="confirmStatusChange">
++                    <div class="modal-body space-y-3">
++                        <p>ยืนยัน{{ $pendingActive ? 'เปิด' : 'ปิด' }}การใช้งานบัญชี <strong>{{ $pendingName }}</strong>?</p>
++                        @if(!$pendingActive)<p class="text-sm text-slate-500">ผู้ใช้นี้จะไม่สามารถเข้าสู่ระบบได้ และการใช้งานที่ค้างอยู่จะถูกยกเลิก</p>@endif
++                        @error('status')<p role="alert" class="text-sm text-rose-700">{{ $message }}</p>@enderror
++                        @error('role')<p role="alert" class="text-sm text-rose-700">{{ $message }}</p>@enderror
+                     </div>
+                     <div class="modal-footer">
+-                        <button type="button" wire:click="closeForm" data-modal-close class="btn btn-secondary">ยกเลิก</button>
+-                        <button type="submit" wire:loading.attr="disabled" wire:target="save" class="btn btn-primary">บันทึก</button>
++                        <button type="button" wire:click="cancelStatusChange" data-modal-close class="btn btn-secondary">ยกเลิก</button>
++                        <button type="submit" wire:loading.attr="disabled" class="btn {{ $pendingActive ? 'btn-primary' : 'bg-rose-600 text-white hover:bg-rose-700' }}">ยืนยัน</button>
+                     </div>
+                 </form>
+             </div>
+@@ -105,8 +108,8 @@
+ 
+ @script
+ <script>
+-    $wire.on('user-access-form-opened', () => window.portalModal.show('userAccessModal'));
+-    $wire.on('user-access-form-closed', () => window.portalModal.hide(document.getElementById('userAccessModal')));
++    $wire.on('user-status-form-opened', () => window.portalModal.show('userStatusModal'));
++    $wire.on('user-status-form-closed', () => window.portalModal.hide(document.getElementById('userStatusModal')));
+     $wire.on('user-access-saved', ({ message }) => window.portalToast.show(message));
+ </script>
+ @endscript
+--- base/app/Services/UserAccessService.php
++++ app/Services/UserAccessService.php
+@@ -11,43 +11,70 @@
+ 
+     public function update(int $actorId, int $targetUserId, ?string $role, ?string $office): void
+     {
+-        if ($role !== null && ! in_array($role, self::ROLES, true)) {
+-            throw ValidationException::withMessages(['role' => 'บทบาทไม่ถูกต้อง']);
+-        }
++        $this->change($actorId, $targetUserId, ['role' => $role, 'office' => $office]);
++    }
+ 
+-        DB::transaction(function () use ($actorId, $targetUserId, $role, $office): void {
+-            $adminIds = DB::table('users')->where('role', 'ADMIN')
+-                ->orderBy('id')->lockForUpdate()->pluck('id');
+-            abort_unless($adminIds->contains($actorId), 403);
++    public function updateRole(int $actorId, int $targetUserId, ?string $role): void
++    {
++        $this->change($actorId, $targetUserId, ['role' => $role]);
++    }
+ 
+-            if ($office !== null && ! DB::table('person')->where('office_id', $office)->exists()) {
++    public function updateOffice(int $actorId, int $targetUserId, ?string $office): void
++    {
++        $this->change($actorId, $targetUserId, ['office' => $office]);
++    }
++
++    public function setActive(int $actorId, int $targetUserId, bool $active): void
++    {
++        $this->change($actorId, $targetUserId, ['is_active' => $active]);
++    }
++
++    private function change(int $actorId, int $targetUserId, array $changes): void
++    {
++        DB::transaction(function () use ($actorId, $targetUserId, $changes): void {
++            // All administrator mutations share this stable lock order.
++            $admins = DB::table('users')->where('role', 'ADMIN')->orderBy('id')->lockForUpdate()->get(['id', 'is_active']);
++            $activeAdmins = $admins->filter(fn ($user): bool => (bool) $user->is_active);
++            abort_unless($activeAdmins->contains('id', $actorId), 403);
++
++            if (array_key_exists('role', $changes) && $changes['role'] !== null && ! in_array($changes['role'], self::ROLES, true)) {
++                throw ValidationException::withMessages(['role' => 'บทบาทไม่ถูกต้อง']);
++            }
++            if (isset($changes['office']) && (strlen($changes['office']) > 2 || ! DB::table('person')->where('office_id', $changes['office'])->exists())) {
+                 throw ValidationException::withMessages(['office' => 'ไม่พบหน่วยงานที่เลือก']);
+             }
+ 
+-            $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()
+-                ->first(['id', 'role', 'office']);
++            $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);
+             abort_unless($target, 404);
++            // Null clears a field; omitted fields retain the locked current value.
++            $role = array_key_exists('role', $changes) ? $changes['role'] : $target->role;
++            $office = array_key_exists('office', $changes) ? $changes['office'] : $target->office;
++            $active = $changes['is_active'] ?? (bool) $target->is_active;
+ 
+-            if ($target->role === 'ADMIN' && $role !== 'ADMIN' && $adminIds->count() === 1) {
+-                throw ValidationException::withMessages(['role' => 'ไม่สามารถเปลี่ยนบทบาท ADMIN คนสุดท้ายได้']);
++            if (! $active && $actorId === $targetUserId) {
++                throw ValidationException::withMessages(['status' => 'ไม่สามารถปิดการใช้งานบัญชีของตนเองได้']);
+             }
+-
+-            if ($target->role === $role && $target->office === $office) {
++            if ($target->role === 'ADMIN' && (bool) $target->is_active && ($role !== 'ADMIN' || ! $active) && $activeAdmins->count() === 1) {
++                throw ValidationException::withMessages(['role' => 'ไม่สามารถเปลี่ยนสิทธิ์หรือปิด ADMIN ที่ใช้งานได้คนสุดท้าย']);
++            }
++            if ($target->role === $role && $target->office === $office && (bool) $target->is_active === $active) {
+                 return;
+             }
+ 
+-            DB::table('users')->where('id', $targetUserId)->update([
+-                'role' => $role,
+-                'office' => $office,
+-                'updated_at' => now(),
+-            ]);
++            $data = ['role' => $role, 'office' => $office, 'is_active' => $active, 'updated_at' => now()];
++            if (! $active) {
++                $data['remember_token'] = null;
++            }
++            DB::table('users')->where('id', $targetUserId)->update($data);
++            if (! $active && config('session.driver') === 'database') {
++                DB::connection(config('session.connection'))->table(config('session.table', 'sessions'))
++                    ->where('user_id', $targetUserId)->delete();
++            }
+             DB::table('user_access_audits')->insert([
+-                'actor_id' => $actorId,
+-                'target_user_id' => $targetUserId,
+-                'before_role' => $target->role,
+-                'after_role' => $role,
+-                'before_office' => $target->office,
+-                'after_office' => $office,
++                'actor_id' => $actorId, 'target_user_id' => $targetUserId,
++                'before_role' => $target->role, 'after_role' => $role,
++                'before_office' => $target->office, 'after_office' => $office,
++                'before_active' => (bool) $target->is_active, 'after_active' => $active,
+                 'created_at' => now(),
+             ]);
+         });
+--- base/app/Services/SsoUserProvisioner.php
++++ app/Services/SsoUserProvisioner.php
+@@ -23,11 +23,6 @@
+         }
+ 
+         return DB::transaction(function () use ($cid, $attributes): ?User {
+-            $person = DB::table('person')->where('cid', $cid)->lockForUpdate()->first();
+-            if ($person === null) {
+-                return null;
+-            }
+-
+             $hash = hash('sha256', $cid);
+             $matches = User::query()
+                 ->where(function ($query) use ($cid, $hash, $attributes): void {
+@@ -41,12 +36,22 @@
+                         }
+                     }
+                 })
+-                ->lockForUpdate()
++                ->orderBy('id')->lockForUpdate()
+                 ->get()
+                 ->unique('id')
+                 ->values();
+ 
+             if ($matches->count() > 1) {
++                return null;
++            }
++
++            // A locally suspended identity must never be refreshed or recreated by SSO.
++            if ($matches->contains(fn (User $user): bool => $user->is_active === false)) {
++                return null;
++            }
++
++            $person = DB::table('person')->where('cid', $cid)->lockForUpdate()->first();
++            if ($person === null) {
+                 return null;
+             }
+ 
+--- base/app/Models/User.php
++++ app/Models/User.php
+@@ -65,6 +65,7 @@
+     protected function casts(): array
+     {
+         return [
++            'is_active' => 'boolean',
+             'email_verified_at' => 'datetime',
+             'password' => 'hashed',
+             'birthdate' => 'date',
+--- base/app/Support/AdminAccess.php
++++ app/Support/AdminAccess.php
+@@ -16,7 +16,7 @@
+ 
+     public static function allows(?User $user, string $ability): bool
+     {
+-        if ($user === null || ! in_array($ability, self::ABILITIES, true)) {
++        if ($user === null || $user->is_active === false || ! in_array($ability, self::ABILITIES, true)) {
+             return false;
+         }
+ 
+--- base/app/Livewire/Login.php
++++ app/Livewire/Login.php
+@@ -39,6 +39,7 @@
+         $credentials = [
+             'email' => $this->email,
+             'password' => $this->password,
++            'is_active' => true,
+         ];
+ 
+         // dd($credentials);
+@@ -85,6 +86,15 @@
+                 $this->addError('general', 'ไม่พบข้อมูล Provider ID กรุณาเข้าสู่ระบบใหม่');
+                 return;
+             }
++
++            if ($this->hasDisabledIdentity($validatedData['pid'], [
++                'cid_hash' => $providerData['hash_cid'] ?? null,
++                'provider_id' => $providerData['provider_id'] ?? null,
++                'account_id' => $providerData['account_id'] ?? null,
++            ])) {
++                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
++                return;
++            }
+             
+             // Check if a user with this cid_hash already exists
+             $existingUser = null;
+@@ -92,6 +102,11 @@
+                 $existingUser = User::where('cid_hash', $providerData['hash_cid'])->first();
+             }
+             
++            if ($existingUser?->is_active === false) {
++                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
++                return;
++            }
++
+             if ($existingUser) {
+                 // Update existing user with Provider ID data
+                 Log::info('Updating existing user during Provider ID registration', ['user_id' => $existingUser->id]);
+@@ -169,6 +184,11 @@
+                 $this->addError('general', 'ไม่พบข้อมูล ThaID กรุณาเข้าสู่ระบบใหม่');
+                 return;
+             }
++
++            if ($this->hasDisabledIdentity($thaidPid)) {
++                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
++                return;
++            }
+             
+             // สร้างผู้ใช้ใหม่พร้อมข้อมูลจาก ThaID
+             $user = User::create([
+@@ -202,6 +222,20 @@
+             $this->addError('general', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+         }
+     }
++
++    private function hasDisabledIdentity(string $cid, array $identifiers = []): bool
++    {
++        return User::query()->where('is_active', false)
++            ->where(function ($query) use ($cid, $identifiers) {
++                $query->where('pid', $cid)->orWhere('thaid_pid', $cid)
++                    ->orWhere('cid_hash', hash('sha256', $cid));
++                foreach (['cid_hash', 'provider_id', 'account_id'] as $field) {
++                    if (filled($identifiers[$field] ?? null)) {
++                        $query->orWhere($field, $identifiers[$field]);
++                    }
++                }
++            })->exists();
++    }
+     
+     /**
+      * สร้าง CID Hash จาก PID ด้วย SHA-256
+--- base/app/Http/Middleware/EnsureUserIsActive.php
++++ app/Http/Middleware/EnsureUserIsActive.php
+@@ -0,0 +1,28 @@
++<?php
++
++namespace App\Http\Middleware;
++
++use Closure;
++use Illuminate\Http\Request;
++use Illuminate\Support\Facades\Auth;
++use Symfony\Component\HttpFoundation\Response;
++
++class EnsureUserIsActive
++{
++    public function handle(Request $request, Closure $next): Response
++    {
++        if ($request->user()?->is_active === false) {
++            Auth::logout();
++            $request->session()->invalidate();
++            $request->session()->regenerateToken();
++
++            if ($request->expectsJson() || $request->hasHeader('X-Livewire')) {
++                return response()->json(['message' => 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้'], 403);
++            }
++
++            return redirect()->route('login')->with('error', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
++        }
++
++        return $next($request);
++    }
++}
+--- base/bootstrap/app.php
++++ bootstrap/app.php
+@@ -14,6 +14,7 @@
+     )
+     ->withMiddleware(function (Middleware $middleware) {
+         $middleware->append(\App\Http\Middleware\CompleteStreamedLivewireResponse::class);
++        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsActive::class);
+ 
+         $middleware->alias([
+             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+--- base/database/migrations/2026_10_06_150000_add_account_status_to_users.php
++++ database/migrations/2026_10_06_150000_add_account_status_to_users.php
+@@ -0,0 +1,32 @@
++<?php
++
++use Illuminate\Database\Migrations\Migration;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++
++return new class extends Migration
++{
++    public function up(): void
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->boolean('is_active')->default(true);
++        });
++        Schema::table('user_access_audits', function (Blueprint $table) {
++            $table->boolean('before_active')->nullable();
++            $table->boolean('after_active')->nullable();
++        });
++    }
++
++    public function down(): void
++    {
++        if (DB::table('users')->where('is_active', false)->exists()) {
++            throw new RuntimeException('Cannot remove account status while disabled accounts exist.');
++        }
++        if (DB::table('user_access_audits')->whereNotNull('before_active')->exists()) {
++            throw new RuntimeException('Cannot discard account status audit records.');
++        }
++        Schema::table('user_access_audits', fn (Blueprint $table) => $table->dropColumn(['before_active', 'after_active']));
++        Schema::table('users', fn (Blueprint $table) => $table->dropColumn('is_active'));
++    }
++};
+--- base/tests/Feature/AdminUserManagementTest.php
++++ tests/Feature/AdminUserManagementTest.php
+@@ -18,6 +18,8 @@
+         $table->string('thaid_pid')->nullable();
+         $table->string('role')->nullable();
+         $table->string('office')->nullable();
++        $table->boolean('is_active')->default(true);
++        $table->rememberToken();
+         $table->timestamps();
+     });
+     Schema::create('person', function (Blueprint $table) {
+@@ -33,6 +35,8 @@
+         $table->string('after_role')->nullable();
+         $table->string('before_office')->nullable();
+         $table->string('after_office')->nullable();
++        $table->boolean('before_active')->nullable();
++        $table->boolean('after_active')->nullable();
+         $table->timestamp('created_at');
+     });
+     DB::table('users')->insert([
+@@ -92,18 +96,66 @@
+     expect(DB::table('users')->where('role', 'ADMIN')->count())->toBe(1);
+ });
+ 
+-test('saving from the edit modal closes it and emits a toast event', function () {
+-    Livewire::actingAs(User::find(1))
+-        ->test(UserManagement::class)
+-        ->call('edit', 2)
+-        ->assertSet('editingId', 2)
+-        ->set('role', 'FINANCE')
+-        ->set('office', '01')
+-        ->call('save')
+-        ->assertHasNoErrors()
+-        ->assertDispatched('user-access-form-closed')
+-        ->assertDispatched('user-access-saved');
+-    expect(DB::table('users')->where('id', 2)->value('role'))->toBe('FINANCE');
++test('role and office can be changed directly from the user row', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class)
++        ->assertDontSee('แก้ไขสิทธิ์')
++        ->assertSeeHtml('wire:change="updateRole(2, $event.target.value)"')
++        ->call('updateRole', 2, 'FINANCE')->assertHasNoErrors()->assertDispatched('user-access-saved');
++    expect(User::find(2)->role)->toBe('FINANCE')->and(User::find(2)->office)->toBeNull();
++    $component->call('updateOffice', 2, '01')->assertHasNoErrors();
++    expect(User::find(2)->role)->toBe('FINANCE')->and(User::find(2)->office)->toBe('01');
++});
++
++test('account suspension requires confirmation and closes the application modal after saving', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class)
++        ->call('requestStatusChange', 2, false)->assertDispatched('user-status-form-opened');
++    expect(User::find(2)->is_active)->toBeTrue();
++    $component->call('confirmStatusChange')->assertHasNoErrors()
++        ->assertDispatched('user-status-form-closed')->assertDispatched('user-access-saved');
++    expect(User::find(2)->is_active)->toBeFalse();
++    $component->call('requestStatusChange', 2, true)->call('cancelStatusChange');
++    expect(User::find(2)->is_active)->toBeFalse();
++});
++
++test('inline edits validate input and recheck administrator access on every action', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class);
++    $component->call('updateRole', 2, 'ROOT')->assertHasErrors('role');
++    $component->call('updateOffice', 2, '99')->assertHasErrors('office');
++    expect(User::find(2)->role)->toBeNull()->and(User::find(2)->office)->toBeNull();
++    DB::table('users')->where('id', 1)->update(['role' => null]);
++    $component->call('updateRole', 2, 'ADMIN')->assertForbidden();
++});
++
++test('an inline edit keeps another fields latest value instead of the displayed stale value', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class);
++    DB::table('users')->where('id', 2)->update(['role' => 'PROMOTE']);
++    $component->call('updateOffice', 2, '01')->assertHasNoErrors();
++    expect(User::find(2)->role)->toBe('PROMOTE');
++    $component->call('updateRole', 2, 'FINANCE')->assertHasNoErrors();
++    expect(User::find(2)->office)->toBe('01');
++});
++
++test('the confirmation target cannot be replaced by a client property update', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class)->call('requestStatusChange', 2, false);
++    expect(fn () => $component->set('pendingUserId', 1))
++        ->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
++    expect(User::find(1)->is_active)->toBeTrue()->and(User::find(2)->is_active)->toBeTrue();
++});
++
++test('the rendered account modal events close confirmation before showing the saved toast', function () {
++    $component = Livewire::actingAs(User::find(1))->test(UserManagement::class);
++    $script = preg_replace('/<\/?script[^>]*>/', '', implode("\n", $component->effects['scripts']));
++    $runner = <<<'JS'
++const handlers = {}, modal = {open: false}; let message;
++globalThis.$wire = {on: (name, fn) => handlers[name] = fn};
++globalThis.document = {getElementById: id => { if(id !== 'userStatusModal') throw Error('wrong modal'); return modal; }};
++globalThis.window = {portalModal: {show: id => document.getElementById(id).open = true, hide: target => { if(target !== modal) throw Error('wrong target'); modal.open = false; }}, portalToast: {show: value => { if(modal.open) throw Error('toast before close'); message = value; }}};
++JS;
++    $runner .= "\n".$script;
++    $runner .= "\nhandlers['user-status-form-opened'](); if(!modal.open) throw Error('not open'); handlers['user-status-form-closed'](); handlers['user-access-saved']({message:'saved'}); if(modal.open || message !== 'saved') throw Error('missing feedback');";
++    $process = new \Symfony\Component\Process\Process(['node', '--eval', $runner], base_path());
++    $process->run();
++    expect($process->getExitCode())->toBe(0, $process->getErrorOutput());
+ });
+ 
+ test('the user list filters by role and office', function () {
+--- base/tests/Feature/UserAccountStatusTest.php
++++ tests/Feature/UserAccountStatusTest.php
+@@ -0,0 +1,184 @@
++<?php
++
++use App\Livewire\Login;
++use App\Models\User;
++use App\Services\SsoUserProvisioner;
++use App\Services\ThaidIdTokenVerifier;
++use App\Services\UserAccessService;
++use App\Support\AdminAccess;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Http;
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Validation\ValidationException;
++use Livewire\Livewire;
++
++beforeEach(function () {
++    Schema::create('users', function (Blueprint $table) {
++        $table->id();
++        $table->string('name');
++        $table->string('name_en')->nullable();
++        $table->string('email')->unique();
++        $table->string('password');
++        $table->string('pid', 13)->nullable()->unique();
++        $table->string('thaid_pid', 13)->nullable()->unique();
++        $table->string('cid_hash')->nullable()->unique();
++        $table->string('provider_id')->nullable()->unique();
++        $table->string('account_id')->nullable()->unique();
++        $table->string('role')->nullable();
++        $table->string('office')->nullable();
++        $table->boolean('is_active')->default(true);
++        $table->string('hcode')->nullable();
++        $table->string('hname')->nullable();
++        $table->string('hospcode')->nullable();
++        $table->text('address')->nullable();
++        $table->date('birthdate')->nullable();
++        $table->timestamp('email_verified_at')->nullable();
++        $table->timestamp('last_login_at')->nullable();
++        $table->rememberToken();
++        $table->timestamps();
++    });
++    Schema::create('person', function (Blueprint $table) {
++        $table->string('cid', 13)->primary();
++        $table->string('office_id')->nullable();
++        $table->string('office_name')->nullable();
++    });
++    Schema::create('user_access_audits', function (Blueprint $table) {
++        $table->id();
++        $table->unsignedBigInteger('actor_id');
++        $table->unsignedBigInteger('target_user_id');
++        foreach (['before_role', 'after_role', 'before_office', 'after_office'] as $field) {
++            $table->string($field)->nullable();
++        }
++        $table->boolean('before_active')->nullable();
++        $table->boolean('after_active')->nullable();
++        $table->timestamp('created_at');
++    });
++    User::forceCreate(['id' => 1, 'name' => 'Admin', 'email' => 'admin@example.test', 'password' => 'password123', 'role' => 'ADMIN']);
++    User::forceCreate(['id' => 2, 'name' => 'Local Name', 'email' => 'person@example.test', 'password' => 'password123', 'pid' => '1234567890123', 'role' => 'LEAVE', 'office' => '01', 'remember_token' => 'remember-value']);
++    DB::table('person')->insert(['cid' => '1234567890123', 'office_id' => '01', 'office_name' => 'Office']);
++});
++
++test('disabling and reenabling an account is audited and does not alter its identity or role', function () {
++    $service = app(UserAccessService::class);
++    $service->setActive(1, 2, false);
++    $user = User::find(2);
++    expect($user->is_active)->toBeFalse()->and($user->pid)->toBe('1234567890123')
++        ->and($user->role)->toBe('LEAVE')->and($user->office)->toBe('01')->and($user->remember_token)->toBeNull();
++    $audit = DB::table('user_access_audits')->first();
++    expect((bool) $audit->before_active)->toBeTrue()->and((bool) $audit->after_active)->toBeFalse();
++    $service->setActive(1, 2, false);
++    expect(DB::table('user_access_audits')->count())->toBe(1);
++    $service->setActive(1, 2, true);
++    expect(User::find(2)->is_active)->toBeTrue()->and(DB::table('user_access_audits')->count())->toBe(2);
++});
++
++test('an inactive admin and a nonadmin cannot change access or account status', function () {
++    DB::table('users')->where('id', 1)->update(['is_active' => false]);
++    foreach ([1, 2] as $actor) {
++        try { app(UserAccessService::class)->setActive($actor, 2, false); $this->fail('Unauthorized actor allowed'); }
++        catch (\Symfony\Component\HttpKernel\Exception\HttpException $error) { expect($error->getStatusCode())->toBe(403); }
++    }
++    $this->actingAs(User::find(1));
++    expect(AdminAccess::allows(User::find(1), 'users'))->toBeFalse();
++});
++
++test('self disable is denied and disabled admins do not count as remaining administrators', function () {
++    User::forceCreate(['id' => 3, 'name' => 'Inactive admin', 'email' => 'inactive@example.test', 'password' => 'password123', 'role' => 'ADMIN', 'is_active' => false]);
++    $service = app(UserAccessService::class);
++    expect(fn () => $service->setActive(1, 1, false))->toThrow(ValidationException::class)
++        ->and(fn () => $service->update(1, 1, 'LEAVE', null))->toThrow(ValidationException::class);
++    expect(User::find(1)->is_active)->toBeTrue()->and(User::find(1)->role)->toBe('ADMIN');
++});
++
++test('a disabled CID is rejected before personnel lookup and without refresh writes', function (string $link) {
++    DB::table('users')->where('id', 2)->update(['pid' => null, $link => $link === 'cid_hash' ? hash('sha256', '1234567890123') : '1234567890123', 'is_active' => false]);
++    $queries = [];
++    DB::listen(function ($query) use (&$queries) { $queries[] = $query->sql; });
++    $result = app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Remote name']);
++    expect($result)->toBeNull()->and(User::find(2)->name)->toBe('Local Name');
++    expect(collect($queries)->contains(fn ($sql) => str_contains($sql, '"person"')))->toBeFalse();
++})->with(['pid', 'thaid_pid', 'cid_hash']);
++
++test('disabled users cannot use password login or existing sessions', function () {
++    DB::table('users')->where('id', 2)->update(['is_active' => false]);
++    Livewire::test(Login::class)->set('email', 'person@example.test')->set('password', 'password123')
++        ->call('login')->assertDispatched('login-error');
++    $this->assertGuest();
++    $this->actingAs(User::find(2))->get('/profile')->assertRedirect(route('login'));
++    $this->assertGuest();
++});
++
++test('disabling deletes the target database sessions without deleting anyone elses sessions', function () {
++    Schema::create('sessions', function (Blueprint $table) { $table->string('id')->primary(); $table->unsignedBigInteger('user_id')->nullable(); });
++    DB::table('sessions')->insert([['id' => 'target', 'user_id' => 2], ['id' => 'actor', 'user_id' => 1]]);
++    config()->set('session.driver', 'database');
++    app(UserAccessService::class)->setActive(1, 2, false);
++    expect(DB::table('sessions')->pluck('id')->all())->toBe(['actor']);
++});
++
++test('disabled remembered sessions and Livewire requests cannot enter the application', function () {
++    DB::table('users')->where('id', 2)->update(['is_active' => false]);
++    $user = User::find(2);
++    $this->withCookie(Auth::guard()->getRecallerName(), $user->id.'|remember-value|'.$user->password)
++        ->get('/profile')->assertRedirect(route('login'));
++    $this->assertGuest();
++    $this->actingAs($user)->postJson('/livewire/update', ['components' => []], ['X-Livewire' => 'true'])
++        ->assertForbidden();
++    $this->assertGuest();
++});
++
++test('the legacy ThaiD registration cannot create another account for a disabled CID', function () {
++    DB::table('users')->where('id', 2)->update(['is_active' => false]);
++    session(['thaid_pid' => '1234567890123', 'thaid_name' => 'Remote name']);
++    Livewire::test(Login::class)->set('email', 'another@example.test')->set('password', 'password123')
++        ->call('registerWithThaID')->assertHasErrors('general');
++    $this->assertGuest();
++    expect(DB::table('users')->count())->toBe(2)->and(User::find(2)->name)->toBe('Local Name');
++});
++
++test('reenabled accounts can use their original password without losing their assigned role', function () {
++    app(UserAccessService::class)->setActive(1, 2, false);
++    app(UserAccessService::class)->setActive(1, 2, true);
++    Livewire::test(Login::class)->set('email', 'person@example.test')->set('password', 'password123')
++        ->call('login')->assertDispatched('login-success');
++    $this->assertAuthenticatedAs(User::find(2));
++    expect(User::find(2)->role)->toBe('LEAVE');
++});
++
++test('a disabled account cannot be revived by the legacy ProviderID registration action', function (string $link) {
++    $value = $link === 'cid_hash' ? hash('sha256', '1234567890123') : 'linked-identity';
++    DB::table('users')->where('id', 2)->update([$link => $value, 'is_active' => false]);
++    session(['provider_data' => [($link === 'cid_hash' ? 'hash_cid' : $link) => $value, 'name_th' => 'Remote name']]);
++    $component = Livewire::test(Login::class)->set('pid', '9876543210123')->set('password', 'password123')->call('registerWithProvider')
++        ->assertHasErrors('general');
++    expect($component->instance()->getErrorBag()->first('general'))->toBe('บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
++    $this->assertGuest();
++    expect(User::find(2)->pid)->toBe('1234567890123')->and(User::find(2)->name)->toBe('Local Name');
++})->with(['cid_hash', 'provider_id', 'account_id']);
++
++test('all SSO callbacks deny disabled personnel accounts without refreshing them', function (string $provider) {
++    DB::table('users')->where('id', 2)->update(['is_active' => false]);
++    Http::preventStrayRequests();
++    if ($provider === 'thaid') {
++        config()->set('services.thaid.well_known_url', 'https://thaid.test/discovery');
++        cache()->forget('thaid_well_known_config');
++        $this->mock(ThaidIdTokenVerifier::class, fn ($mock) => $mock->shouldReceive('verify')->once()->andReturn(['pid' => '1234567890123', 'name' => 'Remote name']));
++        Http::fake(['https://thaid.test/discovery' => Http::response(['token_endpoint' => 'https://thaid.test/token', 'jwks_uri' => 'https://thaid.test/jwks']), 'https://thaid.test/token' => Http::response(['id_token' => 'synthetic']), 'https://thaid.test/jwks' => Http::response(['keys' => []])]);
++        $state = ['thaid_state' => 'state', 'thaid_nonce' => 'nonce'];
++    } elseif ($provider === 'mymoph') {
++        config()->set('services.mymoph.token_url', 'https://mymoph.test/token');
++        config()->set('services.mymoph.userinfo_url', 'https://mymoph.test/userinfo');
++        Http::fake(['https://mymoph.test/token' => Http::response(['access_token' => 'synthetic']), 'https://mymoph.test/userinfo' => Http::response(['cid' => '1234567890123', 'fname' => 'Remote', 'lname' => 'name'])]);
++        $state = ['mymoph_state' => 'state'];
++    } else {
++        $encode = fn (array $data) => rtrim(strtr(base64_encode(json_encode($data)), '+/', '-_'), '=');
++        $jwt = $encode(['alg' => 'none']).'.'.$encode(['scopes_detail' => ['id_card' => '1234567890123']]).'.signature';
++        Http::fake(['https://moph.id.th/api/v1/token' => Http::response(['data' => ['data' => ['access_token' => $jwt]]]), 'https://provider.id.th/api/v1/services/token' => Http::response(['data' => ['access_token' => 'synthetic']]), 'https://provider.id.th/api/v1/services/profile' => Http::response(['data' => ['provider_id' => 'provider-1', 'name_th' => 'Remote name']])]);
++        $state = ['provider_oauth_state' => 'state'];
++    }
++    $this->withSession($state)->get('/'.$provider.'/callback?state=state&code=code')->assertRedirect(route('login'));
++    $this->assertGuest();
++    expect(User::find(2)->name)->toBe('Local Name')->and(User::find(2)->is_active)->toBeFalse()->and(DB::table('users')->count())->toBe(2);
++})->with(['thaid', 'provider', 'mymoph']);
+--- base/tests/Feature/UserAccountStatusMigrationTest.php
++++ tests/Feature/UserAccountStatusMigrationTest.php
+@@ -0,0 +1,29 @@
++<?php
++
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++
++beforeEach(function () {
++    Schema::create('users', function (Blueprint $table) { $table->id(); $table->string('name'); });
++    Schema::create('user_access_audits', function (Blueprint $table) { $table->id(); });
++    DB::table('users')->insert(['id' => 1, 'name' => 'Existing user']);
++});
++
++test('account status migration enables existing users and preserves them through rollback', function () {
++    $migration = require database_path('migrations/2026_10_06_150000_add_account_status_to_users.php');
++    $migration->up();
++    expect((bool) DB::table('users')->value('is_active'))->toBeTrue()
++        ->and(Schema::hasColumn('user_access_audits', 'after_active'))->toBeTrue();
++    $migration->down();
++    expect(DB::table('users')->value('name'))->toBe('Existing user')
++        ->and(Schema::hasColumn('users', 'is_active'))->toBeFalse();
++});
++
++test('rollback cannot silently reactivate a disabled user', function () {
++    $migration = require database_path('migrations/2026_10_06_150000_add_account_status_to_users.php');
++    $migration->up();
++    DB::table('users')->where('id', 1)->update(['is_active' => false]);
++    expect(fn () => $migration->down())->toThrow(RuntimeException::class);
++    expect(Schema::hasColumn('users', 'is_active'))->toBeTrue();
++});

@@ -1,0 +1,115 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/profile/self-edit",
+  "REOPEN_GENERATION": 0,
+  "UNIT_STATUS": "open",
+  "REVIEW_READY": true,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 0,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "TDD_REQUIRED": true,
+  "scope": [
+    "app/Livewire/Profile/Index.php",
+    "app/Livewire/Profile/Edit.php",
+    "resources/views/livewire/profile/index.blade.php",
+    "tests/Feature/ProfileSelfEditTest.php"
+  ],
+  "objective": "Self-only profile editing in modal with validation, close then toast, preserving protected identity and permissions",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "parent rollout turn_context"
+  },
+  "coordination": "atomic os.mkdir docs/assurance/profile-self-edit/coordination.lock; journal outside behavior candidate",
+  "protectedBoundaries": "No production records, deployment, merge, release, auth providers or secrets changed",
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/ProfileSelfEditTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable: established workflow runs Laravel directly on macOS, no required Compose rehearsal"
+  },
+  "base": "base.json",
+  "FROZEN_CANDIDATE_ID": "sha256:6ae7f5463fbc2f63d59b6ed337200f97d25573d65ad385b8dce89cc234701e87",
+  "ASSURANCE_PACKET_ID": "sha256:0d867a43866c54e1ae58685d9f16bceb8b664f17f37665d8984fd6c271c95ecb",
+  "REVIEWABILITY": "pass",
+  "PARENT_ADVERSARIAL_READY": true,
+  "candidateManifest": "candidate-manifest.json",
+  "deliveryManifest": "delivery-manifest.txt; exact recipe delivery-recipe.txt",
+  "acceptance": [
+    "Edit button opens prefilled modal on /profile",
+    "Edit name, English name, email, address only for authenticated owner",
+    "Validate required, lengths, format, duplicate email",
+    "Clear verification only on changed email",
+    "Close modal before toast and stay on profile",
+    "Cancel does not save; reopen discards draft",
+    "Preserve identity, dates, org, password, roles, office",
+    "Legacy own edit URL returns to profile; other id denied"
+  ],
+  "baseState": "aa82c7f2855eca7a030e0c8f9290e3d9d038846a",
+  "TDD": {
+    "RED": "red.log: 14 failing cases; missing edit button/openEdit method and legacy blank page HTTP 200",
+    "GREEN": "green.log: 17 passed, 88 assertions; new assurance tests check locked ID and executed rendered event handlers",
+    "REFACTOR": "No additional behavior refactor needed. adversarial-green.log: 17 passed after restoring sensitivity mutations",
+    "testHarnessFix": "Separated HTTP guest redirect test after Livewire aborted component; aborted testing leaves temporary Redirector container binding"
+  },
+  "candidateVerification": {
+    "candidate": "sha256:6ae7f5463fbc2f63d59b6ed337200f97d25573d65ad385b8dce89cc234701e87",
+    "timestampUTC": "2026-10-06T13:13:31.346890+00:00",
+    "fullTests": {
+      "command": "php artisan test",
+      "exit": 0,
+      "count": 263,
+      "assertions": 1670,
+      "receipt": "full-tests.log"
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "receipt": "build.log",
+      "warnings": "baseline unresolved THSarabunNew font paths (same warning before this unit)"
+    },
+    "phpSyntax": "Index.php and Edit.php exit0",
+    "database": "SELECT1 reachable and editable users columns exist; no real records written",
+    "diffInspection": "cumulative.diff includes new untracked test and all three tracked product files; inspected in full",
+    "compose": "not-applicable: repo local workflow is direct macOS Laravel; no integration service behavior changes"
+  },
+  "adversarial": [
+    {
+      "surface": "Actor isolation",
+      "counterexample": "client alters editingUserId or session switches from owner to other",
+      "evidence": "locked-target and session-switch mutations caught; restored 17 tests pass",
+      "result": "pass"
+    },
+    {
+      "surface": "Guest/stale session",
+      "counterexample": "guest mounts directly or submits opened form",
+      "evidence": "403 component and stale action tests; HTTP route redirects to login",
+      "result": "pass"
+    },
+    {
+      "surface": "Validation/data",
+      "counterexample": "blank, invalid, duplicate email, oversized inputs",
+      "evidence": "6 negative cases assert exact DB unchanged and no success event; allowlist checks protected fields and other row unchanged",
+      "result": "pass"
+    },
+    {
+      "surface": "Success lifecycle",
+      "counterexample": "toast before modal closes, wrong modal, missing feedback",
+      "evidence": "actual rendered @script executed in Node against UI adapters; fails if wrong order/target, shows owner updated without redirect",
+      "result": "pass"
+    },
+    {
+      "surface": "Unchanged integrations",
+      "counterexample": "existing SSO linkage/role checks regress",
+      "evidence": "complete suite includes provider, ThaiD, personnel provisioner and admin permissions; 263 pass. SSO may refresh remote profile fields on later login as baseline behavior",
+      "result": "pass"
+    }
+  ],
+  "nonBlockingGaps": [
+    "UI event test uses adapters rather than a browser E2E; direct source inspection and rendered-script execution provide bounded UI wiring proof",
+    "existing ThaID refresh placeholder/API configuration and existing Swal handler are baseline unchanged; new local save uses portalToast"
+  ],
+  "unitContinuity": "No earlier ledger for this stable self-edit unit found in repository; initial call budget 3 is fixed",
+  "fullGateRuns": 1,
+  "reviewAttemptPreparation": "Call1, no prior outcomes; no re-review matrix required"
+}

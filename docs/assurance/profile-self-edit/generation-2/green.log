@@ -1,0 +1,47 @@
+
+   PASS  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ every successful ThaiD login replaces the existing address with the… 0.10s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.02s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.02s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.02s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.02s  
+
+   PASS  Tests\Feature\SsoUserProvisionerTest
+  ✓ a trusted SSO CID matching personnel creates a linked user           0.11s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ✓ an existing linked user is refreshed without changing local role or… 0.01s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.02s  
+  ✓ SSO profiles that omit address preserve the existing address         0.01s  
+
+   PASS  Tests\Feature\ProviderPersonnelAccessTest
+  ✓ ProviderID decodes HealthID id_card and provisions a matching perso… 0.05s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.01s  
+
+   PASS  Tests\Feature\ProfileSelfEditTest
+  ✓ the profile edit button opens a prefilled modal on the profile page  0.03s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.03s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.02s  
+  ✓ a session change cannot save another owners already opened form      0.01s  
+  ✓ saving without an opened edit form is forbidden                      0.01s  
+  ✓ guests cannot open the profile component or save a stale form        0.02s  
+  ✓ the profile route redirects a guest to login                         0.01s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.01s  
+  ✓ the edit target cannot be replaced by a client payload               0.01s  
+  ✓ the rendered profile events open the modal and close it before show… 0.11s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+
+  Tests:    35 passed (171 assertions)
+  Duration: 0.86s
+

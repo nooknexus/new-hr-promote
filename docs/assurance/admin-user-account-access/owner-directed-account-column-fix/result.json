@@ -1,0 +1,62 @@
+{
+  "authority": "User explicitly reported missing is_active and instructed replacing account_id and removing ProviderID insert/update. This supersedes the earlier deferred local activation decision for this owner-directed correction. No new review calls; prior unit statuses and call counts retained.",
+  "TDD_REQUIRED": true,
+  "observableSeams": [
+    "migration removes account_id and enables existing users",
+    "Provider callback and common provisioning create/refresh without account_id column",
+    "legacy Provider registration create/update without account_id"
+  ],
+  "RED": "5failed5passed migration/callback/provisioning; 2failed legacy before production correction",
+  "GREEN": "focused42passed190assertions; full303passed1870assertions",
+  "REFACTOR": "removed retired account field from model and both identifier allowlists; no permission or CID rule changed",
+  "activation": {
+    "command": "php artisan migrate --path=database/migrations/2026_10_06_150000_add_account_status_to_users.php",
+    "result": "DONE verified local loopback mysql",
+    "is_active_exists": true,
+    "account_id_removed": true,
+    "all_existing_enabled": true,
+    "existing_other_fields_hash_preserved": true,
+    "count_preserved": true,
+    "admin_status_query_works": true
+  },
+  "review": "No further review calls per token-conservation request; no final-strict ship claimed. Original unit terminal status and budget unchanged.",
+  "rollbackLimitation": "Retired Provider account IDs cannot be restored; rollback recreates empty account_id only after no disabled accounts or status audits.",
+  "files": [
+    {
+      "path": "app/Models/User.php",
+      "sha256": "c60af2a82c57fe6f27ea11e625ff3c7ce175e1a679777dc149091c94ae2f9717"
+    },
+    {
+      "path": "app/Livewire/Login.php",
+      "sha256": "50c23e335506ca263d4dd646ad6b7b6c2aa6439c8b0d0ac2c58fb189cb5e35c8"
+    },
+    {
+      "path": "app/Livewire/Provider/Callback.php",
+      "sha256": "0442309c64fdd39d31ba871e5022e5519f0d13787165adfcf4d9d39d4d08115c"
+    },
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "sha256": "935fa18f5bacb9d5f438efcf1b04732e3b2afc331083262d5c78e4a748281425"
+    },
+    {
+      "path": "database/migrations/2026_10_06_150000_add_account_status_to_users.php",
+      "sha256": "680c4a35558db7010e10a1c5ea22578cb6f5d444a26d9e0b9585eba5823e6d6d"
+    },
+    {
+      "path": "tests/Feature/UserAccountStatusMigrationTest.php",
+      "sha256": "2ec800e4419cdd71fe09daae06dd47bd0ed5bbf862a4a5ed45b7ca558b123dab"
+    },
+    {
+      "path": "tests/Feature/ProviderPersonnelAccessTest.php",
+      "sha256": "69fd9778345692d22d5bed8d97812f1d200954d584a2850c66e4f9b0e78e1d37"
+    },
+    {
+      "path": "tests/Feature/SsoUserProvisionerTest.php",
+      "sha256": "be72faf1023808acfa3ae7c0f5cf80f179a7de6a3b166c5051cb63ee703bfbbe"
+    },
+    {
+      "path": "tests/Feature/UserAccountStatusTest.php",
+      "sha256": "496c765eaa4c80d717403e6b044653a520dcd59788248878d40d874ef6b66f65"
+    }
+  ]
+}

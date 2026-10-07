@@ -1,0 +1,57 @@
+
+   PASS  Tests\Feature\AdminUserManagementTest
+  ✓ only ADMIN may open user management and identity fields are not edi… 0.17s  
+  ✓ role and office changes are audited without altering OAuth identifi… 0.02s  
+  ✓ unknown roles and offices are rejected and the final ADMIN cannot b… 0.02s  
+  ✓ role and office can be changed directly from the user row            0.02s  
+  ✓ account suspension requires confirmation and closes the application… 0.02s  
+  ✓ inline edits validate input and recheck administrator access on eve… 0.01s  
+  ✓ an inline edit keeps another fields latest value instead of the dis… 0.01s  
+  ✓ the confirmation target cannot be replaced by a client property upd… 0.01s  
+  ✓ the confirmation status cannot be replaced by a client property upd… 0.01s  
+  ✓ the rendered account modal events close confirmation before showing… 0.04s  
+  ✓ the user list filters by role and office                             0.02s  
+  ✓ the user list paginates beyond twenty accounts                       0.02s  
+
+   PASS  Tests\Feature\UserAccountStatusTest
+  ✓ SSO reads account status before personnel and locks personnel befor… 0.08s  
+  ✓ SSO rechecks account status if suspension occurs after the prelimin… 0.01s  
+  ✓ disabling and reenabling an account is audited and does not alter i… 0.01s  
+  ✓ an inactive admin and a nonadmin cannot change access or account st… 0.01s  
+  ✓ self disable is denied and disabled admins do not count as remainin… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ disabled users cannot use password login or existing sessions        0.23s  
+  ✓ disabling deletes the target database sessions without deleting any… 0.01s  
+  ✓ disabled remembered sessions and Livewire requests cannot enter the… 0.02s  
+  ✓ the legacy ThaiD registration cannot create another account for a d… 0.02s  
+  ✓ reenabled accounts can use their original password without losing t… 0.02s  
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.02s  
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.02s  
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.01s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.04s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.01s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.01s  
+
+   PASS  Tests\Feature\UserAccountStatusMigrationTest
+  ✓ account status migration enables existing users and preserves them…  0.09s  
+  ✓ rollback cannot silently reactivate a disabled user                  0.01s  
+
+   PASS  Tests\Feature\SalaryPromotionImportCommitTest
+  ✓ confirmed import inserts workbook salary amounts and updates both m… 0.07s  
+  ✓ matching active promotion is updated rather than duplicated          0.01s  
+  ✓ two evaluation periods for one person import without a false baseli… 0.01s  
+  ✓ confirmation rejects a promotion inserted after the preview was sho… 0.01s  
+  ✓ confirmation rejects a promotion or position changed after preview   0.01s  
+  ✓ missing person and user do not block promotion import or create ide… 0.01s  
+  ✓ person position updates even when no user account matches            0.01s  
+  ✓ user position updates even when no personnel row matches             0.01s  
+  ✓ blank position cell leaves both existing position values unchanged   0.01s  
+  ✓ ambiguous user match rejects the entire file                         0.02s  
+  ✓ newly archived target after preview rejects the entire file          0.01s  
+  ✓ a late audit failure rolls back promotion and both position updates  0.01s  
+
+  Tests:    45 passed (221 assertions)
+  Duration: 1.28s
+

@@ -1,0 +1,12 @@
+{
+    "database_reachable": true,
+    "environment_local": true,
+    "host_loopback": true,
+    "driver": "mysql",
+    "status_column_exists": false,
+    "audit_table_exists": true,
+    "remember_column_exists": true,
+    "database_sessions": true,
+    "session_table_exists": true,
+    "compiled_admin_view": "\/Users\/phanupongdongyen\/development\/laravel\/new-hrpromote\/storage\/framework\/views\/6fabf2214301d17f63d3ca5524ffefe4.php"
+}

@@ -1,0 +1,61 @@
+
+   PASS  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.14s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.02s  
+  ✓ ThaiD callback handles the address object decoded from a real signe… 0.01s  
+  ✓ ThaiD callback handles the address object decoded from a real signe… 0.01s  
+
+   PASS  Tests\Feature\ProviderPersonnelAccessTest
+  ✓ ProviderID decodes HealthID id_card and provisions a matching perso… 0.06s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.01s  
+
+   PASS  Tests\Feature\SsoUserProvisionerTest
+  ✓ a trusted SSO CID matching personnel creates a linked user           0.02s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ✓ an existing linked user is refreshed without changing local role or… 0.01s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.01s  
+  ✓ SSO profiles that omit address preserve the existing address         0.01s  
+
+   PASS  Tests\Feature\AdminRoleAccessTest
+  ✓ role permissions are explicit and provider staff type never grants…  0.03s  
+  ✓ admin routes carry their own permission and a provider administrato… 0.01s  
+  ✓ sidebar contains only admin links allowed by the active role         0.01s  
+  ✓ MyMOPH login preserves the locally assigned role and office          0.01s  
+  ✓ MyMOPH does not create a user when its CID is absent from personnel  0.01s  
+
+   PASS  Tests\Feature\AdminRoleLivewireTest
+  ✓ direct component entry is allowed only for the matching role         0.05s  
+  ✓ role revocation denies a signatory action even after the component…  0.01s  
+  ✓ role revocation also denies write upload and streamed sync actions   0.01s  
+
+   PASS  Tests\Feature\ProfileSelfEditTest
+  ✓ the profile edit button opens a prefilled modal on the profile page  0.02s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.02s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.01s  
+  ✓ a session change cannot save another owners already opened form      0.01s  
+  ✓ saving without an opened edit form is forbidden                      0.01s  
+  ✓ guests cannot open the profile component or save a stale form        0.01s  
+  ✓ the profile route redirects a guest to login                         0.01s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.01s  
+  ✓ the edit target cannot be replaced by a client payload               0.01s  
+  ✓ the rendered profile events open the modal and close it before show… 0.09s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+
+  Tests:    45 passed (242 assertions)
+  Duration: 0.87s
+

@@ -1,0 +1,138 @@
+
+   FAIL  Tests\Feature\ProfileSelfEditTest
+  ⨯ the profile edit button opens a prefilled modal on the profile page  0.16s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.04s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.03s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.04s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.03s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.03s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.10s  
+  ✓ a session change cannot save another owners already opened form      0.03s  
+  ✓ saving without an opened edit form is forbidden                      0.03s  
+  ✓ guests cannot open the profile component or save a stale form        0.02s  
+  ✓ the profile route redirects a guest to login                         0.03s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.02s  
+  ✓ the edit target cannot be replaced by a client payload               0.02s  
+  ⨯ the rendered profile events open the modal and close it before show… 0.03s  
+  ⨯ removed profile refresh actions cannot be invoked directly with ('u… 0.16s  
+  ⨯ removed profile refresh actions cannot be invoked directly with ('u… 0.02s  
+
+   FAIL  Tests\Feature\ProviderProfileUpdateTest
+  ⨯ obsolete ProviderID profile refresh endpoints are unavailable        0.16s  
+
+   FAIL  Tests\Feature\ThaidPersonnelAccessTest
+  ⨯ ThaiD provisions and logs in only a CID registered in personnel      0.04s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > the profile edit button opens…   
+  Expected: <div wire:snapshot="" wire:effects="" wire:id="p6hwWOqIQgtjjBuueHEM">\n
+      <div class="row">\n
+  \n
+  ... (114 more lines)
+
+  Not to contain: อัพเดทข้อมูลจาก ThaID
+
+  at vendor/livewire/livewire/src/Features/SupportTesting/MakesAssertions.php:26
+     22▕ 
+     23▕     function assertDontSee($values, $escape = true, $stripInitialData = true)
+     24▕     {
+     25▕         foreach (Arr::wrap($values) as $value) {
+  ➜  26▕             PHPUnit::assertStringNotContainsString(
+     27▕                 $escape ? e($value): $value,
+     28▕                 $this->html($stripInitialData)
+     29▕             );
+     30▕         }
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/ProfileSelfEditTest.php:41
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > the rendered profile events o…   
+  Expected: <div wire:snapshot="" wire:effects="" wire:id="neFNooB6JO4rGff863Er">\n
+      <div class="row">\n
+  \n
+  ... (114 more lines)
+
+  To contain: การแก้ไขนี้มีผลเฉพาะครั้งนี้เท่านั้น เมื่อท่านเข้าสู่ระบบใหม่ ข้อมูลจะถูกแทนที่ด้วยข้อมูลจากแอพฯภาครัฐ ให้ท่านอัพเดทข้อมูลจากต้นทางให้เป็นปัจจุบัน
+
+  at vendor/livewire/livewire/src/Features/SupportTesting/MakesAssertions.php:14
+     10▕ {
+     11▕     function assertSee($values, $escape = true, $stripInitialData = true)
+     12▕     {
+     13▕         foreach (Arr::wrap($values) as $value) {
+  ➜  14▕             PHPUnit::assertStringContainsString(
+     15▕                 $escape ? e($value): $value,
+     16▕                 $this->html($stripInitialData)
+     17▕             );
+     18▕         }
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/ProfileSelfEditTest.php:138
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > removed profile refresh actio…   
+  Exception "Livewire\Exceptions\MethodNotFoundException" not thrown.
+
+  at tests/Feature/ProfileSelfEditTest.php:183
+    179▕ test('removed profile refresh actions cannot be invoked directly', function (string $action) {
+    180▕     \Illuminate\Support\Facades\Http::preventStrayRequests();
+    181▕     $component = Livewire::test(Index::class);
+    182▕     expect(fn () => $component->call($action))
+  ➜ 183▕         ->toThrow(\Livewire\Exceptions\MethodNotFoundException::class);
+    184▕ })->with(['updateFromThaID', 'updateFromProviderID']);
+    185▕
+
+  1   tests/Feature/ProfileSelfEditTest.php:183
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > removed profile refresh actio…   
+  Exception "Livewire\Exceptions\MethodNotFoundException" not thrown.
+
+  at tests/Feature/ProfileSelfEditTest.php:183
+    179▕ test('removed profile refresh actions cannot be invoked directly', function (string $action) {
+    180▕     \Illuminate\Support\Facades\Http::preventStrayRequests();
+    181▕     $component = Livewire::test(Index::class);
+    182▕     expect(fn () => $component->call($action))
+  ➜ 183▕         ->toThrow(\Livewire\Exceptions\MethodNotFoundException::class);
+    184▕ })->with(['updateFromThaID', 'updateFromProviderID']);
+    185▕
+
+  1   tests/Feature/ProfileSelfEditTest.php:183
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProviderProfileUpdateTest > obsolete ProviderID pro…   
+  Expected response status code [404] but received 200.
+Failed asserting that 200 is identical to 404.
+
+  at tests/Feature/ProviderProfileUpdateTest.php:13
+      9▕     $user->exists = true;
+     10▕     $this->actingAs($user);
+     11▕     Http::preventStrayRequests();
+     12▕ 
+  ➜  13▕     $this->get('/provider/profile/update')->assertNotFound();
+     14▕     $this->get('/provider/profile/callback?state=old&code=old')->assertNotFound();
+     15▕ });
+     16▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD provisions and log…   
+  Session has unexpected key [thaid_access_token].
+Failed asserting that true is false.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:70
+     66▕ 
+     67▕     $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'))
+  ➜  70▕         ->assertSessionMissing('thaid_access_token');
+     71▕ 
+     72▕     expect(DB::table('users')->where('pid', '1234567890123')->exists())->toBeTrue();
+     73▕ });
+     74▕
+
+
+  Tests:    6 failed, 15 passed (90 assertions)
+  Duration: 1.19s
+

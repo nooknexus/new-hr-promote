@@ -1,0 +1,6 @@
+Call1 neutral closure matrix:
+B1: corrected lock order preserving early deny; preproduction 2failed regression, 45passed focused, native isolated InnoDB opposite-order mutation FAIL then corrected both transactions PASS. Import source context now bound.
+F2: historical dedicated target tamper preimplementation RED missing; cannot retrospectively create it. Earlier TDD claim narrowed; current target and boolean tamper tests both fail with corresponding Locked attribute removed and pass restored. Honest historical process limitation remains; no claim mutations satisfy preimplementation TDD.
+F3: semantic adversarial risk/counterexample/interaction/fix regression/sensitivity matrix persisted; import interaction now explicit.
+F4: raw porcelain XY retained, explicit staged/unstaged/untracked arrays; source and index content inspection complete.
+No prior runtime gate failure; call1 exact rollout pinned gpt-5.6-sol/max proof passes.

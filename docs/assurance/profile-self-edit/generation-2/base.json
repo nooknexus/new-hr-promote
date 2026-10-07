@@ -1,0 +1,17 @@
+{
+  "head": "aa82c7f2855eca7a030e0c8f9290e3d9d038846a",
+  "files": [
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+    },
+    {
+      "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+      "sha256": "deeafa40f3ba48f3eaf4a787b52f6735f3a2c1a947c523c58eedc0027336cbee"
+    },
+    {
+      "path": "tests/Feature/SsoUserProvisionerTest.php",
+      "sha256": "429ab2b4adc35874e3fb44a17c14e4a9409614d8fd5c5744ac57ef235d01d075"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+
+   FAIL  Tests\Feature\UserAccountStatusMigrationTest
+  ⨯ account status migration enables existing users and preserves them…  0.53s  
+  ✓ rollback cannot silently reactivate a disabled user                  0.02s  
+
+   FAIL  Tests\Feature\ProviderPersonnelAccessTest
+  ⨯ ProviderID decodes HealthID id_card and provisions a matching perso… 0.49s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.02s  
+
+   FAIL  Tests\Feature\SsoUserProvisionerTest
+  ⨯ a trusted SSO CID matching personnel creates a linked user           0.03s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ⨯ an existing linked user is refreshed without changing local role or… 0.02s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.02s  
+  ⨯ SSO profiles that omit address preserve the existing address         0.01s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusMigrationTest > account status mig…   
+  Failed asserting that true is false.
+
+  at tests/Feature/UserAccountStatusMigrationTest.php:17
+     13▕ test('account status migration enables existing users and preserves them through rollback', function () {
+     14▕     $migration = require database_path('migrations/2026_10_06_150000_add_account_status_to_users.php');
+     15▕     $migration->up();
+     16▕     expect((bool) DB::table('users')->value('is_active'))->toBeTrue()
+  ➜  17▕         ->and(Schema::hasColumn('users', 'account_id'))->toBeFalse()
+     18▕         ->and(Schema::hasColumn('user_access_audits', 'after_active'))->toBeTrue();
+     19▕     $migration->down();
+     20▕     expect(DB::table('users')->value('name'))->toBe('Existing user')
+     21▕         ->and(Schema::hasColumn('users', 'account_id'))->toBeTrue()
+
+  1   tests/Feature/UserAccountStatusMigrationTest.php:17
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProviderPersonnelAccessTest > ProviderID decodes He…   
+  Failed asserting that two strings are equal.
+
+The following exception occurred during the last request:
+
+Illuminate\Database\QueryException
+
+----------------------------------------------------------------------------------
+
+Illuminate\Database\QueryException
+
+  -'http://localhost:8000'
+  +'http://localhost:8000/login'
+  
+
+  at tests/Feature/ProviderPersonnelAccessTest.php:84
+     80▕     fakeProviderLogin('1234567890123');
+     81▕ 
+     82▕     $this->withSession(['provider_oauth_state' => 'valid-state'])
+     83▕         ->get('/provider/callback?state=valid-state&code=oauth-code')
+  ➜  84▕         ->assertRedirect(route('home'));
+     85▕ 
+     86▕     Http::assertSent(function ($request) {
+     87▕         return $request->url() === 'https://moph.id.th/api/v1/token'
+     88▕             && $request->hasHeader('Content-Type', 'application/json')
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\SsoUserProvisionerTest > a trusted…   QueryException   
+  SQLSTATE[HY000]: General error: 1 table users has no column named account_id (Connection: sqlite, SQL: insert into "users" ("name", "name_en", "email", "pid", "cid_hash", "provider_id", "account_id", "hcode", "hname", "last_login_at", "password", "email_verified_at", "updated_at", "created_at") values (นายสมชาย ใจดี, Mr Somchai Jaidee, somchai@example.test, 1234567890123, bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b, provider-1, account-1, 00051, สำนักงานสาธารณสุขจังหวัดพิษณุโลก, 2026-10-06 22:46:09, $2y$04$fF1Kh/lAVcqiPQ6vWGMZAeGWQdi//Zo5rRucKN06AK3A1slLb9upO, ?, 2026-10-06 22:46:09, 2026-10-06 22:46:09))
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:562
+    558▕             if ($this->pretending()) {
+    559▕                 return true;
+    560▕             }
+    561▕ 
+  ➜ 562▕             $statement = $this->getPdo()->prepare($query);
+    563▕ 
+    564▕             $this->bindValues($statement, $this->prepareBindings($bindings));
+    565▕ 
+    566▕             $this->recordsHaveBeenModified();
+
+      [2m+11 vendor frames [22m
+  12  app/Services/SsoUserProvisioner.php:92
+      [2m+3 vendor frames [22m
+  16  app/Services/SsoUserProvisioner.php:25
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\SsoUserProvisionerTest > an existin…  QueryException   
+  SQLSTATE[HY000]: General error: 1 no such column: account_id (Connection: sqlite, SQL: update "users" set "name" = นายสมชาย ใจดี, "name_en" = Mr Somchai Jaidee, "email" = new@example.test, "provider_id" = provider-1, "hcode" = 00051, "hname" = สำนักงานสาธารณสุขจังหวัดพิษณุโลก, "last_login_at" = 2026-10-06 22:46:09, "account_id" = account-1, "updated_at" = 2026-10-06 22:46:09 where "id" = 7)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:589
+    585▕ 
+    586▕             // For update or delete statements, we want to get the number of rows affected
+    587▕             // by the statement and return that back to the developer. We'll first need
+    588▕             // to execute the statement and then we'll use PDO to fetch the affected.
+  ➜ 589▕             $statement = $this->getPdo()->prepare($query);
+    590▕ 
+    591▕             $this->bindValues($statement, $this->prepareBindings($bindings));
+    592▕ 
+    593▕             $statement->execute();
+
+      [2m+9 vendor frames [22m
+  10  app/Services/SsoUserProvisioner.php:94
+      [2m+3 vendor frames [22m
+  14  app/Services/SsoUserProvisioner.php:25
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\SsoUserProvisionerTest > SSO profil…  QueryException   
+  SQLSTATE[HY000]: General error: 1 no such column: account_id (Connection: sqlite, SQL: update "users" set "name" = นายสมชาย ใจดี, "name_en" = Mr Somchai Jaidee, "email" = somchai@example.test, "cid_hash" = bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b, "provider_id" = provider-1, "hcode" = 00051, "hname" = สำนักงานสาธารณสุขจังหวัดพิษณุโลก, "last_login_at" = 2026-10-06 22:46:09, "account_id" = account-1, "updated_at" = 2026-10-06 22:46:09 where "id" = 1)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:589
+    585▕ 
+    586▕             // For update or delete statements, we want to get the number of rows affected
+    587▕             // by the statement and return that back to the developer. We'll first need
+    588▕             // to execute the statement and then we'll use PDO to fetch the affected.
+  ➜ 589▕             $statement = $this->getPdo()->prepare($query);
+    590▕ 
+    591▕             $this->bindValues($statement, $this->prepareBindings($bindings));
+    592▕ 
+    593▕             $statement->execute();
+
+      [2m+9 vendor frames [22m
+  10  app/Services/SsoUserProvisioner.php:94
+      [2m+3 vendor frames [22m
+  14  app/Services/SsoUserProvisioner.php:25
+
+
+  Tests:    5 failed, 5 passed (15 assertions)
+  Duration: 1.29s
+

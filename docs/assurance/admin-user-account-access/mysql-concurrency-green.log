@@ -1,0 +1,1 @@
+PASS: concurrent import lock sequence and real SSO both commit on isolated InnoDB fixtures

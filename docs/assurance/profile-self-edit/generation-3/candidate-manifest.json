@@ -1,0 +1,52 @@
+{
+  "generation": 3,
+  "base": [
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "sha256": "1b8441962ccb1707bc51f7495097c0429d2b6b76eb062955b75e1c2b550ec67e"
+    },
+    {
+      "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+      "sha256": "735c536d2d1f2b34648f50af9286efa807021cdffbe9774f8d70d0a63e7212cd"
+    }
+  ],
+  "files": [
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "exists": true,
+      "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+    },
+    {
+      "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+      "exists": true,
+      "sha256": "dcd5426e0261d9473870cb800d59925153dba6cef9f434c09fc7433218ac4bde"
+    }
+  ],
+  "context": [
+    {
+      "path": "app/Http/Controllers/ThaID/AuthController.php",
+      "sha256": "0841f185edef73756c22732eaf8ed16079dbdb51311deabfdf4a1c7d96a792bd"
+    },
+    {
+      "path": "app/Services/ThaidIdTokenVerifier.php",
+      "sha256": "7d7db393776d10e913fe213f50e25ecd677450c359e7ea64fbf8aeab8beb2d86"
+    },
+    {
+      "path": "app/Livewire/Provider/Callback.php",
+      "sha256": "58aa61b02bb29e529c9b8344d3bf51629f4ed9790739821000633a7eebf561e7"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/MyMOPHController.php",
+      "sha256": "c85527530c90d9f8924fe321f41827281845d4764297d1ea7c024c07d156d5f6"
+    },
+    {
+      "path": "app/Models/User.php",
+      "sha256": "c70fb064a7e6408fd34ad2a68090ac26a0a323e602157189ba9b0be1248bed95"
+    },
+    {
+      "path": "tests/Feature/SsoUserProvisionerTest.php",
+      "sha256": "7a3aa0d6c9f06f45457362e63c6862c2f65bee34d3c05a6d25637b73703b7326"
+    }
+  ],
+  "deliveryManifestSha256": "726cfbade881fea29f2fbd5cf1e2ef8b5ab7b75eaf89f937e9b2f12c11b9cc87"
+}

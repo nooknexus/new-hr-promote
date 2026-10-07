@@ -1,0 +1,77 @@
+[
+  {
+    "surface": "SSO/personnel/import concurrency",
+    "counterexample": "SSO users lock -> person; salary import person -> users deadlocks",
+    "interaction": "unchanged SalaryPromotionImportService lines177-184",
+    "mitigation": "nonlocking early users read then person lock then users current locking read",
+    "evidence": [
+      "red-lock-order.log",
+      "mysql-concurrency-red.log",
+      "mysql-concurrency-green.log"
+    ],
+    "regression": "existing import commit tests remain green"
+  },
+  {
+    "surface": "suspension racing SSO",
+    "counterexample": "active preliminary read then local disable",
+    "mitigation": "locked current read rechecks inactive and refuses writes",
+    "evidence": [
+      "red-lock-order.log",
+      "focused-candidate2.log"
+    ]
+  },
+  {
+    "surface": "disabled exact/link identities",
+    "counterexample": "CID exists person or remote identifier tries alternate linked user",
+    "mitigation": "deny before person; no recreate/refresh, ambiguous identity denies",
+    "evidence": [
+      "focused-candidate2.log",
+      "full-tests-candidate2.log"
+    ]
+  },
+  {
+    "surface": "admin write authorization/concurrent fields",
+    "counterexample": "stale inactive admin, selfdisable, final activeadmin loss, overwrite concurrent otherfield",
+    "mitigation": "service transaction fresh locks, field patch, count active admins",
+    "evidence": [
+      "focused-candidate2.log"
+    ]
+  },
+  {
+    "surface": "confirmation client tampering",
+    "counterexample": "client substitutes pending target/status",
+    "mitigation": "Livewire Locked id and bool",
+    "evidence": [
+      "mutation-confirmation-target.log",
+      "mutation-confirmation-status.log",
+      "focused-candidate2.log"
+    ],
+    "historicalLimitation": "Dedicated target tamper RED was not preimplementation; mutation evidence establishes sensitivity only, not retroactive TDD"
+  },
+  {
+    "surface": "password/session/remember/legacy callbacks",
+    "counterexample": "existing session, remember cookie, fallback Provider/ThaiD registration bypass suspension",
+    "mitigation": "password predicate + middleware + revoke sessions/token + linked identity guards",
+    "evidence": [
+      "mutation-session.log",
+      "full-tests-candidate2.log"
+    ]
+  },
+  {
+    "surface": "migration/data integrity",
+    "counterexample": "rollback reactivates disabled account or drops status audits",
+    "mitigation": "additive default active; rollback refuses disabled or audited status",
+    "evidence": [
+      "focused-candidate2.log",
+      "mysql-migration-plan.log"
+    ]
+  },
+  {
+    "surface": "UI close/save/cancel",
+    "counterexample": "cancel writes or success toast behind openmodal",
+    "mitigation": "cancel reset only; modalclose beforetoast tested actual Blade script",
+    "evidence": [
+      "focused-candidate2.log"
+    ]
+  }
+]

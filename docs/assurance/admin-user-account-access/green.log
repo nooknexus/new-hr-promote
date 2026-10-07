@@ -1,0 +1,32 @@
+
+   PASS  Tests\Feature\AdminUserManagementTest
+  ✓ only ADMIN may open user management and identity fields are not edi… 0.22s  
+  ✓ role and office changes are audited without altering OAuth identifi… 0.02s  
+  ✓ unknown roles and offices are rejected and the final ADMIN cannot b… 0.05s  
+  ✓ role and office can be changed directly from the user row            0.14s  
+  ✓ account suspension requires confirmation and closes the application… 0.05s  
+  ✓ inline edits validate input and recheck administrator access on eve… 0.07s  
+  ✓ the user list filters by role and office                             0.04s  
+  ✓ the user list paginates beyond twenty accounts                       0.06s  
+
+   PASS  Tests\Feature\UserAccountStatusTest
+  ✓ disabling and reenabling an account is audited and does not alter i… 0.07s  
+  ✓ an inactive admin and a nonadmin cannot change access or account st… 0.01s  
+  ✓ self disable is denied and disabled admins do not count as remainin… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ✓ disabled users cannot use password login or existing sessions        0.23s  
+  ✓ disabling deletes the target database sessions without deleting any… 0.01s  
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.02s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.04s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.01s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.02s  
+
+   PASS  Tests\Feature\UserAccountStatusMigrationTest
+  ✓ account status migration enables existing users and preserves them…  0.09s  
+  ✓ rollback cannot silently reactivate a disabled user                  0.01s  
+
+  Tests:    22 passed (117 assertions)
+  Duration: 1.34s
+

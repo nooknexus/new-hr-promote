@@ -1,0 +1,43 @@
+
+   PASS  Tests\Feature\ProfileSelfEditTest
+  ✓ the profile edit button opens a prefilled modal on the profile page  0.13s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.05s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.03s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.04s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.03s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.03s  
+  ✓ a session change cannot save another owners already opened form      0.02s  
+  ✓ saving without an opened edit form is forbidden                      0.01s  
+  ✓ guests cannot open the profile component or save a stale form        0.01s  
+  ✓ the profile route redirects a guest to login                         0.01s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.01s  
+  ✓ the edit target cannot be replaced by a client payload               0.01s  
+  ✓ the rendered profile events open the modal and close it before show… 0.04s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.02s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.02s  
+
+   PASS  Tests\Feature\ProviderProfileUpdateTest
+  ✓ obsolete ProviderID profile refresh endpoints are unavailable        0.14s  
+
+   PASS  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.05s  
+
+   PASS  Tests\Feature\ProviderRedirectTest
+  ✓ provider redirect creates a session-bound authorization URL          0.01s  
+  ✓ HealthID login starts at the documented redirect endpoint and force… 0.01s  
+
+   PASS  Tests\Feature\ProviderPersonnelAccessTest
+  ✓ ProviderID decodes HealthID id_card and provisions a matching perso… 0.02s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.01s  
+
+   PASS  Tests\Unit\ProviderOAuthStateTest
+  ✓ it accepts a state once for the browser session that initiated it    0.01s  
+  ✓ it rejects a state from a different browser session
+
+  Tests:    27 passed (117 assertions)
+  Duration: 0.90s
+

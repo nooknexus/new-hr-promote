@@ -1,0 +1,4 @@
+Mutation: preliminary users read takes FOR UPDATE before person
+SSO failed: Illuminate\Database\QueryException
+FAIL: RuntimeException
+exit=1

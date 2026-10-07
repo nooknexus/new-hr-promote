@@ -1,0 +1,25 @@
+
+   FAIL  Tests\Feature\ProfileSelfEditTest
+  ⨯ a session change cannot save another owners already opened form      0.13s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > a session change cannot save…    
+  Expected response status code [403] but received 200.
+Failed asserting that 200 is identical to 403.
+
+  at vendor/livewire/livewire/src/Features/SupportTesting/Testable.php:398
+    394▕         if (static::hasMacro($method)) {
+    395▕             return $this->macroCall($method, $params);
+    396▕         }
+    397▕ 
+  ➜ 398▕         $this->lastState->getResponse()->{$method}(...$params);
+    399▕ 
+    400▕         return $this;
+    401▕     }
+    402▕ }
+
+  1   tests/Feature/ProfileSelfEditTest.php:101
+
+
+  Tests:    1 failed (1 assertions)
+  Duration: 0.18s
+

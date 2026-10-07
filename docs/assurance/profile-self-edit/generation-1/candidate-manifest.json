@@ -1,0 +1,201 @@
+{
+  "base": {
+    "dirtyStatus": " M .env.example\n M AGENTS.md\n M README.md\n M SKILL.md\n M app/Http/Controllers/Auth/MyMOPHController.php\n M app/Http/Controllers/ThaID/AuthController.php\n M app/Livewire/Home.php\n D app/Livewire/Post.php\n M app/Livewire/Profile/Edit.php\n M app/Livewire/Profile/Index.php\n M app/Livewire/Profile/Payslip.php\n M app/Livewire/Provider/Callback.php\n M app/Livewire/Provider/Redirect.php\n M app/Livewire/SalaryPromotion.php\n M app/Livewire/TaxCertificate.php\n D app/Models/Posts.php\n M app/Services/PayslipPdfService.php\n M app/Support/AdminAccess.php\n M bootstrap/app.php\n M composer.json\n M composer.lock\n M config/app.php\n M config/livewire.php\n M config/services.php\n M config/session.php\n D database/seeders/PostSeeder.php\n M docs/superpowers/specs/2026-10-02-tax-certificate-management-design.md\n M package-lock.json\n M package.json\n M resources/css/app.css\n M resources/js/app.js\n M resources/js/bootstrap.js\n M resources/views/components/layouts/app.blade.php\n M resources/views/components/layouts/guest.blade.php\n M resources/views/livewire/about.blade.php\n M resources/views/livewire/home.blade.php\n M resources/views/livewire/login.blade.php\n M resources/views/livewire/logout.blade.php\n M resources/views/livewire/mymoph/login.blade.php\n D resources/views/livewire/post.blade.php\n M resources/views/livewire/profile/index.blade.php\n M resources/views/livewire/profile/payslip.blade.php\n M resources/views/livewire/provider/redirect.blade.php\n M resources/views/livewire/salary-promotion.blade.php\n M resources/views/livewire/tax-certificate.blade.php\n M resources/views/livewire/thaid/login.blade.php\n M resources/views/pages/provider-info.blade.php\n M resources/views/payslip/print-view.blade.php\n D resources/views/training-info.blade.php\n M routes/web.php\n M tests/Feature/ProviderRedirectTest.php\n M vite.config.js\n?? Example/\n?? GOOGLEHOLIDAY.md\n?? GOOGLE_SHEET_LEAVE_SYNC.md\n?? PROVIDER.md\n?? app/Http/Controllers/TaxCertificateController.php\n?? app/Http/Middleware/\n?? app/Livewire/Admin/LeaveManagement.php\n?? app/Livewire/Admin/LeaveSheetSync.php\n?? app/Livewire/Admin/PayslipManagement.php\n?? app/Livewire/Admin/PersonnelManagement.php\n?? app/Livewire/Admin/SalaryPromotionManagement.php\n?? app/Livewire/Admin/Signatories.php\n?? app/Livewire/Admin/UserManagement.php\n?? app/Livewire/LeaveHistory.php\n?? app/Models/LeaveSyncRun.php\n?? app/Models/PayslipSignatory.php\n?? app/Services/LeaveEntitlementService.php\n?? app/Services/LeaveSheetSyncException.php\n?? app/Services/LeaveSheetSyncService.php\n?? app/Services/PersonnelImportService.php\n?? app/Services/PersonnelMatcher.php\n?? app/Services/SsoUserProvisioner.php\n?? app/Services/TaxCertificatePdfService.php\n?? app/Services/ThaiHolidayService.php\n?? app/Services/UserAccessService.php\n?? app/Support/LeaveTypeCatalog.php\n?? app/Support/ThaiCitizenId.php\n?? database/migrations/2026_09_22_153426_create_payslip_signatories_table.php\n?? database/migrations/2026_09_24_090000_create_leave_sync_runs_table.php\n?? database/migrations/2026_09_25_100000_create_leave_history_tables.php\n?? database/migrations/2026_09_25_110000_add_employment_started_at_to_person_table.php\n?? database/migrations/2026_09_25_120000_add_cancelled_status_to_leave_requests_table.php\n?? database/migrations/2026_09_30_100000_add_management_to_data_promote.php\n?? docs/TAX_CERTIFICATE_MANAGEMENT.md\n?? docs/assurance/\n?? docs/superpowers/plans/\n?? public/fonts/\n?? resources/js/charts.js\n?? resources/templates/\n?? resources/views/livewire/admin/leave-management.blade.php\n?? resources/views/livewire/admin/leave-sheet-sync.blade.php\n?? resources/views/livewire/admin/partials/\n?? resources/views/livewire/admin/payslip-management.blade.php\n?? resources/views/livewire/admin/personnel-management.blade.php\n?? resources/views/livewire/admin/salary-promotion-management.blade.php\n?? resources/views/livewire/admin/signatories.blade.php\n?? resources/views/livewire/admin/user-management.blade.php\n?? resources/views/livewire/leave-history.blade.php\n?? scratch/\n?? storage/fonts/Sarabun-Bold.ttf\n?? storage/fonts/Sarabun-Regular.ttf\n?? tests/Feature/AboutPageTest.php\n?? tests/Feature/AdminLeaveManagementTest.php\n?? tests/Feature/AdminPersonnelManagementTest.php\n?? tests/Feature/AdminRoleAccessTest.php\n?? tests/Feature/AdminRoleLivewireTest.php\n?? tests/Feature/AdminSalaryPromotionManagementTest.php\n?? tests/Feature/AdminUserManagementTest.php\n?? tests/Feature/ChartBundleTest.php\n?? tests/Feature/CompleteStreamedLivewireResponseTest.php\n?? tests/Feature/DashboardLeaveSummaryTest.php\n?? tests/Feature/LeaveHistoryStorageTest.php\n?? tests/Feature/LeaveSheetSyncButtonTest.php\n?? tests/Feature/ModernLayoutTest.php\n?? tests/Feature/PayslipDownloadTest.php\n?? tests/Feature/PersonnelImportServiceTest.php\n?? tests/Feature/PersonnelMatcherTest.php\n?? tests/Feature/ProfileSelfEditTest.php\n?? tests/Feature/ProviderPersonnelAccessTest.php\n?? tests/Feature/SalaryPromotionMigrationTest.php\n?? tests/Feature/SsoUserProvisionerTest.php\n?? tests/Feature/TaxCertificateDownloadTest.php\n?? tests/Feature/ThaidPersonnelAccessTest.php\n?? tests/Unit/LeaveEntitlementServiceTest.php\n?? tests/Unit/LeaveSheetSyncServiceTest.php\n?? tests/Unit/PayslipPdfLayoutTest.php\n?? tests/Unit/TaxCertificatePdfServiceTest.php\n?? tests/Unit/TaxCertificatePreviewLayoutTest.php\n?? tmp/\n",
+    "files": [
+      {
+        "exists": true,
+        "path": "app/Livewire/Profile/Index.php",
+        "sha256": "15c2b5704649d1bef1f4f59b146b4f29f2004ee849370f7bc64928cad4458906"
+      },
+      {
+        "exists": true,
+        "path": "resources/views/livewire/profile/index.blade.php",
+        "sha256": "456c6efcf2a26e15d7424ec6ba5f2e1d59a02b42a24df5ff1bdc1fe47a2eef4c"
+      },
+      {
+        "exists": true,
+        "path": "routes/web.php",
+        "sha256": "feb31bc219dafe258f95df4dd7751070cffa413333ee3e9bf4d73884f137551a"
+      },
+      {
+        "exists": true,
+        "path": "app/Livewire/Provider/ProfileUpdate.php",
+        "sha256": "b8d9abf0513f9449e7df5d0e3821478eb26f04e386962a261e4e3a123b887331"
+      },
+      {
+        "exists": true,
+        "path": "app/Livewire/Provider/ProfileCallback.php",
+        "sha256": "3d1c0c77954e1fb3cd78f924aa64cbf75ea21049e34dea29ad055613ea107187"
+      },
+      {
+        "exists": true,
+        "path": "resources/views/livewire/provider/profile-update.blade.php",
+        "sha256": "872202695b6a1bc7d52edfce1af6e9e935d737b60c68290b1e94c207e7f31fd7"
+      },
+      {
+        "exists": true,
+        "path": "resources/views/livewire/provider/profile-callback.blade.php",
+        "sha256": "5a4763caf10fb49b17aad8c2236b5d11a61e5cb383745b7736e213aeea25831c"
+      },
+      {
+        "exists": true,
+        "path": "app/Http/Controllers/ThaID/AuthController.php",
+        "sha256": "98d0648dbd29be9b3e1ec011d62047e23ba2ec27f155f9eacb9fd4fdd8dbbb2c"
+      },
+      {
+        "exists": true,
+        "path": "tests/Feature/ProfileSelfEditTest.php",
+        "sha256": "f7c857a6133e8ea7c50ecb04b7022f8e3c1386f644f5dfdb39b239091c684ade"
+      },
+      {
+        "exists": true,
+        "path": "tests/Feature/ProviderProfileUpdateTest.php",
+        "sha256": "9169c33bdff1342a3e9cd27ceab45c4caa762e7f51f7e4f4c203e510a1246dd8"
+      },
+      {
+        "exists": true,
+        "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+        "sha256": "64a580c7a66ca59c31cfde31232934b448df675bf13262255d97e304c644368a"
+      }
+    ],
+    "head": "aa82c7f2855eca7a030e0c8f9290e3d9d038846a",
+    "priorShipCandidate": "sha256:6ae7f5463fbc2f63d59b6ed337200f97d25573d65ad385b8dce89cc234701e87"
+  },
+  "context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "4fb6b012888ea2408d537c3d537bce63e83fed336426e27371b90bea63595d7e"
+    },
+    {
+      "path": "app/Livewire/Profile/Edit.php",
+      "sha256": "f81091f7090bbba0726ae44fd3ac36d096b2010c291482a3dc34c72071f9a17f"
+    },
+    {
+      "path": "app/Livewire/Provider/Callback.php",
+      "sha256": "58aa61b02bb29e529c9b8344d3bf51629f4ed9790739821000633a7eebf561e7"
+    },
+    {
+      "path": "app/Livewire/Provider/Redirect.php",
+      "sha256": "a279f3e9e2510f1b05df57d2cf32e7b2a7447d1473556eb5cb31a1b282545015"
+    },
+    {
+      "path": "app/Services/ProviderOAuthState.php",
+      "sha256": "4a37f4bf0422a5d6dff279fb12b4207b9f9db25838b918ce55fee285221e7be1"
+    },
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+    },
+    {
+      "path": "app/Services/ThaidIdTokenVerifier.php",
+      "sha256": "7d7db393776d10e913fe213f50e25ecd677450c359e7ea64fbf8aeab8beb2d86"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/MyMOPHController.php",
+      "sha256": "c85527530c90d9f8924fe321f41827281845d4764297d1ea7c024c07d156d5f6"
+    },
+    {
+      "path": "app/Models/User.php",
+      "sha256": "c70fb064a7e6408fd34ad2a68090ac26a0a323e602157189ba9b0be1248bed95"
+    },
+    {
+      "path": "resources/js/app.js",
+      "sha256": "4d93b2747d8c58fb5345c10ad4db46ba9fc8e0f2e726f10f87689102fcc8a8b3"
+    },
+    {
+      "path": "resources/css/app.css",
+      "sha256": "13396b9eec0e0554a538831af3edb643346c59a35bd6a11e9877377c9445a6c1"
+    },
+    {
+      "path": "resources/views/components/layouts/app.blade.php",
+      "sha256": "ee00ead56ebdfcf44e82eb850a9b79204c2f0904d25cf39e3d7a2797da82b4c1"
+    },
+    {
+      "path": "composer.json",
+      "sha256": "499b93de5838481aa92170e5ade3fe48c78b48dcfba0ca81dae11fb1fd694c7a"
+    },
+    {
+      "path": "package.json",
+      "sha256": "5a4dae8a691012b9dee06f4123addfe823c42b08056efc2a15cb54dc5d778d85"
+    },
+    {
+      "path": "phpunit.xml",
+      "sha256": "bbc808f5e83ec45da2c9e2493b73282149bef023dd3ed91e762a49f18f951e0f"
+    },
+    {
+      "path": "tests/Pest.php",
+      "sha256": "198632917ab7761af28a3cecce6492398d666ad6955cc67bf770f0f4c50bb3aa"
+    }
+  ],
+  "deliveryManifestSha256": "726cfbade881fea29f2fbd5cf1e2ef8b5ab7b75eaf89f937e9b2f12c11b9cc87",
+  "files": [
+    {
+      "exists": true,
+      "gitStatus": "M app/Livewire/Profile/Index.php",
+      "path": "app/Livewire/Profile/Index.php",
+      "sha256": "7ee9a6c4ed178576b903de94476879e0eb5d9d3fc74b90c098b16833902464f4"
+    },
+    {
+      "exists": true,
+      "gitStatus": "M resources/views/livewire/profile/index.blade.php",
+      "path": "resources/views/livewire/profile/index.blade.php",
+      "sha256": "73fd48d4e79824f3ac5eb24cfa3cb6a5ff416705daf3913f4aac53c5cdc98324"
+    },
+    {
+      "exists": true,
+      "gitStatus": "M routes/web.php",
+      "path": "routes/web.php",
+      "sha256": "2425c8936a45bbf995a6f8864908d9c4d8cbc20f6b6b545ee2dd5d59e2926680"
+    },
+    {
+      "exists": false,
+      "gitStatus": "D app/Livewire/Provider/ProfileUpdate.php",
+      "path": "app/Livewire/Provider/ProfileUpdate.php",
+      "sha256": null
+    },
+    {
+      "exists": false,
+      "gitStatus": "D app/Livewire/Provider/ProfileCallback.php",
+      "path": "app/Livewire/Provider/ProfileCallback.php",
+      "sha256": null
+    },
+    {
+      "exists": false,
+      "gitStatus": "D resources/views/livewire/provider/profile-update.blade.php",
+      "path": "resources/views/livewire/provider/profile-update.blade.php",
+      "sha256": null
+    },
+    {
+      "exists": false,
+      "gitStatus": "D resources/views/livewire/provider/profile-callback.blade.php",
+      "path": "resources/views/livewire/provider/profile-callback.blade.php",
+      "sha256": null
+    },
+    {
+      "exists": true,
+      "gitStatus": "M app/Http/Controllers/ThaID/AuthController.php",
+      "path": "app/Http/Controllers/ThaID/AuthController.php",
+      "sha256": "0841f185edef73756c22732eaf8ed16079dbdb51311deabfdf4a1c7d96a792bd"
+    },
+    {
+      "exists": true,
+      "gitStatus": "?? tests/Feature/ProfileSelfEditTest.php",
+      "path": "tests/Feature/ProfileSelfEditTest.php",
+      "sha256": "cd85a3aff9f41e4649bbadb10b5bfb85f49f258a449d08e10de4f6179be55d5f"
+    },
+    {
+      "exists": true,
+      "gitStatus": "M tests/Feature/ProviderProfileUpdateTest.php",
+      "path": "tests/Feature/ProviderProfileUpdateTest.php",
+      "sha256": "8911c9ca1c0ce5607065f22d98f52eb775fa4028b13e7cd5d3ddb5917951d2cb"
+    },
+    {
+      "exists": true,
+      "gitStatus": "?? tests/Feature/ThaidPersonnelAccessTest.php",
+      "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+      "sha256": "deeafa40f3ba48f3eaf4a787b52f6735f3a2c1a947c523c58eedc0027336cbee"
+    }
+  ],
+  "generation": 1,
+  "schema": "profile-self-edit-candidate-v1"
+}

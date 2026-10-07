@@ -1,0 +1,25 @@
+{
+  "agentPath": "/root/thaid_address_review",
+  "agentRole": "solweaver_reviewer",
+  "childThreadId": "01a11192-c314-7fe0-89e0-8f1501128998",
+  "cwd": "/Users/phanupongdongyen/development/laravel/new-hrpromote",
+  "effort": "max",
+  "model": "gpt-5.6-sol",
+  "parentThreadId": "01a11086-fe43-7880-afb6-6b731ac1f2f6",
+  "proofType": "solweaver-child-runtime-v1",
+  "recordIdentityMode": "ordinal",
+  "rollout": "/Users/phanupongdongyen/.codex/sessions/2026/10/06/rollout-2026-10-06T21-16-33-01a11192-c314-7fe0-89e0-8f1501128998.jsonl",
+  "rolloutSha256": "5b39a87018c5998b0d4509f7da103b4a1c05edb354502a6708bc181542ff75a1",
+  "runtimeGate": "pass",
+  "schemaVersion": 1,
+  "sessionMetaOrdinal": 0,
+  "sessionMetaRecordIndex": 0,
+  "turnContextOrdinals": [
+    7,
+    305
+  ],
+  "turnContextRecordIndices": [
+    7,
+    305
+  ]
+}

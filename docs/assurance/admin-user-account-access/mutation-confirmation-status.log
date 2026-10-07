@@ -1,0 +1,24 @@
+
+   FAIL  Tests\Feature\AdminUserManagementTest
+  ⨯ the confirmation status cannot be replaced by a client property upd… 0.15s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\AdminUserManagementTest > the confirmation status c…   
+  Exception "Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException" not thrown.
+
+  at tests/Feature/AdminUserManagementTest.php:148
+    144▕ 
+    145▕ test('the confirmation status cannot be replaced by a client property update', function () {
+    146▕     $component = Livewire::actingAs(User::find(1))->test(UserManagement::class)->call('requestStatusChange', 2, false);
+    147▕     expect(fn () => $component->set('pendingActive', true))
+  ➜ 148▕         ->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+    149▕     expect(User::find(2)->is_active)->toBeTrue();
+    150▕ });
+    151▕ 
+    152▕ test('the rendered account modal events close confirmation before showing the saved toast', function () {
+
+  1   tests/Feature/AdminUserManagementTest.php:148
+
+
+  Tests:    1 failed (1 assertions)
+  Duration: 0.21s
+

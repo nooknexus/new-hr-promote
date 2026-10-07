@@ -1,0 +1,102 @@
+--- base/app/Services/SsoUserProvisioner.php
++++ app/Services/SsoUserProvisioner.php
+@@ -66,7 +66,6 @@
+                 'name' => $name,
+                 'name_en' => $this->nullableText($attributes['name_en'] ?? null),
+                 'birthdate' => $this->nullableText($attributes['birthdate'] ?? null),
+-                'address' => $this->nullableText($attributes['address'] ?? null),
+                 'email' => $email,
+                 'pid' => $cid,
+                 'thaid_pid' => $this->nullableText($attributes['thaid_pid'] ?? null),
+@@ -78,6 +77,12 @@
+                 'hospcode' => $this->nullableText($attributes['hospcode'] ?? null),
+                 'last_login_at' => now(),
+             ], static fn ($value) => $value !== null);
++
++            // An explicitly supplied address is authoritative, including an empty value.
++            // Providers that do not supply this field keep the existing address.
++            if (array_key_exists('address', $attributes)) {
++                $data['address'] = $this->nullableText($attributes['address']);
++            }
+ 
+             if ($user === null) {
+                 $user = new User;
+--- base/tests/Feature/ThaidPersonnelAccessTest.php
++++ tests/Feature/ThaidPersonnelAccessTest.php
+@@ -1,6 +1,7 @@
+ <?php
+ 
+ use App\Services\ThaidIdTokenVerifier;
++use App\Models\User;
+ use Illuminate\Database\Schema\Blueprint;
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Http;
+@@ -43,6 +44,42 @@
+     cache()->forget('thaid_well_known_config');
+ });
+ 
++test('every successful ThaiD login replaces the existing address with the current claim', function (array $addressClaim, ?string $expectedAddress) {
++    DB::table('person')->insert(['cid' => '1234567890123']);
++    $user = User::forceCreate([
++        'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
++        'pid' => '1234567890123', 'address' => 'ที่อยู่ที่แก้ไขเอง',
++    ]);
++    $this->mock(ThaidIdTokenVerifier::class, function (MockInterface $mock) use ($addressClaim) {
++        $mock->shouldReceive('verify')->once()->andReturn([
++            'pid' => '1234567890123', 'name' => 'ชื่อจาก ThaiD', ...$addressClaim,
++        ]);
++    });
++    Http::preventStrayRequests();
++    Http::fake([
++        'https://thaid.test/.well-known' => Http::response([
++            'token_endpoint' => 'https://thaid.test/token', 'jwks_uri' => 'https://thaid.test/jwks',
++        ]),
++        'https://thaid.test/token' => Http::response(['id_token' => 'synthetic-id-token']),
++        'https://thaid.test/jwks' => Http::response(['keys' => []]),
++    ]);
++
++    $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
++        ->get('/thaid/callback?state=state&code=code')
++        ->assertRedirect(route('home'));
++
++    $this->assertAuthenticatedAs($user);
++    expect($user->fresh()->address)->toBe($expectedAddress);
++})->with([
++    'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
++    'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
++    'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
++    'missing claim' => [[], null],
++    'null claim' => [['address' => null], null],
++    'empty claim' => [['address' => ''], null],
++    'blank formatted claim' => [['address' => ['formatted' => '   ']], null],
++]);
++
+ test('ThaiD provisions and logs in only a CID registered in personnel', function () {
+     DB::table('person')->insert(['cid' => '1234567890123', 'pname' => 'นาย', 'fname' => 'สมชาย', 'lname' => 'ใจดี']);
+     $this->mock(ThaidIdTokenVerifier::class, function (MockInterface $mock) {
+--- base/tests/Feature/SsoUserProvisionerTest.php
++++ tests/Feature/SsoUserProvisionerTest.php
+@@ -17,6 +17,7 @@
+         $table->id();
+         $table->string('name');
+         $table->string('name_en')->nullable();
++        $table->text('address')->nullable();
+         $table->string('email')->unique();
+         $table->timestamp('email_verified_at')->nullable();
+         $table->string('password');
+@@ -135,3 +136,15 @@
+     expect($user)->toBeNull()
+         ->and(DB::table('users')->count())->toBe(2);
+ });
++
++test('SSO profiles that omit address preserve the existing address', function () {
++    DB::table('person')->insert(['cid' => '1234567890123']);
++    DB::table('users')->insert([
++        'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
++        'pid' => '1234567890123', 'address' => 'ที่อยู่เดิม',
++    ]);
++
++    $user = app(SsoUserProvisioner::class)->provision('1234567890123', ssoAttributes());
++
++    expect($user->fresh()->address)->toBe('ที่อยู่เดิม');
++});

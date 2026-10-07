@@ -1,0 +1,65 @@
+--- base/app/Http/Controllers/ThaID/AuthController.php
++++ app/Http/Controllers/ThaID/AuthController.php
+@@ -140,6 +140,9 @@
+ 
+     private function formatAddress(mixed $address): string
+     {
++        if ($address instanceof \stdClass) {
++            $address = (array) $address;
++        }
+         if (is_array($address)) {
+             return trim((string) ($address['formatted'] ?? ''));
+         }
+--- base/tests/Feature/ThaidPersonnelAccessTest.php
++++ tests/Feature/ThaidPersonnelAccessTest.php
+@@ -2,6 +2,7 @@
+ 
+ use App\Services\ThaidIdTokenVerifier;
+ use App\Models\User;
++use Firebase\JWT\JWT;
+ use Illuminate\Database\Schema\Blueprint;
+ use Illuminate\Support\Facades\DB;
+ use Illuminate\Support\Facades\Http;
+@@ -108,3 +109,42 @@
+ 
+     expect(DB::table('users')->where('pid', '1234567890123')->exists())->toBeTrue();
+ });
++
++test('ThaiD callback handles the address object decoded from a real signed token', function (string $formatted, string $expectedAddress) {
++    DB::table('person')->insert(['cid' => '1234567890123']);
++    $user = User::forceCreate([
++        'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
++        'pid' => '1234567890123', 'address' => 'ที่อยู่ที่แก้ไขเอง',
++    ]);
++    $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
++    openssl_pkey_export($key, $privatePem);
++    $details = openssl_pkey_get_details($key);
++    $encode = fn (string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
++    $jwks = ['keys' => [[
++        'kty' => 'EC', 'kid' => 'callback-key', 'alg' => 'ES256', 'use' => 'sig', 'crv' => 'P-256',
++        'x' => $encode($details['ec']['x']), 'y' => $encode($details['ec']['y']),
++    ]]];
++    $token = JWT::encode([
++        'iss' => 'https://thaid.test', 'aud' => 'thaid-client', 'nonce' => 'nonce',
++        'iat' => time(), 'exp' => time() + 300, 'pid' => '1234567890123',
++        'name' => 'ชื่อจาก ThaiD', 'address' => ['formatted' => $formatted],
++    ], $privatePem, 'ES256', 'callback-key');
++    Http::preventStrayRequests();
++    Http::fake([
++        'https://thaid.test/.well-known' => Http::response([
++            'token_endpoint' => 'https://thaid.test/token', 'jwks_uri' => 'https://thaid.test/jwks',
++        ]),
++        'https://thaid.test/token' => Http::response(['id_token' => $token]),
++        'https://thaid.test/jwks' => Http::response($jwks),
++    ]);
++
++    $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
++        ->get('/thaid/callback?state=state&code=code')
++        ->assertRedirect(route('home'));
++
++    $this->assertAuthenticatedAs($user);
++    expect($user->fresh()->address)->toBe($expectedAddress);
++})->with([
++    'nonempty object' => [' ที่อยู่ล่าสุดจาก ThaiD ', 'ที่อยู่ล่าสุดจาก ThaiD'],
++    'blank object preserves local value' => ['   ', 'ที่อยู่ที่แก้ไขเอง'],
++]);

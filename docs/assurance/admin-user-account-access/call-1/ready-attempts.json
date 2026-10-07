@@ -1,0 +1,14 @@
+{
+  "unit": "new-hrpromote/admin/user-account-access",
+  "generation": 0,
+  "attempts": [],
+  "events": [
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/coordination.lock",
+      "acquisition": "success",
+      "transition": "unitgen0open used0/max3 active none, parentfullgates/adversarial green; finalize readiness",
+      "release": "os.rmdir"
+    }
+  ]
+}

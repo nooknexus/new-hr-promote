@@ -1,0 +1,38 @@
+
+   PASS  Tests\Feature\AdminUserManagementTest
+  ✓ only ADMIN may open user management and identity fields are not edi… 0.18s  
+  ✓ role and office changes are audited without altering OAuth identifi… 0.01s  
+  ✓ unknown roles and offices are rejected and the final ADMIN cannot b… 0.01s  
+  ✓ role and office can be changed directly from the user row            0.02s  
+  ✓ account suspension requires confirmation and closes the application… 0.02s  
+  ✓ inline edits validate input and recheck administrator access on eve… 0.02s  
+  ✓ an inline edit keeps another fields latest value instead of the dis… 0.02s  
+  ✓ the confirmation target cannot be replaced by a client property upd… 0.03s  
+  ✓ the rendered account modal events close confirmation before showing… 0.06s  
+  ✓ the user list filters by role and office                             0.03s  
+  ✓ the user list paginates beyond twenty accounts                       0.04s  
+
+   PASS  Tests\Feature\UserAccountStatusTest
+  ✓ disabling and reenabling an account is audited and does not alter i… 0.15s  
+  ✓ an inactive admin and a nonadmin cannot change access or account st… 0.03s  
+  ✓ self disable is denied and disabled admins do not count as remainin… 0.01s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.04s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.03s  
+  ✓ a disabled CID is rejected before personnel lookup and without refr… 0.02s  
+  ✓ disabled users cannot use password login or existing sessions        0.25s  
+  ✓ disabling deletes the target database sessions without deleting any… 0.01s  
+  ✓ disabled remembered sessions and Livewire requests cannot enter the… 0.01s  
+  ✓ the legacy ThaiD registration cannot create another account for a d… 0.02s  
+  ✓ reenabled accounts can use their original password without losing t… 0.02s  
+  ✓ a disabled account cannot be revived by the legacy ProviderID regis… 0.01s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.03s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.01s  
+  ✓ all SSO callbacks deny disabled personnel accounts without refreshi… 0.01s  
+
+   PASS  Tests\Feature\UserAccountStatusMigrationTest
+  ✓ account status migration enables existing users and preserves them…  0.07s  
+  ✓ rollback cannot silently reactivate a disabled user                  0.01s  
+
+  Tests:    28 passed (141 assertions)
+  Duration: 1.35s
+
