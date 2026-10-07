@@ -49,6 +49,8 @@ return [
         'provider_client_id' => env('PROVIDER_CLIENT_ID'),
         'provider_secret_key' => env('PROVIDER_SECRET_KEY'),
         'auth_url' => env('PROVIDER_AUTH_URL', 'https://moph.id.th/oauth/redirect'),
+        // Must match the callback URL registered with HealthID exactly.
+        'redirect_uri' => env('PROVIDER_REDIRECT_URI') ?: rtrim((string) env('APP_URL', 'http://localhost:8000'), '/').'/provider/callback',
     ],
 
     'mymoph' => [

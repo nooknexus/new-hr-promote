@@ -24,3 +24,12 @@ test('HealthID login starts at the documented redirect endpoint and forces authe
         ->and($query['is_auth'] ?? null)->toBe('yes')
         ->and($query['response_type'] ?? null)->toBe('code');
 });
+
+test('HealthID login sends the configured provider redirect URI', function () {
+    config()->set('services.provider.redirect_uri', 'https://hr.example.go.th/provider/callback');
+
+    $url = Livewire::test(Redirect::class)->get('url');
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+    expect($query['redirect_uri'] ?? null)->toBe('https://hr.example.go.th/provider/callback');
+});

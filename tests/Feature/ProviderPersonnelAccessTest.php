@@ -102,3 +102,14 @@ test('ProviderID denies a valid SSO identity that is absent from personnel', fun
 
     expect(DB::table('users')->count())->toBe(0);
 });
+
+test('ProviderID token exchange sends the configured redirect URI', function () {
+    config()->set('services.provider.redirect_uri', 'https://hr.example.go.th/provider/callback');
+    fakeProviderLogin('1234567890123');
+
+    $this->withSession(['provider_oauth_state' => 'valid-state'])
+        ->get('/provider/callback?state=valid-state&code=oauth-code');
+
+    Http::assertSent(fn ($request) => $request->url() === 'https://moph.id.th/api/v1/token'
+        && $request['redirect_uri'] === 'https://hr.example.go.th/provider/callback');
+});

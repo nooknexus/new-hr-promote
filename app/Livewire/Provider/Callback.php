@@ -33,7 +33,7 @@ class Callback extends Component
                 'code' => request()->string('code')->toString(),
                 'client_id' => $healthClientId,
                 'client_secret' => $healthSecret,
-                'redirect_uri' => route('provider.callback'),
+                'redirect_uri' => config('services.provider.redirect_uri'),
             ]);
             $healthAccessToken = $this->healthAccessToken($healthResponse->json());
             $healthClaims = $healthAccessToken === null ? null : $this->decodeJwtPayload($healthAccessToken);
