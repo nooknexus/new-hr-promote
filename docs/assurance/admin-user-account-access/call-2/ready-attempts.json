@@ -1,0 +1,53 @@
+{
+  "unit": "new-hrpromote/admin/user-account-access",
+  "generation": 0,
+  "attempts": [
+    {
+      "id": "admin-user-account-access-call-1",
+      "call": 1,
+      "state": "completed",
+      "candidate": "sha256:10e891663be9d6b9a265c70b4752d1bbd0762a32d58973986952611f755da9e7",
+      "packet": "sha256:710573ec5e76283b30ca76d70fbf8caa4705662533b72354575b72243bfd7b08",
+      "reservedAt": "2026-10-06T15:00:39.416373+00:00",
+      "runtime": "verified pinned model/effort",
+      "verdict": "fix-first",
+      "agentPath": "/root/admin_account_review",
+      "startedAt": "2026-10-06T15:00:58.632835+00:00"
+    }
+  ],
+  "events": [
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/coordination.lock",
+      "acquisition": "success",
+      "transition": "unitgen0open used0/max3 active none, parentfullgates/adversarial green; finalize readiness",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/coordination.lock",
+      "acquisition": "success",
+      "transition": "gen0 exactunit ready proof/candidate checked, used0/max3 active none; reservecall1 occupies budget before spawn",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/coordination.lock",
+      "acquisition": "success",
+      "transition": "successful spawn /root/admin_account_review; reserved->started used0->1 max3 preserved",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "acquisition": "success",
+      "transition": "completed full call1 fix-first; clear reservation, retain used1/max3 generation0, invalidate readiness",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "acquisition": "success",
+      "transition": "refreeze candidate2 full/adversarial gates green, call1 closure, used1/max3 preserved gen0",
+      "release": "os.rmdir"
+    }
+  ]
+}

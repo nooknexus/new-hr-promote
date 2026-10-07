@@ -1,0 +1,1 @@
+VERDICT: fix-first; complete mixed pass. B1 users/person inverse lock order against SalaryPromotionImportService. Additional findings: historical missing preimplementation tamper RED; semantic adversarial matrix absent; git XY stripped. See reviewer rollout for complete exact final report.

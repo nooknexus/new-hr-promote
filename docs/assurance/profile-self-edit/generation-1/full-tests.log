@@ -1,0 +1,355 @@
+
+   PASS  Tests\Unit\ExampleTest
+  ✓ that true is true                                                    0.01s  
+
+   PASS  Tests\Unit\LeaveEntitlementServiceTest
+  ✓ it calculates annual leave policy from personnel type and employmen… 0.02s  
+  ✓ it calculates annual leave policy from personnel type and employment start date with dataset "government employee with one completed year"
+  ✓ it calculates annual leave policy from personnel type and employment start date with dataset "ministry employee under six months"
+  ✓ a civil servant with more than ten years of service receives thirty days of annual-leave entitlement
+
+   PASS  Tests\Unit\LeaveSheetSyncServiceTest
+  ✓ it converts a Google Sheets edit link into a CSV export for the sel… 0.01s  
+  ✓ it rejects a sheet URL that could target a non-Google host
+  ✓ it imports CSV data when a header is repeated by using the first column
+  ✓ it imports a leave-sheet row without an optional remarks column
+
+   PASS  Tests\Unit\PayslipPdfFilenameTest
+  ✓ payslip download filename does not expose the employee identifier    0.08s  
+
+   PASS  Tests\Unit\PayslipPdfLayoutTest
+  ✓ a detailed payslip remains a single A4 page                          0.23s  
+  ✓ the modal preview uses a dedicated A4 stage and document styling     0.01s  
+  ✓ the modal preview centers every signature line in one shared block   0.01s  
+  ✓ the printable payslip is self styled without Bootstrap               0.01s  
+  ✓ the downloaded PDF preserves the signature image aspect ratio        0.16s  
+  ✓ the downloaded PDF centers signature details in its right aligned b… 0.13s  
+  ✓ the downloaded PDF uses the account name when first and last names…  0.13s  
+  ✓ the downloaded payslip has reference-sized title, employee text, to… 0.14s  
+  ✓ preview and printable payslip use the same reference typography sca… 0.01s  
+
+   PASS  Tests\Unit\ProviderOAuthStateTest
+  ✓ it accepts a state once for the browser session that initiated it    0.06s  
+  ✓ it rejects a state from a different browser session
+
+   PASS  Tests\Unit\TaxCertificatePdfServiceTest
+  ✓ the PDF renders supplied imported document values and selected form… 0.18s  
+  ✓ dotted volume and document lines meet the bottoms of their labels    0.13s  
+  ✓ the PDF total row keeps the marked income and tax column dividers    0.10s  
+  ✓ it creates a one-page tax certificate PDF with a stable document fi… 0.10s  
+  ✓ the tax certificate signature keeps its original image proportions   0.07s  
+
+   PASS  Tests\Unit\TaxCertificatePreviewLayoutTest
+  ✓ tax certificate preview renders form fields without a background im… 0.05s  
+
+   PASS  Tests\Unit\TaxCertificateTxtImportServiceTest
+  ✓ it previews a TIS-620 central-government tax certificate row with m… 0.01s  
+  ✓ it defaults an otherwise-ambiguous TIS-620 record to legacy TIS-620 before parsing its CSV fields
+  ✓ it preserves a native UTF-8 C2 A1 character only when UTF-8 is explicit
+  ✓ it rejects an unsupported encoding without exposing certificate ide… 0.01s  
+  ✓ it represents empty and zero fixed-width amounts as null             0.01s  
+  ✓ it skips a row that does not contain all twenty TXT columns          0.01s  
+  ✓ it skips a row whose CID is not exactly thirteen digits without exp… 0.01s  
+  ✓ it returns a JSON-encodable masked error for a non-ASCII CID
+  ✓ it skips a row with an invalid Buddhist-era issue date
+  ✓ it skips a row with an unmapped certificate code with dataset "income form"
+  ✓ it skips a row with an unmapped certificate code with dataset "fund"
+  ✓ it skips a row with an unmapped certificate code with dataset "payment method"
+  ✓ it maps every authorized legacy tax-certificate code to its exact o… 0.01s  
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "income type 2"
+  ✓ it maps every authorized legacy tax-certificate code to its exact o… 0.01s  
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "income type 4"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "income type 5"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "income type 6"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "income type 7"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "fund 1"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "fund 2"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "payment method 1"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "payment method 2"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "payment method 3"
+  ✓ it maps every authorized legacy tax-certificate code to its exact output field and label with dataset "payment method 4"
+  ✓ it rejects a file without a TXT extension before parsing it
+  ✓ it rejects a TXT file larger than five megabytes before parsing it   0.01s  
+  ✓ it bounds preview rows and diagnostics for many short invalid TXT l… 0.01s  
+  ✓ it previews a valid TXT row without inserting a tax record           0.01s  
+
+   PASS  Tests\Unit\ThaidIdTokenVerifierTest
+  ✓ it accepts a signed ThaiD token bound to this client and nonce       0.05s  
+  ✓ it rejects a signed ThaiD token for another audience
+  ✓ it accepts an ES256 JWK that omits its optional algorithm field
+  ✓ it accepts a signed ES256 ThaiD token from an EC JWK
+
+   PASS  Tests\Feature\AboutPageTest
+  ✓ about page explains the personnel portal and displays the configure… 0.03s  
+
+   PASS  Tests\Feature\AdminLeaveManagementTest
+  ✓ only administrators can manage leave records                         0.01s  
+  ✓ the register lists leave requests from every source                  0.01s  
+  ✓ an administrator can add a multi-day leave counted in working days   0.58s  
+  ✓ saving a leave delegates modal closure and feedback to the success…  0.02s  
+  ✓ an administrator leave excludes a Thai public holiday from its dura… 0.02s  
+  ✓ a single-day leave can be recorded as a half day                     0.52s  
+  ✓ overlapping and weekend-only leave is rejected                       0.55s  
+  ✓ an administrator can edit a synced leave for someone missing from p… 0.48s  
+  ✓ an administrator can cancel a leave and it can no longer be edited   0.02s  
+  ✓ the leave register links to the Google Sheet sync page               0.01s  
+  ✓ additional leave types can be selected and saved in the modal with…  0.02s  
+  ✓ additional leave types can be selected and saved in the modal with…  0.02s  
+  ✓ additional leave types can be selected and saved in the modal with…  0.02s  
+  ✓ additional leave types can be selected and saved in the modal with…  0.02s  
+  ✓ sheet imports reuse a leave type created for key in without duplica… 0.01s  
+  ✓ sheet imports reuse a leave type created for key in without duplica… 0.01s  
+  ✓ sheet imports reuse a leave type created for key in without duplica… 0.01s  
+  ✓ sheet imports reuse a leave type created for key in without duplica… 0.01s  
+  ✓ opening the modal preserves a previously synced type identity with…  0.02s  
+  ✓ opening the modal preserves a previously synced type identity with…  0.01s  
+  ✓ opening the modal preserves a previously synced type identity with…  0.01s  
+  ✓ opening the modal preserves a previously synced type identity with…  0.01s  
+
+   PASS  Tests\Feature\AdminPersonnelManagementTest
+  ✓ an administrator can add personnel with their employment start date  0.11s  
+  ✓ the personnel form selects readable type and office names without e… 0.01s  
+  ✓ the add-personnel control opens the application modal directly       0.01s  
+  ✓ the edit and delete controls open their application modals directly  0.01s  
+  ✓ an administrator can load a personnel record into the edit form      0.01s  
+  ✓ saving selected personnel type and office keeps their codes and nam… 0.01s  
+  ✓ saving an edited personnel record dispatches a close-and-toast even… 0.01s  
+  ✓ an administrator can delete a personnel record after selecting it f… 0.01s  
+  ✓ an administrator can filter the personnel list by office ID          0.01s  
+  ✓ the personnel list renders Tailwind pagination controls when there…  0.01s  
+  ✓ only an administrator can open personnel management and download it… 0.01s  
+
+   PASS  Tests\Feature\AdminRoleAccessTest
+  ✓ role permissions are explicit and provider staff type never grants…  0.05s  
+  ✓ admin routes carry their own permission and a provider administrato… 0.01s  
+  ✓ sidebar contains only admin links allowed by the active role         0.01s  
+  ✓ MyMOPH login preserves the locally assigned role and office          0.01s  
+  ✓ MyMOPH does not create a user when its CID is absent from personnel  0.01s  
+
+   PASS  Tests\Feature\AdminRoleLivewireTest
+  ✓ direct component entry is allowed only for the matching role         0.05s  
+  ✓ role revocation denies a signatory action even after the component…  0.01s  
+  ✓ role revocation also denies write upload and streamed sync actions   0.02s  
+
+   PASS  Tests\Feature\AdminSalaryPromotionImportTest
+  ✓ only ADMIN and PROMOTE may preview or confirm an import              0.03s  
+  ✓ valid workbook previews counts without writing and confirmation com… 0.08s  
+  ✓ invalid workbook cannot open confirmation or write                   0.02s  
+  ✓ cancelled preview does not write and clears uploaded state           0.02s  
+  ✓ a file changed after preview must be previewed again before confirm… 0.03s  
+  ✓ preview reveals the total count when more than ten salary warnings…  0.02s  
+  ✓ authorization is rechecked on the confirmation request               0.02s  
+  ✓ the management page embeds the importer and confirmation uses porta… 0.02s  
+
+   PASS  Tests\Feature\AdminSalaryPromotionManagementTest
+  ✓ non administrators cannot open or invoke salary promotion managemen… 0.05s  
+  ✓ administrator can open the management route and its navigation entr… 0.01s  
+  ✓ add promotion button opens the application modal immediately on cli… 0.01s  
+  ✓ edit and archive buttons open their respective modals immediately o… 0.01s  
+  ✓ restore button opens confirmation modal immediately on click         0.01s  
+  ✓ administrator can create a promotion for a registered person and it… 0.02s  
+  ✓ new promotion pulls prior new salary and calculation base from the…  0.02s  
+  ✓ a first promotion cannot be saved without a prior salary and calcul… 0.02s  
+  ✓ an administrator can change the inherited base and the calculated s… 0.03s  
+  ✓ the base is editable while salary amounts are read only and new sal… 0.01s  
+  ✓ changing the base on an existing promotion recalculates its new sal… 0.02s  
+  ✓ clearing the calculation base cannot erase an existing calculated s… 0.01s  
+  ✓ changing a legacy base requires a numeric percentage before recalcu… 0.01s  
+  ✓ changing percentage on an existing promotion recalculates without c… 0.02s  
+  ✓ duplicate person and evaluation date is rejected without changing e… 0.02s  
+  ✓ a negative percentage is rejected instead of producing a salary dec… 0.02s  
+  ✓ a previous calculation base outside the supported money range is re… 0.02s  
+  ✓ the form previews the calculated increase before saving              0.01s  
+  ✓ legacy promotion without matching personnel stays visible and edita… 0.01s  
+  ✓ archive and restore retain the row and write audit records           0.01s  
+  ✓ admin year and office filters use fiscal year and registered office… 0.01s  
+  ✓ legacy nonnumeric percent can be left untouched while updating a no… 0.01s  
+  ✓ legacy promotion with missing salary fields can be annotated withou… 0.01s  
+  ✓ legacy undecided promotion can be annotated without changing its re… 0.01s  
+  ✓ legacy salary decrease can be annotated without changing the stored… 0.02s  
+  ✓ an edit opened before another administrator changes the row cannot…  0.02s  
+  ✓ user promotion history uses fiscal years and omits archived rows     0.01s  
+
+   PASS  Tests\Feature\AdminTaxCertificateAccessTest
+  ✓ tax certificate management access is limited to ADMIN and FINANCE w… 0.11s  
+  ✓ tax certificate management route has its name path and ability midd… 0.01s  
+  ✓ leave and promotion users are forbidden from tax certificate manage… 0.01s  
+  ✓ sidebar shows tax certificate management to finance but not leave    0.01s  
+
+   PASS  Tests\Feature\AdminTaxCertificateManagementTest
+  ✓ finance manages one tax certificate by its cid and income year       0.09s  
+  ✓ manual certificate validation rejects malformed cid tax year and mo… 0.03s  
+  ✓ manual certificate insert failures return a generic component error  0.05s  
+  ✓ tax certificate delete failures return a generic component error     0.01s  
+  ✓ manual certificate rejects more than two fractional digits for ever… 0.06s  
+  ✓ manual certificate rejects more than two fractional digits for ever… 0.06s  
+  ✓ manual certificate rejects more than two fractional digits for ever… 0.05s  
+  ✓ manual certificate rejects more than two fractional digits for ever… 0.05s  
+  ✓ manual certificate rejects more than two fractional digits for ever… 0.05s  
+  ✓ edit normalizes the legacy uppercase CID column name                 0.01s  
+  ✓ finance filters certificates by income year cid and name             0.02s  
+  ✓ unauthorized roles are rejected by direct management actions         0.01s  
+  ✓ utf8 TXT preview keeps masked diagnostics and confirmation commits…  0.03s  
+  ✓ changing the selected import encoding after preview requires a new…  0.02s  
+  ✓ the edit delete control replaces the form modal with the delete con… 0.01s  
+  ✓ delete confirmation and success close every tax certificate dialog…  0.01s  
+  ✓ management view uses application modals and toast events for succes… 0.01s  
+
+   PASS  Tests\Feature\AdminUserAccessMigrationTest
+  ✓ migration backfills only existing administrators and leaves new pro… 0.08s  
+
+   PASS  Tests\Feature\AdminUserManagementTest
+  ✓ only ADMIN may open user management and identity fields are not edi… 0.02s  
+  ✓ role and office changes are audited without altering OAuth identifi… 0.01s  
+  ✓ unknown roles and offices are rejected and the final ADMIN cannot b… 0.01s  
+  ✓ saving from the edit modal closes it and emits a toast event         0.01s  
+  ✓ the user list filters by role and office                             0.01s  
+  ✓ the user list paginates beyond twenty accounts                       0.01s  
+
+   PASS  Tests\Feature\ChartBundleTest
+  ✓ the dashboard chart module registers all chart controllers it rende… 0.08s  
+
+   PASS  Tests\Feature\CompleteStreamedLivewireResponseTest
+  ✓ a Livewire response after streaming is sent without re-sending head… 0.01s  
+  ✓ ordinary responses are passed through unchanged with dataset "livewire without streaming"
+  ✓ ordinary responses are passed through unchanged with dataset "non-livewire after output"
+
+   PASS  Tests\Feature\DashboardLeaveSummaryTest
+  ✓ dashboard promotion graph ignores archived rows even when their dat… 0.01s  
+  ✓ dashboard summarizes only approved leave in the current fiscal year  0.01s  
+
+   PASS  Tests\Feature\ExampleTest
+  ✓ guests are redirected to login from the protected home page          0.02s  
+
+   PASS  Tests\Feature\LeaveHistoryStorageTest
+  ✓ leave history is stored and read from the application database       0.01s  
+  ✓ fiscal year selector displays only the Buddhist calendar year        0.01s  
+  ✓ leave history summarizes approved annual, sick, and personal leave…  0.02s  
+  ✓ leave history shows annual leave entitlement from the linked person… 0.01s  
+  ✓ leave history calculates civil servant annual-leave carryover from…  0.01s  
+  ✓ leave history limits carried annual leave to the previous fiscal ye… 0.01s  
+  ✓ additional summary cards depend on the users records in the selecte… 0.01s  
+  ✓ additional summary cards depend on the users records in the selecte… 0.01s  
+  ✓ additional summary cards depend on the users records in the selecte… 0.01s  
+  ✓ additional summary cards depend on the users records in the selecte… 0.01s  
+
+   PASS  Tests\Feature\LeaveSheetSyncButtonTest
+  ✓ the leave sheet sync button remains clickable so empty URLs can sho… 0.05s  
+  ✓ the leave sheet sync confirmation is rendered as an application mod… 0.01s  
+  ✓ the leave sheet sync page shows a streamed progress bar while synci… 0.01s  
+  ✓ the leave sync progress partial renders row counts and percent whil… 0.01s  
+  ✓ the leave sync progress partial is indeterminate while downloading
+  ✓ the leave sheet sync page links back to the leave register           0.01s  
+
+   PASS  Tests\Feature\ModernLayoutTest
+  ✓ the login page loads the modern application asset                    0.03s  
+  ✓ an authenticated user receives accessible desktop and mobile naviga… 0.01s  
+  ✓ sidebar separates user and administrator navigation for administrat… 0.01s  
+  ✓ profile about and logout are grouped under the topbar user name ins… 0.01s  
+  ✓ dashboard summary cards do not retain the legacy fixed-height utili… 0.01s  
+  ✓ dashboard renders dedicated responsive grids for summaries and char… 0.01s  
+  ✓ promotion history chart avoids the Bootstrap column utility that conflicts with Tailwind grid
+
+   PASS  Tests\Feature\PayslipDownloadTest
+  ✓ the preview download control directly requests the authenticated PD… 0.04s  
+  ✓ an authenticated employee downloads a valid PDF for their own pay p… 0.12s  
+  ✓ the PDF download route does not expose another employees pay period  0.01s  
+
+   PASS  Tests\Feature\PersonPositionMigrationTest
+  ✓ person position migration preserves existing rows and leading zeroe… 0.02s  
+
+   PASS  Tests\Feature\PersonnelImportServiceTest
+  ✓ it imports a personnel workbook by creating new personnel and updat… 0.01s  
+
+   PASS  Tests\Feature\PersonnelMatcherTest
+  ✓ it matches a leave record to personnel by CID from the person table  0.01s  
+
+   PASS  Tests\Feature\ProfileSelfEditTest
+  ✓ the profile edit button opens a prefilled modal on the profile page  0.01s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.02s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.02s  
+  ✓ a session change cannot save another owners already opened form      0.01s  
+  ✓ saving without an opened edit form is forbidden                      0.01s  
+  ✓ guests cannot open the profile component or save a stale form        0.01s  
+  ✓ the profile route redirects a guest to login                         0.01s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.01s  
+  ✓ the edit target cannot be replaced by a client payload               0.01s  
+  ✓ the rendered profile events open the modal and close it before show… 0.04s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+  ✓ removed profile refresh actions cannot be invoked directly with ('u… 0.01s  
+
+   PASS  Tests\Feature\ProviderPersonnelAccessTest
+  ✓ ProviderID decodes HealthID id_card and provisions a matching perso… 0.09s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.01s  
+
+   PASS  Tests\Feature\ProviderProfileUpdateTest
+  ✓ obsolete ProviderID profile refresh endpoints are unavailable        0.02s  
+
+   PASS  Tests\Feature\ProviderRedirectTest
+  ✓ provider redirect creates a session-bound authorization URL          0.01s  
+  ✓ HealthID login starts at the documented redirect endpoint and force… 0.01s  
+
+   PASS  Tests\Feature\SalaryPromotionImportCommitTest
+  ✓ confirmed import inserts workbook salary amounts and updates both m… 0.02s  
+  ✓ matching active promotion is updated rather than duplicated          0.01s  
+  ✓ two evaluation periods for one person import without a false baseli… 0.01s  
+  ✓ confirmation rejects a promotion inserted after the preview was sho… 0.01s  
+  ✓ confirmation rejects a promotion or position changed after preview   0.01s  
+  ✓ missing person and user do not block promotion import or create ide… 0.01s  
+  ✓ person position updates even when no user account matches            0.01s  
+  ✓ user position updates even when no personnel row matches             0.01s  
+  ✓ blank position cell leaves both existing position values unchanged   0.01s  
+  ✓ ambiguous user match rejects the entire file                         0.01s  
+  ✓ newly archived target after preview rejects the entire file          0.02s  
+  ✓ a late audit failure rolls back promotion and both position updates  0.01s  
+
+   PASS  Tests\Feature\SalaryPromotionImportParsingTest
+  ✓ preview accepts the supplied Thai workbook and preserves salary and… 0.06s  
+  ✓ preview accepts whitespace in headers and an Excel date cell         0.01s  
+  ✓ preview rejects missing or repeated recognized headers               0.01s  
+  ✓ preview reports duplicate row keys                                   0.01s  
+  ✓ preview reports archived promotion matches                           0.01s  
+  ✓ preview rejects formula cells in required numeric columns            0.01s  
+  ✓ preview rejects an invalid citizen identifier                        0.01s  
+  ✓ preview rejects a salary decrease rather than importing a contradic… 0.01s  
+  ✓ a literal zero position number remains a string rather than becomin… 0.01s  
+
+   PASS  Tests\Feature\SalaryPromotionMigrationTest
+  ✓ migration preserves existing promotion rows and prevents duplicate…  0.04s  
+  ✓ migration refuses preexisting duplicate identity dates before chang… 0.01s  
+  ✓ rollback refuses to discard management audit records                 0.01s  
+
+   PASS  Tests\Feature\SsoUserProvisionerTest
+  ✓ a trusted SSO CID matching personnel creates a linked user           0.02s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ✓ an existing linked user is refreshed without changing local role or… 0.01s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.01s  
+
+   PASS  Tests\Feature\TaxCertificateDownloadTest
+  ✓ the authenticated user preview and download render imported certifi… 0.09s  
+  ✓ the preview signs only with the signatory for the tax income year    0.02s  
+  ✓ a tampered preview year cannot expose a signatory for a different t… 0.01s  
+  ✓ the downloaded PDF signs only with the signatory for the tax income… 0.13s  
+  ✓ a user downloads their own certificate as a PDF with its document n… 0.05s  
+  ✓ a user cannot download another users tax certificate                 0.01s  
+
+   PASS  Tests\Feature\TaxCertificateTxtImportCommitTest
+  ✓ it upserts valid source identities without deleting certificates ab… 0.03s  
+  ✓ it rejects a duplicate source identity without overwriting the firs… 0.01s  
+  ✓ it skips an invalid row while committing later valid rows            0.01s  
+  ✓ it commits valid rows beyond the preview row limit                   0.05s  
+
+   PASS  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.04s  
+
+  Tests:    265 passed (1676 assertions)
+  Duration: 8.19s
+

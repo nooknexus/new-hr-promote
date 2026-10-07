@@ -1,0 +1,23 @@
+
+   PASS  Tests\Feature\ProfileSelfEditTest
+  ✓ the profile edit button opens a prefilled modal on the profile page  0.25s  
+  ✓ saving a profile updates only owner editable fields and emits modal… 0.03s  
+  ✓ unchanged email stays verified and optional profile fields may be c… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.01s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ invalid profile input is rejected without writing or closing the mo… 0.02s  
+  ✓ cancelling and reopening reloads persisted values and clears errors  0.02s  
+  ✓ a session change cannot save another owners already opened form      0.02s  
+  ✓ saving without an opened edit form is forbidden                      0.01s  
+  ✓ guests cannot open the profile component or save a stale form        0.01s  
+  ✓ the profile route redirects a guest to login                         0.01s  
+  ✓ legacy edit links return to the owners profile and reject other use… 0.01s  
+  ✓ the edit target cannot be replaced by a client payload               0.01s  
+  ✓ the rendered profile events open the modal and close it before show… 0.07s  
+
+  Tests:    17 passed (88 assertions)
+  Duration: 0.71s
+

@@ -1,0 +1,46 @@
+
+   FAIL  Tests\Feature\UserAccountStatusTest
+  ⨯ legacy ProviderID registration works without an account_id column w… 0.31s  
+  ⨯ legacy ProviderID registration works without an account_id column w… 0.02s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > legacy ProviderID registrat…   
+  Component has errors: "general"
+Failed asserting that false is true.
+
+  at vendor/livewire/livewire/src/Features/SupportValidation/TestsValidation.php:109
+    105▕     {
+    106▕         $errors = $this->errors();
+    107▕ 
+    108▕         if (empty($keys)) {
+  ➜ 109▕             PHPUnit::assertTrue($errors->isEmpty(), 'Component has errors: "'.implode('", "', $errors->keys()).'"');
+    110▕ 
+    111▕             return $this;
+    112▕         }
+    113▕
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/UserAccountStatusTest.php:195
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > legacy ProviderID registrat…   
+  Component has errors: "general"
+Failed asserting that false is true.
+
+  at vendor/livewire/livewire/src/Features/SupportValidation/TestsValidation.php:109
+    105▕     {
+    106▕         $errors = $this->errors();
+    107▕ 
+    108▕         if (empty($keys)) {
+  ➜ 109▕             PHPUnit::assertTrue($errors->isEmpty(), 'Component has errors: "'.implode('", "', $errors->keys()).'"');
+    110▕ 
+    111▕             return $this;
+    112▕         }
+    113▕
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/UserAccountStatusTest.php:195
+
+
+  Tests:    2 failed (2 assertions)
+  Duration: 0.63s
+

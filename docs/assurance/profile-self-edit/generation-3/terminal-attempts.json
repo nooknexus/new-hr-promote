@@ -1,0 +1,183 @@
+{
+  "unit": "new-hrpromote/profile/self-edit",
+  "generation": 3,
+  "attempts": [
+    {
+      "id": "profile-self-edit-call-1",
+      "call": 1,
+      "state": "completed",
+      "candidate": "sha256:6ae7f5463fbc2f63d59b6ed337200f97d25573d65ad385b8dce89cc234701e87",
+      "packet": "sha256:0d867a43866c54e1ae58685d9f16bceb8b664f17f37665d8984fd6c271c95ecb",
+      "reservedAt": "2026-10-06T13:13:54.875427+00:00",
+      "runtime": "pass",
+      "verdict": "ship",
+      "agentPath": "/root/profile_review",
+      "startedAt": "2026-10-06T13:14:16.706987+00:00",
+      "runtimeProof": "reviewer-runtime.json",
+      "outcome": "accepted",
+      "completedAt": "2026-10-06T13:26:27.597700+00:00"
+    },
+    {
+      "id": "profile-self-edit-call-2",
+      "generation": 1,
+      "call": 2,
+      "state": "completed",
+      "candidate": "sha256:d19c8353cd61927c313e13302f7d0f7af81aa5ec48ff86884aa8bcd1d216a03a",
+      "packet": "sha256:98b4375ccec7f433ab6e8c46878623843bfbbe936ca0153fe80c8e905f4760ed",
+      "runtime": "pass",
+      "verdict": "ship",
+      "agentPath": "/root/profile_cleanup_review",
+      "outcome": "accepted",
+      "completedAt": "2026-10-06T14:00:22.787765+00:00",
+      "runtimeProof": "generation-1/reviewer-runtime.json",
+      "verdictProof": "generation-1/reviewer-verdict.json"
+    },
+    {
+      "id": "profile-self-edit-call-3",
+      "generation": 2,
+      "call": 3,
+      "state": "completed",
+      "candidate": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+      "packet": "sha256:3025c0ed3534abfd1dfaf875db725e20afa0c78761b002af72ec2b679fb3c968",
+      "reservedAt": "2026-10-06T14:16:24.279975+00:00",
+      "runtime": "pass",
+      "verdict": "ship",
+      "agentPath": "/root/thaid_address_review",
+      "startedAt": "2026-10-06T14:16:53.220434+00:00",
+      "sameAttemptMetadataClosure": {
+        "count": 1,
+        "initialVerdict": "fix-first",
+        "class": "assurance-metadata-only",
+        "closurePacket": "sha256:196688d973c7406e2f5dd491be10d7146c78a2e6d88e8ac3ab8c3c1b0bf0d87a",
+        "candidateChanged": false,
+        "closureMatrix": "generation-2/metadata-closure/closure-matrix.json",
+        "outcome": "accepted"
+      },
+      "outcome": "accepted",
+      "completedAt": "2026-10-06T14:27:46.162447+00:00",
+      "runtimeProof": "generation-2/reviewer-runtime.json",
+      "verdictProof": "generation-2/reviewer-verdict.json"
+    }
+  ],
+  "events": [
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "pre-readiness lock probe; unit open, generation0, calls0, no reservation; protected state unchanged",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same unit/gen open ready checked; calls0 max3 active none; reserve profile-self-edit-call-1 occupies1",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "spawn tool successful /root/profile_review; reserved -> started; REVIEW_CALLS_USED 0 ->1",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "accepted complete ship with observed rollout-bound gpt-5.6-sol/max; candidate delivery unchanged; clear reservation; UNIT_STATUS open ->ship",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "explicit materially new user scope reopens ship generation0 ->open generation1; preserves used1/max3; archives prior terminal proof",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "generation1 readiness finalized; open, used1 max3, no reservation, exact identities checked",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same unit gen1 open ready, used1 max3 none active; canonical machine proof re-read; reserve call2 occupies budget before spawn",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "successful spawn /root/profile_cleanup_review, reserved ->started, used1 ->2 maximum3 preserved",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "gen1 call2 completed ship, exact rollout runtime pass, candidate and delivery unchanged; clear reservation; open ->ship; used2/max3 preserved",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "explicit new user requirement reopens ship gen1 ->open gen2 with used2/max3 unchanged",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "gen2 all parent gates green; open used2/max3 no active; finalize readiness",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same gen2 exact ready identities machine pass, used2/max3 active none; reserve call3 occupies final remaining call before spawn",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "spawn tool successful /root/thaid_address_review; reserved->started; used2->3 maximum3 preserved",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same call3 started gen2, sole metadata finding; fresh build same candidate/delivery; one closure allowed, packet updated, reservation and used3/max3 unchanged",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "same call3 single metadata closure accepted ship, observed rollout runtime pass, unchanged candidate/delivery; clear reservation; open->ship; used3/max3 preserved",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "explicit material new scope gen2ship ->gen3 parent-recovery; review lane exhausted used3/max3 retained; no reservation permitted",
+      "release": "os.rmdir"
+    },
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "gen3 parent reconciliation minimal authorized revert complete, exact full tests/build and adversarial green; parent-recovery->parent-completed; no review calls used or budget reset",
+      "release": "os.rmdir"
+    }
+  ]
+}

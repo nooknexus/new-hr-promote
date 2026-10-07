@@ -1,0 +1,90 @@
+
+   FAIL  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ every successful ThaiD login replaces the existing address with the… 0.15s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ✓ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ⨯ every successful ThaiD login replaces the existing address with the… 0.02s  
+  ⨯ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ⨯ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ⨯ every successful ThaiD login replaces the existing address with the… 0.01s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.02s  
+
+   PASS  Tests\Feature\SsoUserProvisionerTest
+  ✓ a trusted SSO CID matching personnel creates a linked user           0.04s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ✓ an existing linked user is refreshed without changing local role or… 0.01s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.01s  
+  ✓ SSO profiles that omit address preserve the existing address         0.01s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > every successful ThaiD l…   
+  Failed asserting that 'ที่อยู่ที่แก้ไขเอง' is identical to null.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > every successful ThaiD l…   
+  Failed asserting that 'ที่อยู่ที่แก้ไขเอง' is identical to null.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > every successful ThaiD l…   
+  Failed asserting that 'ที่อยู่ที่แก้ไขเอง' is identical to null.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > every successful ThaiD l…   
+  Failed asserting that 'ที่อยู่ที่แก้ไขเอง' is identical to null.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+
+  Tests:    4 failed, 10 passed (70 assertions)
+  Duration: 0.41s
+

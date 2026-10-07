@@ -7,20 +7,19 @@ use Livewire\Component;
 
 class Redirect extends Component
 {
+    public $url = '';
 
-    public $url ='';
-
-
-    public function mount(){
+    public function mount()
+    {
         $state = ProviderOAuthState::issue(session()->driver());
-        $this->url = config('services.provider.auth_url') . '?' . http_build_query([
+        $this->url = config('services.provider.auth_url').'?'.http_build_query([
             'client_id' => config('services.provider.healthid_client_id'),
-            'redirect_uri' => route('provider.callback'),
+            'redirect_uri' => config('services.provider.redirect_uri'),
             'response_type' => 'code',
             'state' => $state,
+            'is_auth' => 'yes',
         ]);
     }
-
 
     public function redirectToProvider()
     {

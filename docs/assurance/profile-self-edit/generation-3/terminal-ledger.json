@@ -1,0 +1,79 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/profile/self-edit",
+  "REOPEN_GENERATION": 3,
+  "UNIT_STATUS": "parent-completed",
+  "REVIEW_READY": false,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 3,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "TDD_REQUIRED": true,
+  "scope": [
+    "app/Services/SsoUserProvisioner.php",
+    "tests/Feature/ThaidPersonnelAccessTest.php"
+  ],
+  "generationDirectory": "generation-3",
+  "authority": "Explicit user request to preserve existing address when ThaiD omits or sends empty address; material revert of generation2 clear behavior. Fixed review budget retained3/3; parent reconciliation/verification only.",
+  "objective": "Preserve local address for absent or blank ThaiD claims",
+  "coordination": "atomic os.mkdir docs/assurance/profile-self-edit/coordination.lock; journal outside behavior candidate",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "parent rollout turn_context"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/ProfileSelfEditTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable: established workflow runs Laravel directly on macOS, no required Compose rehearsal"
+  },
+  "protectedBoundaries": "No deploy/merge/release/production records or providers changed; local reversible source only",
+  "FROZEN_CANDIDATE_ID": "sha256:f67f2b0ec47c4f06bceb05608d36a28c50431d1f33280af69845a2b3c21d2fa3",
+  "ASSURANCE_PACKET_ID": "sha256:a9d2c9d5b6e1133892a1353d799c9b0340559bd50993ae1772ece47771d19183",
+  "REVIEWABILITY": "pass",
+  "PARENT_ADVERSARIAL_READY": true,
+  "acceptance": [
+    "Nonempty ThaiD address replaces existing address",
+    "Absent/null/empty/blank address preserves existing value",
+    "Provider omission and guarded personnel linking unchanged"
+  ],
+  "candidateManifest": "generation-3/candidate-manifest.json",
+  "deliveryManifest": "generation-3/delivery-manifest.txt",
+  "deliveryRecipe": "generation-3/delivery-recipe.txt",
+  "TDD": {
+    "RED": "generation-3/red.log:4fail4pass54assertions before production; empty claims cleared incorrectly",
+    "GREEN": "generation-3/green.log:16pass78assertions",
+    "REFACTOR": "Minimal exact restore of prior accepted service, no further refactor"
+  },
+  "adversarial": [
+    "RED detects clearing missing/null/blank claims",
+    "Nonempty array/JSON/plain update tested",
+    "Shared omission preserve and personnel denial/roleoffice checks green",
+    "Service byte-identical to generation2 base (previous accepted behavior)"
+  ],
+  "candidateVerification": {
+    "candidate": "sha256:f67f2b0ec47c4f06bceb05608d36a28c50431d1f33280af69845a2b3c21d2fa3",
+    "fullTests": "php artisan test273pass1726assertions generation-3/full-tests.log",
+    "build": "npm run build exit0 generation-3/build.log",
+    "syntax": "php -l and git diff --check pass",
+    "fullGateRuns": 1
+  },
+  "fullGateRuns": 1,
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "No new independent review: fixed cumulative budget3/3 exhausted",
+    "No live external ThaiD contact"
+  ],
+  "reReviewClosure": "generation-2/re-review-closure.json",
+  "generationHistory": "gen0shipcall1/gen1shipcall2; same unit fixed2/3 used",
+  "finalBoundary": "address semantics implemented and all gates green before call3",
+  "WORK_STATUS": "complete",
+  "ACCEPTANCE_STATUS": "met",
+  "KNOWN_BLOCKERS": "none",
+  "ASSURANCE_STATUS": "final-strict-not-achieved",
+  "INDEPENDENT_ATTESTATION": "not-obtained-within-budget",
+  "FINAL_STATUS": "parent-completed",
+  "completedAt": "2026-10-06T14:31:46.433677+00:00",
+  "REVIEW_STATUS": "review-exhausted",
+  "NEXT_REVIEW_ALLOWED": false
+}

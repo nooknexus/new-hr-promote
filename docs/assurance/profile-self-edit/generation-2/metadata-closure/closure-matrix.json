@@ -1,0 +1,10 @@
+{
+  "sameAttempt": "profile-self-edit-call-3",
+  "sameChild": "/root/thaid_address_review",
+  "sameFrozenCandidate": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+  "soleFinding": "fresh build receipt missing",
+  "fix": "npm run build exit0, generation-2/build.log; source/context and full delivery reproduce exact manifest, no behavior candidate change",
+  "fullTests": "unchanged273passed1726assertions receipt bound to unchanged candidate remains valid",
+  "closureUses": 1,
+  "newReviewCalls": 0
+}

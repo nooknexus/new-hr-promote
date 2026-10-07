@@ -152,6 +152,25 @@ THAID_ISSUER=https://imauth.bora.dopa.go.th
 
 ## Advanced features
 
+## ThaiD JWT verification (current implementation)
+
+The callback verifies the ThaiD ID token in `App\Services\ThaidIdTokenVerifier` before creating a session. Verification requires:
+
+- an allowed ES256 JWK from the configured `jwks_uri`;
+- an exact issuer match from `config('services.thaid.issuer')` / `THAID_ISSUER`;
+- an audience match for the configured client ID;
+- `azp` validation when present;
+- complete time claims and a constant-time nonce comparison with the session nonce.
+
+If ThaiD reports `No allowed ThaiD signing keys are available`, check that the well-known endpoint is reachable, its `jwks_uri` returns an ES256 key set, and configuration cache has been cleared:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+Never log the ID token, access token, client secret, nonce, PID, or complete personal profile.
+
 For more detailed information on the underlying implementation, refer to the following files:
 
 *   **Routing:** [routes/web.php](routes/web.php)

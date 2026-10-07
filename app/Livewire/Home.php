@@ -18,6 +18,15 @@ class Home extends Component
     public $promotionHistory = [];
     public $totalIncome = 0;    // Added for total yearly income
     public $taxWithheld = 0;    // Added for tax withheld
+    public $currentFiscalLeaveSummary = [
+        'fiscal_year' => null,
+        'total_days' => 0.0,
+        'totals' => [
+            'ลาพักผ่อน' => 0.0,
+            'ลาป่วย' => 0.0,
+            'ลากิจ' => 0.0,
+        ],
+    ];
     
     public function mount()
     {
@@ -197,6 +206,8 @@ class Home extends Component
                 $this->totalIncome = (float)$taxData[0]->totalIncome;
                 $this->taxWithheld = (float)$taxData[0]->taxWithheld;
             }
+
+            $this->loadCurrentFiscalLeaveSummary($pid);
         }
         
         // Load salary promotion history - get only the latest for each round
@@ -214,39 +225,22 @@ class Home extends Component
             $user = Auth::user();
             $pid = $user->pid ?? '';
             
-            // Query to get the latest promotion for each evaluation round (month/year combination)
-            // Updated to fetch 10 records instead of 6
-            $promotionData = DB::select("
-                SELECT
-                    dp.*,
-                    CASE 
-                        WHEN MONTH(evaluation_date) = 4 THEN 1
-                        WHEN MONTH(evaluation_date) = 10 THEN 2
-                        ELSE 3
-                    END AS round_number,
-                    YEAR(evaluation_date) as year_number
-                FROM
-                    data_promote dp
-                INNER JOIN (
-                    SELECT 
-                        YEAR(evaluation_date) as year,
-                        MONTH(evaluation_date) as month,
-                        MAX(evaluation_date) as latest_date
-                    FROM 
-                        data_promote
-                    WHERE 
-                        CID = ?
-                    GROUP BY 
-                        YEAR(evaluation_date), MONTH(evaluation_date)
-                ) latest ON YEAR(dp.evaluation_date) = latest.year 
-                    AND MONTH(dp.evaluation_date) = latest.month
-                    AND dp.evaluation_date = latest.latest_date
-                WHERE 
-                    dp.CID = ?
-                ORDER BY 
-                    dp.evaluation_date DESC
-                LIMIT 10
-            ", [$pid, $pid]);
+            $seenRounds = [];
+            $promotionData = DB::table('data_promote')
+                ->where('CID', $pid)
+                ->whereNull('deleted_at')
+                ->orderByDesc('evaluation_date')
+                ->get()
+                ->filter(function ($row) use (&$seenRounds) {
+                    $round = substr($row->evaluation_date, 0, 7);
+                    if (isset($seenRounds[$round])) {
+                        return false;
+                    }
+                    $seenRounds[$round] = true;
+
+                    return true;
+                })
+                ->take(10);
             
             // Transform data for the chart and filter out records with no percentage
             $this->promotionHistory = collect($promotionData)
@@ -255,7 +249,7 @@ class Home extends Component
                     $yearBE = $evaluationDate->year + 543; // Convert to Buddhist Era
                     
                     return [
-                        'round' => $item->round_number,
+                        'round' => match ($evaluationDate->month) { 4 => 1, 10 => 2, default => 3 },
                         'year' => $yearBE,
                         'date' => $evaluationDate->format('Y-m-d'),
                         'amount' => $item->sum,
@@ -281,6 +275,32 @@ class Home extends Component
             \Log::error('Error loading promotion history: ' . $e->getMessage());
             $this->promotionHistory = [];
         }
+    }
+
+    private function loadCurrentFiscalLeaveSummary(string $pid): void
+    {
+        $today = Carbon::today();
+        $fiscalYear = $today->year + ($today->month >= 10 ? 544 : 543);
+        $fiscalYearEnd = $fiscalYear - 543;
+        $startDate = Carbon::create($fiscalYearEnd - 1, 10, 1)->toDateString();
+        $endDate = Carbon::create($fiscalYearEnd, 9, 30)->toDateString();
+
+        $totalsByType = DB::table('leave_requests as requests')
+            ->join('leave_types as types', 'types.id', '=', 'requests.leave_type_id')
+            ->where('requests.cid', $pid)
+            ->where('requests.status', 'approved')
+            ->whereBetween('requests.start_date', [$startDate, $endDate])
+            ->select('types.name', DB::raw('SUM(requests.total_days) as total_days'))
+            ->groupBy('types.name')
+            ->pluck('total_days', 'name');
+
+        $this->currentFiscalLeaveSummary = [
+            'fiscal_year' => $fiscalYear,
+            'total_days' => (float) $totalsByType->sum(),
+            'totals' => collect(['ลาพักผ่อน', 'ลาป่วย', 'ลากิจ'])
+                ->mapWithKeys(fn (string $type): array => [$type => (float) ($totalsByType[$type] ?? 0)])
+                ->all(),
+        ];
     }
 
     public function render()

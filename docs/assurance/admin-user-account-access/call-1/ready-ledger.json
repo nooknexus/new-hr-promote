@@ -1,0 +1,101 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/admin/user-account-access",
+  "REOPEN_GENERATION": 0,
+  "UNIT_STATUS": "open",
+  "REVIEW_READY": true,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 0,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "scope": [
+    "app/Livewire/Admin/UserManagement.php",
+    "resources/views/livewire/admin/user-management.blade.php",
+    "app/Services/UserAccessService.php",
+    "app/Services/SsoUserProvisioner.php",
+    "app/Models/User.php",
+    "app/Support/AdminAccess.php",
+    "app/Livewire/Login.php",
+    "app/Http/Middleware/EnsureUserIsActive.php",
+    "bootstrap/app.php",
+    "database/migrations/2026_10_06_150000_add_account_status_to_users.php",
+    "tests/Feature/AdminUserManagementTest.php",
+    "tests/Feature/UserAccountStatusTest.php",
+    "tests/Feature/UserAccountStatusMigrationTest.php"
+  ],
+  "TDD_REQUIRED": true,
+  "authority": "New user-authorized admin account lifecycle: inline role/office editing and reversible disable preventing all login/access. Distinct from terminal profile self-edit unit; no prior account-status ledger exists. Profile unit3/3 counters unchanged.",
+  "objective": "Inline admin access edits and enforced account suspension across SSO/password/existing sessions",
+  "coordination": "atomic os.mkdir docs/assurance/admin-user-account-access/coordination.lock; os.rmdir release",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "current parent rollout turn_context observed"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/AdminUserManagementTest.php tests/Feature/UserAccountStatusTest.php tests/Feature/UserAccountStatusMigrationTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable established direct macOS Laravel workflow"
+  },
+  "acceptance": [
+    "Role/office dropdown changes persist immediately, preserve other concurrent field",
+    "Disable/enable confirmation modal and toast; audit each change",
+    "Disabled identity rejected before personnel auto-provision; role/office never reset",
+    "Password and legacy login reject disabled accounts; existing session/remember access blocked",
+    "No self disable or removal of final active ADMIN; service reauthorizes actor",
+    "Reversible additive migration defaults existing users enabled; rollback refuses unlocking disabled accounts"
+  ],
+  "plan": [
+    "TDD focused expected failures",
+    "Backend guarded state/identity/session enforcement",
+    "Inline UI and confirmation with audit",
+    "Complete delta/adversarial and full tests/build",
+    "Fresh final-strict review then additive local migration only on verified local database"
+  ],
+  "FROZEN_CANDIDATE_ID": "sha256:10e891663be9d6b9a265c70b4752d1bbd0762a32d58973986952611f755da9e7",
+  "ASSURANCE_PACKET_ID": "sha256:710573ec5e76283b30ca76d70fbf8caa4705662533b72354575b72243bfd7b08",
+  "PARENT_ADVERSARIAL_READY": true,
+  "REVIEWABILITY": "pass",
+  "candidateManifest": "candidate-manifest.json",
+  "deliveryManifest": "delivery-manifest.txt",
+  "deliveryRecipe": "delivery-recipe.txt",
+  "FINAL_STRICT_READINESS_RECORD_LOCATION": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/admin-user-account-access/readiness.json",
+  "TDD": {
+    "RED": "17fail5pass beforeproduction; linkedlegacy2fail1pass beforehelper",
+    "GREEN": "final-focused30pass156assertions; integration45pass242",
+    "REFACTOR": "simplified merge and Tailwind class aftergreen"
+  },
+  "candidateVerification": {
+    "candidate": "sha256:10e891663be9d6b9a265c70b4752d1bbd0762a32d58973986952611f755da9e7",
+    "timestampUTC": "2026-10-06T15:00:19.133270+00:00",
+    "fullTests": {
+      "command": "php artisan test",
+      "exit": 0,
+      "count": 299,
+      "assertions": 1860,
+      "receipt": "full-tests.log"
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "receipt": "build.log"
+    },
+    "syntax": "all PHP passed; diffcheckpassed"
+  },
+  "adversarial": [
+    "Samefieldpatch preserves concurrent otherfield",
+    "AlldisabledSSO/password/legacy/session/remember deny and no refresh",
+    "Lockedtarget/actorfresh/selfdisable/lastactiveADMIN protections",
+    "Session guard mutationfails; restoredfocusedgreen",
+    "Migration down cannot reactivate disabled or discard auditedstatus"
+  ],
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "No live externalSSO contact",
+    "Node-adapter scripts; no browserE2E",
+    "SQLite migration/service fixtures; MySQL rowlocking inspected"
+  ],
+  "fullGateRuns": 1,
+  "protectedBoundaryCrossed": false,
+  "activationBoundary": "After independent ship only additive new migration on verified local loopback MySQL; no actualaccountstatus mutations requested for a specific user"
+}

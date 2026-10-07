@@ -1,0 +1,15 @@
+{
+  "VERDICT": "ship",
+  "AUDIT_COMPLETENESS": "complete",
+  "FINDING_CLASS": "none",
+  "BEHAVIOR_BLOCKERS": "none",
+  "CANDIDATE_CHANGE_REQUIRED": "no",
+  "FINDINGS": [],
+  "agentPath": "/root/profile_cleanup_review",
+  "candidate": "sha256:d19c8353cd61927c313e13302f7d0f7af81aa5ec48ff86884aa8bcd1d216a03a",
+  "evidence": "Complete 11-path review, candidate/context/tombstone/delivery hashes, TDD and full verification receipts; login routes preserved; notice lifecycle correct; refresh surfaces removed.",
+  "residualRisk": [
+    "Browser-specific focus not exercised by full browser E2E; actual rendered script and controller inspected.",
+    "Existing sessions may retain unused obsolete ThaiD token until expiry; no production reader or new retention."
+  ]
+}

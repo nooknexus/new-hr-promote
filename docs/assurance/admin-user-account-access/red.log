@@ -1,0 +1,761 @@
+
+   FAIL  Tests\Feature\AdminUserManagementTest
+  ✓ only ADMIN may open user management and identity fields are not edi… 0.29s  
+  ✓ role and office changes are audited without altering OAuth identifi… 0.01s  
+  ✓ unknown roles and offices are rejected and the final ADMIN cannot b… 0.01s  
+  ⨯ role and office can be changed directly from the user row            0.02s  
+  ⨯ account suspension requires confirmation and closes the application… 0.01s  
+  ⨯ inline edits validate input and recheck administrator access on eve… 0.02s  
+  ✓ the user list filters by role and office                             0.03s  
+  ✓ the user list paginates beyond twenty accounts                       0.02s  
+
+   FAIL  Tests\Feature\UserAccountStatusTest
+  ⨯ disabling and reenabling an account is audited and does not alter i… 0.07s  
+  ⨯ an inactive admin and a nonadmin cannot change access or account st… 0.01s  
+  ⨯ self disable is denied and disabled admins do not count as remainin… 0.02s  
+  ⨯ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ⨯ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ⨯ a disabled CID is rejected before personnel lookup and without refr… 0.01s  
+  ⨯ disabled users cannot use password login or existing sessions        0.07s  
+  ⨯ disabling deletes the target database sessions without deleting any… 0.04s  
+  ⨯ a disabled account cannot be revived by the legacy ProviderID regis… 0.15s  
+  ⨯ all SSO callbacks deny disabled personnel accounts without refreshi… 0.08s  
+  ⨯ all SSO callbacks deny disabled personnel accounts without refreshi… 0.04s  
+  ⨯ all SSO callbacks deny disabled personnel accounts without refreshi… 0.04s  
+
+   FAIL  Tests\Feature\UserAccountStatusMigrationTest
+  ⨯ account status migration enables existing users and preserves them…  0.08s  
+  ⨯ rollback cannot silently reactivate a disabled user                  0.01s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\AdminUserManagementTest > role and office can be ch…   
+  Expected: <div wire:snapshot="" wire:effects="" wire:id="RnBvLOInDS5Cg9quEF2k" class="space-y-6">\n
+      <header>\n
+          <p class="text-sm font-semibold text-brand-700">จัดการข้อมูล</p>\n
+  ... (112 more lines)
+
+  Not to contain: แก้ไขสิทธิ์
+
+  at vendor/livewire/livewire/src/Features/SupportTesting/MakesAssertions.php:26
+     22▕ 
+     23▕     function assertDontSee($values, $escape = true, $stripInitialData = true)
+     24▕     {
+     25▕         foreach (Arr::wrap($values) as $value) {
+  ➜  26▕             PHPUnit::assertStringNotContainsString(
+     27▕                 $escape ? e($value): $value,
+     28▕                 $this->html($stripInitialData)
+     29▕             );
+     30▕         }
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/AdminUserManagementTest.php:101
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\AdminUserManagementTest >…   MethodNotFoundException   
+  Unable to call component method. Public method [requestStatusChange] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/AdminUserManagementTest.php:111
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\AdminUserManagementTest >…   MethodNotFoundException   
+  Unable to call component method. Public method [updateRole] not found on component
+
+  at vendor/livewire/livewire/src/Mechanisms/HandleComponents/HandleComponents.php:470
+    466▕             // @todo: put this in a better place:
+    467▕             $methods[] = '__dispatch';
+    468▕ 
+    469▕             if (! in_array($method, $methods)) {
+  ➜ 470▕                 throw new MethodNotFoundException($method);
+    471▕             }
+    472▕ 
+    473▕             if (config('app.debug')) $start = microtime(true);
+    474▕             $return = wrap($root)->{$method}(...$params);
+
+      [2m+27 vendor frames [22m
+  28  tests/Feature/AdminUserManagementTest.php:122
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > disabling and reenab…  Error   
+  Call to undefined method App\Services\UserAccessService::setActive()
+
+  at tests/Feature/UserAccountStatusTest.php:65
+     61▕ });
+     62▕ 
+     63▕ test('disabling and reenabling an account is audited and does not alter its identity or role', function () {
+     64▕     $service = app(UserAccessService::class);
+  ➜  65▕     $service->setActive(1, 2, false);
+     66▕     $user = User::find(2);
+     67▕     expect($user->is_active)->toBeFalse()->and($user->pid)->toBe('1234567890123')
+     68▕         ->and($user->role)->toBe('LEAVE')->and($user->office)->toBe('01')->and($user->remember_token)->toBeNull();
+     69▕     $audit = DB::table('user_access_audits')->first();
+
+  1   tests/Feature/UserAccountStatusTest.php:65
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > an inactive admin an…  Error   
+  Call to undefined method App\Services\UserAccessService::setActive()
+
+  at tests/Feature/UserAccountStatusTest.php:80
+     76▕ 
+     77▕ test('an inactive admin and a nonadmin cannot change access or account status', function () {
+     78▕     DB::table('users')->where('id', 1)->update(['is_active' => false]);
+     79▕     foreach ([1, 2] as $actor) {
+  ➜  80▕         try { app(UserAccessService::class)->setActive($actor, 2, false); $this->fail('Unauthorized actor allowed'); }
+     81▕         catch (\Symfony\Component\HttpKernel\Exception\HttpException $error) { expect($error->getStatusCode())->toBe(403); }
+     82▕     }
+     83▕     $this->actingAs(User::find(1));
+     84▕     expect(AdminAccess::allows(User::find(1), 'users'))->toBeFalse();
+
+  1   tests/Feature/UserAccountStatusTest.php:80
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > self disable is denied and…    
+  Failed asserting that an instance of class Error is an instance of class Illuminate\Validation\ValidationException.
+
+  at tests/Feature/UserAccountStatusTest.php:90
+     86▕ 
+     87▕ test('self disable is denied and disabled admins do not count as remaining administrators', function () {
+     88▕     User::forceCreate(['id' => 3, 'name' => 'Inactive admin', 'email' => 'inactive@example.test', 'password' => 'password123', 'role' => 'ADMIN', 'is_active' => false]);
+     89▕     $service = app(UserAccessService::class);
+  ➜  90▕     expect(fn () => $service->setActive(1, 1, false))->toThrow(ValidationException::class)
+     91▕         ->and(fn () => $service->update(1, 1, 'LEAVE', null))->toThrow(ValidationException::class);
+     92▕     expect(User::find(1)->is_active)->toBeTrue()->and(User::find(1)->role)->toBe('ADMIN');
+     93▕ });
+     94▕
+
+  1   tests/Feature/UserAccountStatusTest.php:90
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled CID is rejected…    
+  Failed asserting that App\Models\User Object #5173 (
+    'connection' => 'sqlite',
+    'table' => 'users',
+    'primaryKey' => 'id',
+    'keyType' => 'int',
+    'incrementing' => true,
+    'with' => Array &0 [],
+    'withCount' => Array &1 [],
+    'preventsLazyLoading' => false,
+    'perPage' => 15,
+    'exists' => true,
+    'wasRecentlyCreated' => false,
+    'escapeWhenCastingToString' => false,
+    'attributes' => Array &2 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$BMqviSvqyckK8acyCB6qW.SSszxtr91q.C8em6RJ0BX9AwaENOpL2',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5180 (
+            'endOfTime' => false,
+            'startOfTime' => false,
+            'constructedObjectId' => '000000000000143c0000000000000000',
+            'clock' => null,
+            'localMonthsOverflow' => null,
+            'localYearsOverflow' => null,
+            'localStrictModeEnabled' => null,
+            'localHumanDiffOptions' => null,
+            'localToStringFormat' => null,
+            'localSerializer' => null,
+            'localMacros' => null,
+            'localGenericMacros' => null,
+            'localFormatFunction' => null,
+            'localTranslator' => null,
+            'dumpProperties' => Array &3 [
+                0 => 'date',
+                1 => 'timezone_type',
+                2 => 'timezone',
+            ],
+            'dumpLocale' => null,
+            'dumpDateProperties' => null,
+            'date' => '2026-10-06 21:49:13.348329',
+            'timezone_type' => 3,
+            'timezone' => 'Asia/Bangkok',
+        ),
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'original' => Array &4 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$BMqviSvqyckK8acyCB6qW.SSszxtr91q.C8em6RJ0BX9AwaENOpL2',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5180,
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'changes' => Array &5 [
+        'name' => 'Remote name',
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'last_login_at' => Illuminate\Support\Carbon Object #5180,
+    ],
+    'previous' => Array &6 [
+        'name' => 'Local Name',
+        'cid_hash' => null,
+        'last_login_at' => null,
+    ],
+    'casts' => Array &7 [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'birthdate' => 'date',
+    ],
+    'classCastCache' => Array &8 [],
+    'attributeCastCache' => Array &9 [],
+    'dateFormat' => null,
+    'appends' => Array &10 [],
+    'dispatchesEvents' => Array &11 [],
+    'observables' => Array &12 [],
+    'relations' => Array &13 [],
+    'touches' => Array &14 [],
+    'relationAutoloadCallback' => null,
+    'relationAutoloadContext' => null,
+    'timestamps' => true,
+    'usesUniqueIds' => false,
+    'hidden' => Array &15 [
+        0 => 'password',
+        1 => 'remember_token',
+        2 => 'cid_hash',
+    ],
+    'visible' => Array &16 [],
+    'fillable' => Array &17 [
+        0 => 'name',
+        1 => 'name_en',
+        2 => 'email',
+        3 => 'password',
+        4 => 'thaid_pid',
+        5 => 'pid',
+        6 => 'birthdate',
+        7 => 'address',
+        8 => 'provider_id',
+        9 => 'account_id',
+        10 => 'cid_hash',
+        11 => 'hcode',
+        12 => 'hname',
+    ],
+    'guarded' => Array &18 [
+        0 => '*',
+    ],
+    'authPasswordName' => 'password',
+    'rememberTokenName' => 'remember_token',
+) is null.
+
+  at tests/Feature/UserAccountStatusTest.php:100
+     96▕     DB::table('users')->where('id', 2)->update(['pid' => null, $link => $link === 'cid_hash' ? hash('sha256', '1234567890123') : '1234567890123', 'is_active' => false]);
+     97▕     $queries = [];
+     98▕     DB::listen(function ($query) use (&$queries) { $queries[] = $query->sql; });
+     99▕     $result = app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Remote name']);
+  ➜ 100▕     expect($result)->toBeNull()->and(User::find(2)->name)->toBe('Local Name');
+    101▕     expect(collect($queries)->contains(fn ($sql) => str_contains($sql, '"person"')))->toBeFalse();
+    102▕ })->with(['pid', 'thaid_pid', 'cid_hash']);
+    103▕ 
+    104▕ test('disabled users cannot use password login or existing sessions', function () {
+
+  1   tests/Feature/UserAccountStatusTest.php:100
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled CID is rejected…    
+  Failed asserting that App\Models\User Object #5318 (
+    'connection' => 'sqlite',
+    'table' => 'users',
+    'primaryKey' => 'id',
+    'keyType' => 'int',
+    'incrementing' => true,
+    'with' => Array &0 [],
+    'withCount' => Array &1 [],
+    'preventsLazyLoading' => false,
+    'perPage' => 15,
+    'exists' => true,
+    'wasRecentlyCreated' => false,
+    'escapeWhenCastingToString' => false,
+    'attributes' => Array &2 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$H/baw4OaUei2fz7MN.u0a.aG.DQuUqblYzF1yDVD9bF6/EQjDCr2a',
+        'pid' => '1234567890123',
+        'thaid_pid' => '1234567890123',
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5321 (
+            'endOfTime' => false,
+            'startOfTime' => false,
+            'constructedObjectId' => '00000000000014c90000000000000000',
+            'clock' => null,
+            'localMonthsOverflow' => null,
+            'localYearsOverflow' => null,
+            'localStrictModeEnabled' => null,
+            'localHumanDiffOptions' => null,
+            'localToStringFormat' => null,
+            'localSerializer' => null,
+            'localMacros' => null,
+            'localGenericMacros' => null,
+            'localFormatFunction' => null,
+            'localTranslator' => null,
+            'dumpProperties' => Array &3 [
+                0 => 'date',
+                1 => 'timezone_type',
+                2 => 'timezone',
+            ],
+            'dumpLocale' => null,
+            'dumpDateProperties' => null,
+            'date' => '2026-10-06 21:49:13.362151',
+            'timezone_type' => 3,
+            'timezone' => 'Asia/Bangkok',
+        ),
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'original' => Array &4 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$H/baw4OaUei2fz7MN.u0a.aG.DQuUqblYzF1yDVD9bF6/EQjDCr2a',
+        'pid' => '1234567890123',
+        'thaid_pid' => '1234567890123',
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5321,
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'changes' => Array &5 [
+        'name' => 'Remote name',
+        'pid' => '1234567890123',
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'last_login_at' => Illuminate\Support\Carbon Object #5321,
+    ],
+    'previous' => Array &6 [
+        'name' => 'Local Name',
+        'pid' => null,
+        'cid_hash' => null,
+        'last_login_at' => null,
+    ],
+    'casts' => Array &7 [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'birthdate' => 'date',
+    ],
+    'classCastCache' => Array &8 [],
+    'attributeCastCache' => Array &9 [],
+    'dateFormat' => null,
+    'appends' => Array &10 [],
+    'dispatchesEvents' => Array &11 [],
+    'observables' => Array &12 [],
+    'relations' => Array &13 [],
+    'touches' => Array &14 [],
+    'relationAutoloadCallback' => null,
+    'relationAutoloadContext' => null,
+    'timestamps' => true,
+    'usesUniqueIds' => false,
+    'hidden' => Array &15 [
+        0 => 'password',
+        1 => 'remember_token',
+        2 => 'cid_hash',
+    ],
+    'visible' => Array &16 [],
+    'fillable' => Array &17 [
+        0 => 'name',
+        1 => 'name_en',
+        2 => 'email',
+        3 => 'password',
+        4 => 'thaid_pid',
+        5 => 'pid',
+        6 => 'birthdate',
+        7 => 'address',
+        8 => 'provider_id',
+        9 => 'account_id',
+        10 => 'cid_hash',
+        11 => 'hcode',
+        12 => 'hname',
+    ],
+    'guarded' => Array &18 [
+        0 => '*',
+    ],
+    'authPasswordName' => 'password',
+    'rememberTokenName' => 'remember_token',
+) is null.
+
+  at tests/Feature/UserAccountStatusTest.php:100
+     96▕     DB::table('users')->where('id', 2)->update(['pid' => null, $link => $link === 'cid_hash' ? hash('sha256', '1234567890123') : '1234567890123', 'is_active' => false]);
+     97▕     $queries = [];
+     98▕     DB::listen(function ($query) use (&$queries) { $queries[] = $query->sql; });
+     99▕     $result = app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Remote name']);
+  ➜ 100▕     expect($result)->toBeNull()->and(User::find(2)->name)->toBe('Local Name');
+    101▕     expect(collect($queries)->contains(fn ($sql) => str_contains($sql, '"person"')))->toBeFalse();
+    102▕ })->with(['pid', 'thaid_pid', 'cid_hash']);
+    103▕ 
+    104▕ test('disabled users cannot use password login or existing sessions', function () {
+
+  1   tests/Feature/UserAccountStatusTest.php:100
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled CID is rejected…    
+  Failed asserting that App\Models\User Object #5463 (
+    'connection' => 'sqlite',
+    'table' => 'users',
+    'primaryKey' => 'id',
+    'keyType' => 'int',
+    'incrementing' => true,
+    'with' => Array &0 [],
+    'withCount' => Array &1 [],
+    'preventsLazyLoading' => false,
+    'perPage' => 15,
+    'exists' => true,
+    'wasRecentlyCreated' => false,
+    'escapeWhenCastingToString' => false,
+    'attributes' => Array &2 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$IQ3FjYGH9vnBu7kM3YY3J.v/ALcd0mf3W0wqRaalhs9wZEYq4Y1Wy',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5466 (
+            'endOfTime' => false,
+            'startOfTime' => false,
+            'constructedObjectId' => '000000000000155a0000000000000000',
+            'clock' => null,
+            'localMonthsOverflow' => null,
+            'localYearsOverflow' => null,
+            'localStrictModeEnabled' => null,
+            'localHumanDiffOptions' => null,
+            'localToStringFormat' => null,
+            'localSerializer' => null,
+            'localMacros' => null,
+            'localGenericMacros' => null,
+            'localFormatFunction' => null,
+            'localTranslator' => null,
+            'dumpProperties' => Array &3 [
+                0 => 'date',
+                1 => 'timezone_type',
+                2 => 'timezone',
+            ],
+            'dumpLocale' => null,
+            'dumpDateProperties' => null,
+            'date' => '2026-10-06 21:49:13.374514',
+            'timezone_type' => 3,
+            'timezone' => 'Asia/Bangkok',
+        ),
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'original' => Array &4 [
+        'id' => 2,
+        'name' => 'Remote name',
+        'name_en' => null,
+        'email' => 'person@example.test',
+        'password' => '$2y$04$IQ3FjYGH9vnBu7kM3YY3J.v/ALcd0mf3W0wqRaalhs9wZEYq4Y1Wy',
+        'pid' => '1234567890123',
+        'thaid_pid' => null,
+        'cid_hash' => 'bca2b41a2b25e137c83fee346af7bd1e0f52bd560583ca07a1b42f9944c5c50b',
+        'provider_id' => null,
+        'account_id' => null,
+        'role' => 'LEAVE',
+        'office' => '01',
+        'is_active' => 0,
+        'hcode' => null,
+        'hname' => null,
+        'hospcode' => null,
+        'address' => null,
+        'birthdate' => null,
+        'email_verified_at' => null,
+        'last_login_at' => Illuminate\Support\Carbon Object #5466,
+        'remember_token' => 'remember-value',
+        'created_at' => '2026-10-06 21:49:13',
+        'updated_at' => '2026-10-06 21:49:13',
+    ],
+    'changes' => Array &5 [
+        'name' => 'Remote name',
+        'pid' => '1234567890123',
+        'last_login_at' => Illuminate\Support\Carbon Object #5466,
+    ],
+    'previous' => Array &6 [
+        'name' => 'Local Name',
+        'pid' => null,
+        'last_login_at' => null,
+    ],
+    'casts' => Array &7 [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'birthdate' => 'date',
+    ],
+    'classCastCache' => Array &8 [],
+    'attributeCastCache' => Array &9 [],
+    'dateFormat' => null,
+    'appends' => Array &10 [],
+    'dispatchesEvents' => Array &11 [],
+    'observables' => Array &12 [],
+    'relations' => Array &13 [],
+    'touches' => Array &14 [],
+    'relationAutoloadCallback' => null,
+    'relationAutoloadContext' => null,
+    'timestamps' => true,
+    'usesUniqueIds' => false,
+    'hidden' => Array &15 [
+        0 => 'password',
+        1 => 'remember_token',
+        2 => 'cid_hash',
+    ],
+    'visible' => Array &16 [],
+    'fillable' => Array &17 [
+        0 => 'name',
+        1 => 'name_en',
+        2 => 'email',
+        3 => 'password',
+        4 => 'thaid_pid',
+        5 => 'pid',
+        6 => 'birthdate',
+        7 => 'address',
+        8 => 'provider_id',
+        9 => 'account_id',
+        10 => 'cid_hash',
+        11 => 'hcode',
+        12 => 'hname',
+    ],
+    'guarded' => Array &18 [
+        0 => '*',
+    ],
+    'authPasswordName' => 'password',
+    'rememberTokenName' => 'remember_token',
+) is null.
+
+  at tests/Feature/UserAccountStatusTest.php:100
+     96▕     DB::table('users')->where('id', 2)->update(['pid' => null, $link => $link === 'cid_hash' ? hash('sha256', '1234567890123') : '1234567890123', 'is_active' => false]);
+     97▕     $queries = [];
+     98▕     DB::listen(function ($query) use (&$queries) { $queries[] = $query->sql; });
+     99▕     $result = app(SsoUserProvisioner::class)->provision('1234567890123', ['name' => 'Remote name']);
+  ➜ 100▕     expect($result)->toBeNull()->and(User::find(2)->name)->toBe('Local Name');
+    101▕     expect(collect($queries)->contains(fn ($sql) => str_contains($sql, '"person"')))->toBeFalse();
+    102▕ })->with(['pid', 'thaid_pid', 'cid_hash']);
+    103▕ 
+    104▕ test('disabled users cannot use password login or existing sessions', function () {
+
+  1   tests/Feature/UserAccountStatusTest.php:100
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > disabled users cannot use p…   
+  Failed asserting that an event [login-error] was fired.
+Failed asserting that false is true.
+
+  at vendor/livewire/livewire/src/Features/SupportEvents/TestsEvents.php:24
+     20▕     public function assertDispatched($event, ...$params)
+     21▕     {
+     22▕         $result = $this->testDispatched($event, $params);
+     23▕ 
+  ➜  24▕         PHPUnit::assertTrue($result['test'], "Failed asserting that an event [{$event}] was fired{$result['assertionSuffix']}");
+     25▕ 
+     26▕         return $this;
+     27▕     }
+     28▕
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/UserAccountStatusTest.php:107
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > disabling deletes th…  Error   
+  Call to undefined method App\Services\UserAccessService::setActive()
+
+  at tests/Feature/UserAccountStatusTest.php:117
+    113▕ test('disabling deletes the target database sessions without deleting anyone elses sessions', function () {
+    114▕     Schema::create('sessions', function (Blueprint $table) { $table->string('id')->primary(); $table->unsignedBigInteger('user_id')->nullable(); });
+    115▕     DB::table('sessions')->insert([['id' => 'target', 'user_id' => 2], ['id' => 'actor', 'user_id' => 1]]);
+    116▕     config()->set('session.driver', 'database');
+  ➜ 117▕     app(UserAccessService::class)->setActive(1, 2, false);
+    118▕     expect(DB::table('sessions')->pluck('id')->all())->toBe(['actor']);
+    119▕ });
+    120▕ 
+    121▕ test('a disabled account cannot be revived by the legacy ProviderID registration action', function () {
+
+  1   tests/Feature/UserAccountStatusTest.php:117
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > a disabled account cannot b…   
+  Component has no errors.
+Failed asserting that false is true.
+
+  at vendor/livewire/livewire/src/Features/SupportValidation/TestsValidation.php:40
+     36▕     public function assertHasErrors($keys = [])
+     37▕     {
+     38▕         $errors = $this->errors();
+     39▕ 
+  ➜  40▕         PHPUnit::assertTrue($errors->isNotEmpty(), 'Component has no errors.');
+     41▕ 
+     42▕         $keys = (array) $keys;
+     43▕ 
+     44▕         foreach ($keys as $key => $value) {
+
+      [2m+1 vendor frames [22m
+  2   tests/Feature/UserAccountStatusTest.php:125
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > all SSO callbacks deny disa…   
+  Failed asserting that two strings are equal.
+  -'http://localhost:8000/login'
+  +'http://localhost:8000'
+  
+
+  at tests/Feature/UserAccountStatusTest.php:150
+    146▕         $jwt = $encode(['alg' => 'none']).'.'.$encode(['scopes_detail' => ['id_card' => '1234567890123']]).'.signature';
+    147▕         Http::fake(['https://moph.id.th/api/v1/token' => Http::response(['data' => ['data' => ['access_token' => $jwt]]]), 'https://provider.id.th/api/v1/services/token' => Http::response(['data' => ['access_token' => 'synthetic']]), 'https://provider.id.th/api/v1/services/profile' => Http::response(['data' => ['provider_id' => 'provider-1', 'name_th' => 'Remote name']])]);
+    148▕         $state = ['provider_oauth_state' => 'state'];
+    149▕     }
+  ➜ 150▕     $this->withSession($state)->get('/'.$provider.'/callback?state=state&code=code')->assertRedirect(route('login'));
+    151▕     $this->assertGuest();
+    152▕     expect(User::find(2)->name)->toBe('Local Name')->and(User::find(2)->is_active)->toBeFalse()->and(DB::table('users')->count())->toBe(2);
+    153▕ })->with(['thaid', 'provider', 'mymoph']);
+    154▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > all SSO callbacks deny disa…   
+  Failed asserting that two strings are equal.
+  -'http://localhost:8000/login'
+  +'http://localhost:8000'
+  
+
+  at tests/Feature/UserAccountStatusTest.php:150
+    146▕         $jwt = $encode(['alg' => 'none']).'.'.$encode(['scopes_detail' => ['id_card' => '1234567890123']]).'.signature';
+    147▕         Http::fake(['https://moph.id.th/api/v1/token' => Http::response(['data' => ['data' => ['access_token' => $jwt]]]), 'https://provider.id.th/api/v1/services/token' => Http::response(['data' => ['access_token' => 'synthetic']]), 'https://provider.id.th/api/v1/services/profile' => Http::response(['data' => ['provider_id' => 'provider-1', 'name_th' => 'Remote name']])]);
+    148▕         $state = ['provider_oauth_state' => 'state'];
+    149▕     }
+  ➜ 150▕     $this->withSession($state)->get('/'.$provider.'/callback?state=state&code=code')->assertRedirect(route('login'));
+    151▕     $this->assertGuest();
+    152▕     expect(User::find(2)->name)->toBe('Local Name')->and(User::find(2)->is_active)->toBeFalse()->and(DB::table('users')->count())->toBe(2);
+    153▕ })->with(['thaid', 'provider', 'mymoph']);
+    154▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > all SSO callbacks deny disa…   
+  Failed asserting that two strings are equal.
+  -'http://localhost:8000/login'
+  +'http://localhost:8000'
+  
+
+  at tests/Feature/UserAccountStatusTest.php:150
+    146▕         $jwt = $encode(['alg' => 'none']).'.'.$encode(['scopes_detail' => ['id_card' => '1234567890123']]).'.signature';
+    147▕         Http::fake(['https://moph.id.th/api/v1/token' => Http::response(['data' => ['data' => ['access_token' => $jwt]]]), 'https://provider.id.th/api/v1/services/token' => Http::response(['data' => ['access_token' => 'synthetic']]), 'https://provider.id.th/api/v1/services/profile' => Http::response(['data' => ['provider_id' => 'provider-1', 'name_th' => 'Remote name']])]);
+    148▕         $state = ['provider_oauth_state' => 'state'];
+    149▕     }
+  ➜ 150▕     $this->withSession($state)->get('/'.$provider.'/callback?state=state&code=code')->assertRedirect(route('login'));
+    151▕     $this->assertGuest();
+    152▕     expect(User::find(2)->name)->toBe('Local Name')->and(User::find(2)->is_active)->toBeFalse()->and(DB::table('users')->count())->toBe(2);
+    153▕ })->with(['thaid', 'provider', 'mymoph']);
+    154▕
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusMigrationTest > ac…  ErrorException   
+  require(/Users/phanupongdongyen/development/laravel/new-hrpromote/database/migrations/2026_10_06_150000_add_account_status_to_users.php): Failed to open stream: No such file or directory
+
+  at tests/Feature/UserAccountStatusMigrationTest.php:14
+     10▕     DB::table('users')->insert(['id' => 1, 'name' => 'Existing user']);
+     11▕ });
+     12▕ 
+     13▕ test('account status migration enables existing users and preserves them through rollback', function () {
+  ➜  14▕     $migration = require database_path('migrations/2026_10_06_150000_add_account_status_to_users.php');
+     15▕     $migration->up();
+     16▕     expect((bool) DB::table('users')->value('is_active'))->toBeTrue()
+     17▕         ->and(Schema::hasColumn('user_access_audits', 'after_active'))->toBeTrue();
+     18▕     $migration->down();
+
+  1   tests/Feature/UserAccountStatusMigrationTest.php:14
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusMigrationTest > ro…  ErrorException   
+  require(/Users/phanupongdongyen/development/laravel/new-hrpromote/database/migrations/2026_10_06_150000_add_account_status_to_users.php): Failed to open stream: No such file or directory
+
+  at tests/Feature/UserAccountStatusMigrationTest.php:24
+     20▕         ->and(Schema::hasColumn('users', 'is_active'))->toBeFalse();
+     21▕ });
+     22▕ 
+     23▕ test('rollback cannot silently reactivate a disabled user', function () {
+  ➜  24▕     $migration = require database_path('migrations/2026_10_06_150000_add_account_status_to_users.php');
+     25▕     $migration->up();
+     26▕     DB::table('users')->where('id', 1)->update(['is_active' => false]);
+     27▕     expect(fn () => $migration->down())->toThrow(RuntimeException::class);
+     28▕     expect(Schema::hasColumn('users', 'is_active'))->toBeTrue();
+
+  1   tests/Feature/UserAccountStatusMigrationTest.php:24
+
+
+  Tests:    17 failed, 5 passed (43 assertions)
+  Duration: 1.36s
+

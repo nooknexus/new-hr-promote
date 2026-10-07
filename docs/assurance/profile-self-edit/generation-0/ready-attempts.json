@@ -1,0 +1,14 @@
+{
+  "unit": "new-hrpromote/profile/self-edit",
+  "generation": 0,
+  "attempts": [],
+  "events": [
+    {
+      "primitive": "os.mkdir",
+      "path": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/coordination.lock",
+      "acquisition": "success",
+      "transition": "pre-readiness lock probe; unit open, generation0, calls0, no reservation; protected state unchanged",
+      "release": "os.rmdir"
+    }
+  ]
+}

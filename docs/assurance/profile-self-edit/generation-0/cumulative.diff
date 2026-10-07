@@ -1,0 +1,349 @@
+--- base/app/Livewire/Profile/Index.php
++++ app/Livewire/Profile/Index.php
+@@ -7,9 +7,88 @@
+ use Illuminate\Support\Facades\Auth;
+ use Illuminate\Support\Facades\Http;
+ use Illuminate\Support\Facades\Log;
++use Illuminate\Validation\Rule;
++use Livewire\Attributes\Locked;
+ 
+ class Index extends Component
+ {
++    #[Locked]
++    public ?int $editingUserId = null;
++
++    public string $editName = '';
++    public string $editNameEn = '';
++    public string $editEmail = '';
++    public string $editAddress = '';
++
++    public function boot(): void
++    {
++        abort_unless(Auth::check(), 403);
++    }
++
++    public function openEdit(): void
++    {
++        $user = Auth::user()->fresh();
++        abort_unless($user, 403);
++        $this->resetValidation();
++        $this->editingUserId = (int) $user->id;
++        $this->editName = $user->name;
++        $this->editNameEn = $user->name_en ?? '';
++        $this->editEmail = $user->email;
++        $this->editAddress = $user->address ?? '';
++        $this->dispatch('profile-edit-opened');
++    }
++
++    public function saveProfile(): void
++    {
++        abort_unless($this->editingUserId !== null && $this->editingUserId === (int) Auth::id(), 403);
++        $user = Auth::user()->fresh();
++        abort_unless($user, 403);
++
++        foreach (['editName', 'editNameEn', 'editEmail', 'editAddress'] as $field) {
++            $this->{$field} = trim($this->{$field});
++        }
++        $this->validate([
++            'editName' => ['required', 'string', 'max:255'],
++            'editNameEn' => ['nullable', 'string', 'max:255'],
++            'editEmail' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
++            'editAddress' => ['nullable', 'string', 'max:5000'],
++        ], [
++            'editName.required' => 'กรุณาระบุชื่อ-สกุล',
++            'editName.max' => 'ชื่อ-สกุลต้องไม่เกิน 255 ตัวอักษร',
++            'editNameEn.max' => 'ชื่อภาษาอังกฤษต้องไม่เกิน 255 ตัวอักษร',
++            'editEmail.required' => 'กรุณาระบุอีเมล',
++            'editEmail.email' => 'กรุณาระบุอีเมลที่ถูกต้อง',
++            'editEmail.unique' => 'อีเมลนี้มีผู้ใช้งานแล้ว',
++            'editEmail.max' => 'อีเมลต้องไม่เกิน 255 ตัวอักษร',
++            'editAddress.max' => 'ที่อยู่ต้องไม่เกิน 5,000 ตัวอักษร',
++        ]);
++
++        $user->fill([
++            'name' => $this->editName,
++            'name_en' => $this->editNameEn !== '' ? $this->editNameEn : null,
++            'email' => $this->editEmail,
++            'address' => $this->editAddress !== '' ? $this->editAddress : null,
++        ]);
++        if ($user->isDirty('email')) {
++            $user->email_verified_at = null;
++        }
++        $user->save();
++        Auth::setUser($user);
++        $this->resetEditForm();
++        $this->dispatch('profile-saved', message: 'บันทึกข้อมูลส่วนตัวแล้ว');
++    }
++
++    public function closeEdit(): void
++    {
++        $this->resetEditForm();
++    }
++
++    private function resetEditForm(): void
++    {
++        $this->reset(['editingUserId', 'editName', 'editNameEn', 'editEmail', 'editAddress']);
++        $this->resetValidation();
++    }
++
+     #[Layout('components.layouts.app')]
+ 
+     public function render()
+--- base/app/Livewire/Profile/Edit.php
++++ app/Livewire/Profile/Edit.php
+@@ -3,9 +3,16 @@
+ namespace App\Livewire\Profile;
+ 
+ use Livewire\Component;
++use Illuminate\Support\Facades\Auth;
+ 
+ class Edit extends Component
+ {
++    public function mount(int $id): void
++    {
++        abort_unless(Auth::check() && (int) Auth::id() === $id, 403);
++        $this->redirectRoute('profile.index');
++    }
++
+     public function render()
+     {
+         return view('livewire.profile.edit');
+--- base/resources/views/livewire/profile/index.blade.php
++++ resources/views/livewire/profile/index.blade.php
+@@ -19,7 +19,7 @@
+                             <span wire:loading.remove wire:target="updateFromProviderID">อัพเดทข้อมูลจาก Provider ID</span>
+                             <span wire:loading wire:target="updateFromProviderID">กำลังอัพเดท...</span>
+                         </button>
+-                        <a href="{{ route('profile.edit', auth()->user()->id) }}" class="btn btn-warning" wire:navigate>แก้ไข</a>
++                        <button type="button" wire:click="openEdit" wire:loading.attr="disabled" wire:target="openEdit" class="btn btn-warning">แก้ไข</button>
+                     </div>
+                 </div>
+                 <div class="card-body">
+@@ -108,10 +108,54 @@
+ 
+         </div>
+     </div>
++    <div class="modal" id="profileEditModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title" aria-hidden="true" wire:ignore.self>
++        <div class="modal-dialog" role="document">
++            <div class="modal-content">
++                <div class="modal-header">
++                    <h2 id="profile-edit-title" class="text-lg font-bold text-slate-900">แก้ไขข้อมูลส่วนตัว</h2>
++                    <button type="button" wire:click="closeEdit" data-modal-close aria-label="ปิดหน้าต่าง"><i class="fas fa-times" aria-hidden="true"></i></button>
++                </div>
++                <form wire:submit="saveProfile">
++                    <div class="modal-body space-y-4">
++                        @php($profileInputClass = 'mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100')
++                        <div>
++                            <label for="profile-edit-name" class="block text-sm font-semibold text-slate-700">ชื่อ-สกุล <span class="text-rose-600">*</span></label>
++                            <input id="profile-edit-name" type="text" wire:model="editName" autocomplete="name" maxlength="255" required class="{{ $profileInputClass }}">
++                            @error('editName')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
++                        </div>
++                        <div>
++                            <label for="profile-edit-name-en" class="block text-sm font-semibold text-slate-700">ชื่อ-สกุล ภาษาอังกฤษ</label>
++                            <input id="profile-edit-name-en" type="text" wire:model="editNameEn" maxlength="255" class="{{ $profileInputClass }}">
++                            @error('editNameEn')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
++                        </div>
++                        <div>
++                            <label for="profile-edit-email" class="block text-sm font-semibold text-slate-700">อีเมล <span class="text-rose-600">*</span></label>
++                            <input id="profile-edit-email" type="email" wire:model="editEmail" autocomplete="email" maxlength="255" required class="{{ $profileInputClass }}">
++                            @error('editEmail')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
++                        </div>
++                        <div>
++                            <label for="profile-edit-address" class="block text-sm font-semibold text-slate-700">ที่อยู่ตามบัตรประชาชน</label>
++                            <textarea id="profile-edit-address" wire:model="editAddress" autocomplete="street-address" rows="3" maxlength="5000" class="{{ $profileInputClass }}"></textarea>
++                            @error('editAddress')<p role="alert" class="mt-1 text-sm text-rose-700">{{ $message }}</p>@enderror
++                        </div>
++                    </div>
++                    <div class="modal-footer">
++                        <button type="button" wire:click="closeEdit" data-modal-close class="btn btn-secondary">ยกเลิก</button>
++                        <button type="submit" wire:loading.attr="disabled" wire:target="saveProfile" class="btn btn-primary">บันทึก</button>
++                    </div>
++                </form>
++            </div>
++        </div>
++    </div>
+ </div>
+ 
+ @script
+     <script>
++        $wire.on('profile-edit-opened', () => window.portalModal.show('profileEditModal'));
++        $wire.on('profile-saved', ({ message }) => {
++            window.portalModal.hide(document.getElementById('profileEditModal'));
++            window.portalToast.show(message);
++        });
+         $wire.on('profile-updated', (source) => {
+             Swal.fire({
+                 position: "top-end",
+--- base/tests/Feature/ProfileSelfEditTest.php
++++ tests/Feature/ProfileSelfEditTest.php
+@@ -0,0 +1,170 @@
++<?php
++
++use App\Livewire\Profile\Index;
++use App\Models\User;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Support\Facades\Auth;
++use Illuminate\Support\Facades\DB;
++use Illuminate\Support\Facades\Schema;
++use Livewire\Livewire;
++
++beforeEach(function () {
++    Schema::create('users', function (Blueprint $table) {
++        $table->id();
++        $table->string('name');
++        $table->string('name_en')->nullable();
++        $table->string('email')->unique();
++        $table->timestamp('email_verified_at')->nullable();
++        $table->date('birthdate')->nullable();
++        $table->text('address')->nullable();
++        foreach (['pid', 'thaid_pid', 'cid_hash', 'provider_id', 'account_id', 'hcode', 'hname', 'role', 'office', 'password'] as $field) {
++            $table->string($field)->nullable();
++        }
++        $table->timestamps();
++    });
++    $this->owner = User::forceCreate([
++        'name' => 'ชื่อเดิม', 'name_en' => 'Old Name', 'email' => 'owner@example.test',
++        'email_verified_at' => now(), 'address' => 'ที่อยู่เดิม', 'birthdate' => '1990-01-01',
++        'pid' => '1234567890123', 'thaid_pid' => '1234567890123', 'cid_hash' => 'identity-hash',
++        'provider_id' => 'provider-owner', 'account_id' => 'account-owner', 'hcode' => '00001',
++        'hname' => 'หน่วยบริการเดิม', 'role' => 'LEAVE', 'office' => '01', 'password' => 'old-password',
++    ]);
++    $this->other = User::forceCreate(['name' => 'อีกคน', 'email' => 'other@example.test']);
++    $this->actingAs($this->owner);
++});
++
++// TDD_REQUIRED: yes; observable seams are modal opening, persisted owner fields, validation, and actor isolation.
++test('the profile edit button opens a prefilled modal on the profile page', function () {
++    Livewire::test(Index::class)
++        ->assertSeeHtml('wire:click="openEdit"')
++        ->assertSeeHtml('id="profileEditModal"')
++        ->call('openEdit')
++        ->assertSet('editName', 'ชื่อเดิม')
++        ->assertSet('editNameEn', 'Old Name')
++        ->assertSet('editEmail', 'owner@example.test')
++        ->assertSet('editAddress', 'ที่อยู่เดิม')
++        ->assertDispatched('profile-edit-opened');
++});
++
++test('saving a profile updates only owner editable fields and emits modal success without redirect', function () {
++    $protected = DB::table('users')->where('id', $this->owner->id)->first();
++    $otherBefore = DB::table('users')->where('id', $this->other->id)->first();
++    Livewire::test(Index::class)->call('openEdit')
++        ->set('editName', '  ชื่อใหม่  ')->set('editNameEn', ' New Name ')
++        ->set('editEmail', ' new@example.test ')->set('editAddress', ' ที่อยู่ใหม่ ')
++        ->call('saveProfile')->assertHasNoErrors()
++        ->assertDispatched('profile-saved', message: 'บันทึกข้อมูลส่วนตัวแล้ว')
++        ->assertSet('editingUserId', null)->assertSee('ชื่อใหม่')->assertSee('new@example.test')
++        ->assertNoRedirect();
++    $saved = DB::table('users')->where('id', $this->owner->id)->first();
++    expect($saved->name)->toBe('ชื่อใหม่')->and($saved->name_en)->toBe('New Name')
++        ->and($saved->email)->toBe('new@example.test')->and($saved->address)->toBe('ที่อยู่ใหม่')
++        ->and($saved->email_verified_at)->toBeNull();
++    foreach (['pid', 'thaid_pid', 'cid_hash', 'provider_id', 'account_id', 'hcode', 'hname', 'birthdate', 'role', 'office', 'password'] as $field) {
++        expect($saved->{$field})->toBe($protected->{$field});
++    }
++    expect(DB::table('users')->where('id', $this->other->id)->first())->toEqual($otherBefore);
++});
++
++test('unchanged email stays verified and optional profile fields may be cleared', function () {
++    $verified = $this->owner->email_verified_at;
++    Livewire::test(Index::class)->call('openEdit')
++        ->set('editNameEn', '')->set('editAddress', '')
++        ->call('saveProfile')->assertHasNoErrors();
++    $saved = $this->owner->fresh();
++    expect($saved->email_verified_at->equalTo($verified))->toBeTrue()
++        ->and($saved->name_en)->toBeNull()->and($saved->address)->toBeNull();
++});
++
++test('invalid profile input is rejected without writing or closing the modal', function (string $field, string $value) {
++    $before = DB::table('users')->where('id', $this->owner->id)->first();
++    Livewire::test(Index::class)->call('openEdit')->set($field, $value)
++        ->call('saveProfile')->assertHasErrors($field)->assertNotDispatched('profile-saved');
++    expect(DB::table('users')->where('id', $this->owner->id)->first())->toEqual($before);
++})->with([
++    ['editName', '   '], ['editName', str_repeat('a', 256)],
++    ['editNameEn', str_repeat('a', 256)], ['editEmail', 'invalid-email'],
++    ['editEmail', 'other@example.test'], ['editAddress', str_repeat('a', 5001)],
++]);
++
++test('cancelling and reopening reloads persisted values and clears errors', function () {
++    Livewire::test(Index::class)->call('openEdit')->set('editName', '')
++        ->call('saveProfile')->assertHasErrors('editName')
++        ->call('closeEdit')->assertSet('editingUserId', null)
++        ->call('openEdit')->assertHasNoErrors()->assertSet('editName', 'ชื่อเดิม');
++    expect($this->owner->fresh()->name)->toBe('ชื่อเดิม');
++});
++
++test('a session change cannot save another owners already opened form', function () {
++    $component = Livewire::test(Index::class)->call('openEdit')->set('editName', 'ข้อมูลของคนแรก');
++    Auth::setUser($this->other);
++    $component->call('saveProfile')->assertForbidden();
++    expect($this->owner->fresh()->name)->toBe('ชื่อเดิม')->and($this->other->fresh()->name)->toBe('อีกคน');
++});
++
++test('saving without an opened edit form is forbidden', function () {
++    Livewire::test(Index::class)->set('editName', 'ปลอม')->call('saveProfile')->assertForbidden();
++    expect($this->owner->fresh()->name)->toBe('ชื่อเดิม');
++});
++
++test('guests cannot open the profile component or save a stale form', function () {
++    $component = Livewire::test(Index::class)->call('openEdit');
++    Auth::forgetGuards();
++    $component->call('saveProfile')->assertForbidden();
++    Livewire::test(Index::class)->assertForbidden();
++});
++
++test('the profile route redirects a guest to login', function () {
++    Auth::forgetGuards();
++    $this->get('/profile')->assertRedirect(route('login'));
++});
++
++test('legacy edit links return to the owners profile and reject other user ids', function () {
++    $this->get('/profile/'.$this->owner->id.'/edit')->assertRedirect(route('profile.index'));
++    $this->get('/profile/'.$this->other->id.'/edit')->assertForbidden();
++});
++
++test('the edit target cannot be replaced by a client payload', function () {
++    $component = Livewire::test(Index::class)->call('openEdit');
++    expect(fn () => $component->set('editingUserId', $this->other->id))
++        ->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
++    expect($this->owner->fresh()->name)->toBe('ชื่อเดิม')->and($this->other->fresh()->name)->toBe('อีกคน');
++});
++
++test('the rendered profile events open the modal and close it before showing the saved toast', function () {
++    $component = Livewire::test(Index::class);
++    $scripts = implode("\n", $component->effects['scripts']);
++    $script = preg_replace('/<\/?script[^>]*>/', '', $scripts);
++    $runner = <<<'JS'
++const handlers = {};
++const modal = { open: false };
++let toastMessage;
++globalThis.$wire = { on: (name, handler) => { handlers[name] = handler; } };
++globalThis.document = { getElementById: (id) => {
++    if (id !== 'profileEditModal') throw Error('wrong modal');
++    return modal;
++} };
++globalThis.window = {
++    portalModal: {
++        show: (id) => { document.getElementById(id).open = true; },
++        hide: (target) => { if (target !== modal) throw Error('wrong target'); target.open = false; },
++    },
++    portalToast: { show: (message) => {
++        if (modal.open) throw Error('toast shown before modal closed');
++        toastMessage = message;
++    } },
++};
++JS;
++    $runner .= "\n".$script;
++    $runner .= <<<'JS'
++handlers['profile-edit-opened']();
++if (!modal.open) throw Error('modal did not open');
++handlers['profile-saved']({ message: 'saved' });
++if (modal.open || toastMessage !== 'saved') throw Error('save feedback missing');
++console.log('profile-modal-events-pass');
++JS;
++    $process = new \Symfony\Component\Process\Process(['node', '--eval', $runner], base_path());
++    $process->run();
++    expect($process->getExitCode())->toBe(0, $process->getErrorOutput())
++        ->and($process->getOutput())->toContain('profile-modal-events-pass');
++});

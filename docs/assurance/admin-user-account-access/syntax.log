@@ -1,0 +1,13 @@
+No syntax errors detected in app/Livewire/Admin/UserManagement.php
+No syntax errors detected in resources/views/livewire/admin/user-management.blade.php
+No syntax errors detected in app/Services/UserAccessService.php
+No syntax errors detected in app/Services/SsoUserProvisioner.php
+No syntax errors detected in app/Models/User.php
+No syntax errors detected in app/Support/AdminAccess.php
+No syntax errors detected in app/Livewire/Login.php
+No syntax errors detected in app/Http/Middleware/EnsureUserIsActive.php
+No syntax errors detected in bootstrap/app.php
+No syntax errors detected in database/migrations/2026_10_06_150000_add_account_status_to_users.php
+No syntax errors detected in tests/Feature/AdminUserManagementTest.php
+No syntax errors detected in tests/Feature/UserAccountStatusTest.php
+No syntax errors detected in tests/Feature/UserAccountStatusMigrationTest.php

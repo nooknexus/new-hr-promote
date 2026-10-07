@@ -1,0 +1,116 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/profile/self-edit",
+  "REOPEN_GENERATION": 1,
+  "UNIT_STATUS": "open",
+  "REVIEW_READY": true,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 1,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "TDD_REQUIRED": true,
+  "scope": [
+    "app/Livewire/Profile/Index.php",
+    "resources/views/livewire/profile/index.blade.php",
+    "routes/web.php",
+    "app/Livewire/Provider/ProfileUpdate.php",
+    "app/Livewire/Provider/ProfileCallback.php",
+    "resources/views/livewire/provider/profile-update.blade.php",
+    "resources/views/livewire/provider/profile-callback.blade.php",
+    "app/Http/Controllers/ThaID/AuthController.php",
+    "tests/Feature/ProfileSelfEditTest.php",
+    "tests/Feature/ProviderProfileUpdateTest.php",
+    "tests/Feature/ThaidPersonnelAccessTest.php"
+  ],
+  "generationDirectory": "generation-1",
+  "authority": "Explicit user numbered request: post-edit government-source notice; remove dedicated ThaiD/ProviderID profile update actions and related code; retain all login flows. Material new behavior, reopen generation1; no budget reset. Prior ship archived generation-0.",
+  "objective": "Profile local-edit notice and removal of obsolete remote refresh while preserving SSO login",
+  "coordination": "atomic os.mkdir docs/assurance/profile-self-edit/coordination.lock; journal outside behavior candidate",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "parent rollout turn_context"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/ProfileSelfEditTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable: established workflow runs Laravel directly on macOS, no required Compose rehearsal"
+  },
+  "protectedBoundaries": "No production records, deployment, merge, release, auth providers or secrets changed",
+  "FROZEN_CANDIDATE_ID": "sha256:d19c8353cd61927c313e13302f7d0f7af81aa5ec48ff86884aa8bcd1d216a03a",
+  "ASSURANCE_PACKET_ID": "sha256:98b4375ccec7f433ab6e8c46878623843bfbbe936ca0153fe80c8e905f4760ed",
+  "REVIEWABILITY": "pass",
+  "PARENT_ADVERSARIAL_READY": true,
+  "acceptance": [
+    "After successful local edit close form, show success toast, open acknowledged notice with exact requested Thai text",
+    "Remove ThaiD/Provider profile update buttons, actions, event handlers, imports, dedicated routes/components/views",
+    "Preserve SSO login routes, state/nonce/token exchange/verified identity/personnel checks/account linking and redirects",
+    "Stop retaining only obsolete profile-refresh access token in ThaiD session",
+    "Keep self-only edit guard, validation, protected fields and existing modal lifecycle"
+  ],
+  "candidateManifest": "generation-1/candidate-manifest.json",
+  "deliveryManifest": "generation-1/delivery-manifest.txt",
+  "deliveryRecipe": "generation-1/delivery-recipe.txt",
+  "FINAL_STRICT_READINESS_RECORD_LOCATION": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/generation-1/readiness.json",
+  "TDD": {
+    "RED": "generation-1/red.log: 6 failed,15passed. Missing notice/buttons still present, direct refresh actions still callable, old endpoint still returns200, retained ThaiD token",
+    "GREEN": "generation-1/green.log:27 passed117 assertions",
+    "REFACTOR": "No new behavior refactor. generation-1/adversarial-green.log27passed after restoring notice omission mutation"
+  },
+  "adversarial": [
+    {
+      "surface": "Notice lifecycle",
+      "counterexample": "successful save without notice; opens wrong modal/order; validation prematurely opens",
+      "evidence": "mutation-notice.log fails actual rendered script execution when notice show removed; restored27 pass; unchanged validation no success event",
+      "result": "pass"
+    },
+    {
+      "surface": "Orphan refresh surface",
+      "counterexample": "hidden buttons but actions/routes still callable",
+      "evidence": "two direct actions throw MethodNotFoundException, endpoints404; production rg finds no refresh references; four deleted file tombstones bound",
+      "result": "pass"
+    },
+    {
+      "surface": "Login integration",
+      "counterexample": "remove shared callback/state/token verifier while deleting refresh",
+      "evidence": "login-preservation.json exact ThaiD delta two lines; Provider/shared file hashes fixed; route:list exposes login only; focused successful and denied SSO/state tests pass",
+      "result": "pass"
+    },
+    {
+      "surface": "Self edit invariants",
+      "counterexample": "overwrite other user or protected identity fields after warning changes",
+      "evidence": "unchanged generation0 guards; current19 profile tests include locked target/session switches/allowlist/validation and Node events; full265 pass",
+      "result": "pass"
+    }
+  ],
+  "candidateVerification": {
+    "candidate": "sha256:d19c8353cd61927c313e13302f7d0f7af81aa5ec48ff86884aa8bcd1d216a03a",
+    "timestampUTC": "2026-10-06T13:49:06.995658+00:00",
+    "fullTests": {
+      "command": "php artisan test",
+      "exit": 0,
+      "count": 265,
+      "assertions": 1676,
+      "receipt": "generation-1/full-tests.log"
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "receipt": "generation-1/build.log",
+      "warnings": "baseline THSarabunNew font paths unresolved"
+    },
+    "syntax": "Index.php, AuthController.php, routes/web.php exit0; git diff --check exit0",
+    "scopeInspection": "generation-1/cumulative.diff and actual files, including all four deletions and untracked tests inspected. No source edits after verification.",
+    "compose": "not-applicable: direct macOS Laravel authoritative workflow, no runtime service change"
+  },
+  "fullGateRuns": 1,
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "Exact notice text requested by user does not change existing login refresh semantics (only source-provided nonempty fields replace values)",
+    "UI handlers executed in Node adapters; no browser E2E required",
+    "In-flight obsolete profile callbacks now404 as requested; login endpoints stay registered"
+  ],
+  "reReviewClosure": "generation-1/re-review-closure.json",
+  "generationHistory": "generation-0 archived accepted ship, consumed1/maximum3; new authority retains counters",
+  "finalBoundary": "All two numbered user changes implemented and regressions verified before fresh reviewer call2; no external protected actions"
+}

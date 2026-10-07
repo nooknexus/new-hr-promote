@@ -1,0 +1,36 @@
+{
+  "ThaiDDelta": "Exact deletion of profile-only access-token retention and its comment; all other callback bytes match generation1 base",
+  "providerAndSharedFiles": [
+    {
+      "path": "app/Livewire/Provider/Callback.php",
+      "sha256": "58aa61b02bb29e529c9b8344d3bf51629f4ed9790739821000633a7eebf561e7"
+    },
+    {
+      "path": "app/Livewire/Provider/Redirect.php",
+      "sha256": "a279f3e9e2510f1b05df57d2cf32e7b2a7447d1473556eb5cb31a1b282545015"
+    },
+    {
+      "path": "app/Services/ProviderOAuthState.php",
+      "sha256": "4a37f4bf0422a5d6dff279fb12b4207b9f9db25838b918ce55fee285221e7be1"
+    },
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+    },
+    {
+      "path": "app/Services/ThaidIdTokenVerifier.php",
+      "sha256": "7d7db393776d10e913fe213f50e25ecd677450c359e7ea64fbf8aeab8beb2d86"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/MyMOPHController.php",
+      "sha256": "c85527530c90d9f8924fe321f41827281845d4764297d1ea7c024c07d156d5f6"
+    }
+  ],
+  "observedRoutes": [
+    "thaid.redirect",
+    "thaid.callback",
+    "provider.redirect",
+    "provider.callback"
+  ],
+  "focusedTests": "27 passed, 117 assertions including ThaiD/Provider success and denied personnel plus OAuth state; no remote credentials contacted"
+}

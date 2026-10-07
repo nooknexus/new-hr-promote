@@ -1,0 +1,476 @@
+--- base/app/Livewire/Profile/Index.php
++++ app/Livewire/Profile/Index.php
+@@ -5,8 +5,6 @@
+ use Livewire\Component;
+ use Livewire\Attributes\Layout;
+ use Illuminate\Support\Facades\Auth;
+-use Illuminate\Support\Facades\Http;
+-use Illuminate\Support\Facades\Log;
+ use Illuminate\Validation\Rule;
+ use Livewire\Attributes\Locked;
+ 
+@@ -96,85 +94,4 @@
+         return view('livewire.profile.index');
+     }
+ 
+-    /**
+-     * อัพเดทข้อมูลผู้ใช้จาก ThaID API
+-     */
+-    public function updateFromThaID()
+-    {
+-        try {
+-            $user = Auth::user();
+-            
+-            // ตรวจสอบว่ามี thaid_pid หรือไม่
+-            if (empty($user->thaid_pid)) {
+-                $this->dispatch('profile-update-error', 'ไม่พบข้อมูล ThaID ในระบบ กรุณาเข้าสู่ระบบด้วย ThaID ก่อน');
+-                return;
+-            }
+-            
+-            // เรียกข้อมูลจาก ThaID API ด้วย thaid_pid
+-            // โค้ดจริงจะต้องใช้ ThaID API อย่างถูกต้อง
+-            // นี่เป็นแค่ตัวอย่าง
+-            $response = Http::withToken(session('thaid_access_token'))
+-                ->get(config('services.thaid.api_url') . '/userinfo');
+-            
+-            if (!$response->successful()) {
+-                throw new \Exception('ไม่สามารถเชื่อมต่อกับ ThaID API ได้');
+-            }
+-            
+-            $thaidData = $response->json();
+-            
+-            // อัพเดทข้อมูลผู้ใช้
+-            $user->update([
+-                'name' => $thaidData['name'] ?? $user->name,
+-                'name_en' => $thaidData['name_en'] ?? $user->name_en,
+-                'birthdate' => $thaidData['birthdate'] ?? $user->birthdate,
+-                'address' => $this->formatAddress($thaidData['address'] ?? null) ?? $user->address,
+-            ]);
+-            
+-            $this->dispatch('profile-updated', 'ThaID');
+-            
+-        } catch (\Exception $e) {
+-            Log::error('ThaID profile update error', ['message' => $e->getMessage()]);
+-            $this->dispatch('profile-update-error', $e->getMessage());
+-        }
+-    }
+-    
+-    /**
+-     * อัพเดทข้อมูลผู้ใช้จาก Provider ID API
+-     */
+-    public function updateFromProviderID()
+-    {
+-        try {
+-            // Use the controller-based approach that will find the correct URL
+-            return redirect()->route('provider.profile.update');
+-        } catch (\Exception $e) {
+-            Log::error('Provider ID update button error', ['message' => $e->getMessage()]);
+-            $this->dispatch('profile-update-error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+-        }
+-    }
+-    
+-    /**
+-     * แปลงข้อมูลที่อยู่เป็นข้อความ
+-     */
+-    private function formatAddress($address)
+-    {
+-        if (empty($address)) {
+-            return null;
+-        }
+-        
+-        // ถ้าเป็น JSON string ให้แปลงเป็น array
+-        if (is_string($address)) {
+-            $addressData = json_decode($address, true);
+-            if (isset($addressData['formatted'])) {
+-                return json_decode('"' . str_replace('"', '\"', $addressData['formatted']) . '"');
+-            }
+-            return $address;
+-        }
+-        
+-        // ถ้าเป็น array อยู่แล้ว
+-        if (is_array($address) && isset($address['formatted'])) {
+-            return json_decode('"' . str_replace('"', '\"', $address['formatted']) . '"');
+-        }
+-        
+-        return is_array($address) ? json_encode($address) : $address;
+-    }
+ }
+--- base/resources/views/livewire/profile/index.blade.php
++++ resources/views/livewire/profile/index.blade.php
+@@ -9,16 +9,6 @@
+                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                     <h6 class="m-0 font-weight-bold text-primary">ข้อมูลส่วนตัว</h6>
+                     <div class="btn-group">
+-                        <button class="btn btn-info mr-2" wire:click="updateFromThaID" wire:loading.attr="disabled" wire:target="updateFromThaID">
+-                            <i class="fas fa-sync-alt mr-1"></i>
+-                            <span wire:loading.remove wire:target="updateFromThaID">อัพเดทข้อมูลจาก ThaID</span>
+-                            <span wire:loading wire:target="updateFromThaID">กำลังอัพเดท...</span>
+-                        </button>
+-                        <button class="btn btn-success mr-2" wire:click="updateFromProviderID" wire:loading.attr="disabled" wire:target="updateFromProviderID">
+-                            <i class="fas fa-sync-alt mr-1"></i>
+-                            <span wire:loading.remove wire:target="updateFromProviderID">อัพเดทข้อมูลจาก Provider ID</span>
+-                            <span wire:loading wire:target="updateFromProviderID">กำลังอัพเดท...</span>
+-                        </button>
+                         <button type="button" wire:click="openEdit" wire:loading.attr="disabled" wire:target="openEdit" class="btn btn-warning">แก้ไข</button>
+                     </div>
+                 </div>
+@@ -147,6 +137,23 @@
+             </div>
+         </div>
+     </div>
++    <div class="modal" id="profileEditNoticeModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="profile-edit-notice-title" aria-describedby="profile-edit-notice-message" aria-hidden="true" wire:ignore.self>
++        <div class="modal-dialog" role="document">
++            <div class="modal-content">
++                <div class="modal-header">
++                    <h2 id="profile-edit-notice-title" class="text-lg font-bold text-slate-900">การแก้ไขข้อมูลส่วนตัว</h2>
++                    <button type="button" data-modal-close aria-label="ปิดข้อความ"><i class="fas fa-times" aria-hidden="true"></i></button>
++                </div>
++                <div class="modal-body">
++                    <p id="profile-edit-notice-message" class="text-sm leading-7 text-slate-700">การแก้ไขนี้มีผลเฉพาะครั้งนี้เท่านั้น เมื่อท่านเข้าสู่ระบบใหม่ ข้อมูลจะถูกแทนที่ด้วยข้อมูลจากแอพฯภาครัฐ ให้ท่านอัพเดทข้อมูลจากต้นทางให้เป็นปัจจุบัน</p>
++                </div>
++                <div class="modal-footer justify-end">
++                    <button type="button" data-modal-close class="btn btn-primary">รับทราบ</button>
++                </div>
++            </div>
++        </div>
++    </div>
++
+ </div>
+ 
+ @script
+@@ -155,23 +162,7 @@
+         $wire.on('profile-saved', ({ message }) => {
+             window.portalModal.hide(document.getElementById('profileEditModal'));
+             window.portalToast.show(message);
+-        });
+-        $wire.on('profile-updated', (source) => {
+-            Swal.fire({
+-                position: "top-end",
+-                icon: "success",
+-                title: `อัพเดทข้อมูลจาก ${source} สำเร็จ`,
+-                showConfirmButton: false,
+-                timer: 1500
+-            });
+-        });
+-
+-        $wire.on('profile-update-error', (message) => {
+-            Swal.fire({
+-                icon: "error",
+-                title: "เกิดข้อผิดพลาด",
+-                text: message,
+-            });
++            window.portalModal.show('profileEditNoticeModal');
+         });
+     </script>
+ @endscript
+--- base/routes/web.php
++++ routes/web.php
+@@ -2,8 +2,6 @@
+ 
+ use Illuminate\Support\Facades\Route;
+ use App\Http\Controllers\Thaid\AuthController;
+-use App\Livewire\Provider\ProfileUpdate;
+-use App\Livewire\Provider\ProfileCallback;
+ 
+ 
+ //
+@@ -32,12 +30,6 @@
+     Route::get('/profile/salary-promotion', App\Livewire\SalaryPromotion::class)->name('profile.salary-promotion');
+     
+     Route::get('/leave-history', App\Livewire\LeaveHistory::class)->name('leave.history');
+-
+-    // Provider ID Profile Update Routes - using direct controller approach
+-    Route::get('/provider/profile/update', ProfileUpdate::class)
+-        ->name('provider.profile.update');
+-    Route::get('/provider/profile/callback', App\Livewire\Provider\ProfileCallback::class)
+-        ->name('provider.profile.callback');
+ 
+     // Tax Certificate route
+     Route::get('/tax-certificate', App\Livewire\TaxCertificate::class)
+--- base/app/Livewire/Provider/ProfileUpdate.php
++++ app/Livewire/Provider/ProfileUpdate.php
+@@ -1,40 +0,0 @@
+-<?php
+-
+-namespace App\Livewire\Provider;
+-
+-use App\Services\ProviderOAuthState;
+-use Illuminate\Support\Facades\Auth;
+-use Illuminate\Support\Facades\Log;
+-use Livewire\Component;
+-
+-class ProfileUpdate extends Component
+-{
+-    public string $redirectUrl = '';
+-
+-    public function mount()
+-    {
+-        try {
+-            $state = ProviderOAuthState::issue(session()->driver());
+-            session([
+-                'profile_update' => true,
+-                'user_id_for_update' => Auth::id(),
+-            ]);
+-
+-            $this->redirectUrl = config('services.provider.auth_url') . '?' . http_build_query([
+-                'response_type' => 'code',
+-                'client_id' => config('services.provider.healthid_client_id'),
+-                'redirect_uri' => route('provider.profile.callback'),
+-                'state' => $state,
+-            ]);
+-        } catch (\Exception $e) {
+-            Log::error('Failed to generate Provider auth URL', ['error' => $e->getMessage()]);
+-            session()->flash('error', 'ไม่สามารถเชื่อมต่อกับระบบ Provider ID ได้: ' . $e->getMessage());
+-            return $this->redirect(route('profile.index'));
+-        }
+-    }
+-
+-    public function render()
+-    {
+-        return view('livewire.provider.profile-update', ['redirectUrl' => $this->redirectUrl]);
+-    }
+-}
+--- base/app/Livewire/Provider/ProfileCallback.php
++++ app/Livewire/Provider/ProfileCallback.php
+@@ -1,106 +0,0 @@
+-<?php
+-
+-namespace App\Livewire\Provider;
+-
+-use App\Models\User;
+-use App\Services\ProviderOAuthState;
+-use Illuminate\Support\Facades\Auth;
+-use Illuminate\Support\Facades\Http;
+-use Illuminate\Support\Facades\Log;
+-use Illuminate\Support\Facades\Session;
+-use Livewire\Component;
+-
+-class ProfileCallback extends Component
+-{
+-    public function mount()
+-    {
+-        try {
+-            if (! ProviderOAuthState::consume(session()->driver(), request()->string('state')->toString())) {
+-                throw new \Exception('การยืนยัน OAuth ไม่ถูกต้อง');
+-            }
+-
+-            // Check if this is a profile update
+-            if (!Session::has('profile_update') || !Session::has('user_id_for_update')) {
+-                throw new \Exception('ไม่พบข้อมูลการอัพเดทโปรไฟล์');
+-            }
+-            
+-            $userId = Session::get('user_id_for_update');
+-            $user = User::find($userId);
+-            
+-            if (!$user) {
+-                throw new \Exception('ไม่พบข้อมูลผู้ใช้');
+-            }
+-            
+-            // Use the EXACT SAME endpoints and parameters as in the working Callback component
+-            $response = Http::asForm()->post('https://moph.id.th/api/v1/token', [
+-                'grant_type' => 'authorization_code',
+-                'code' => request()->code,
+-                'client_id' => config('services.provider.healthid_client_id'),
+-                'client_secret' => config('services.provider.healthid_secret_key'),
+-                'redirect_uri' => route('provider.profile.callback'),
+-            ]);
+-            
+-            // Rest of the token/profile exchange logic from the working Callback component
+-            $provider = Http::post('https://provider.id.th/api/v1/services/token', [
+-                'client_id' => config('services.provider.provider_client_id'),
+-                'secret_key' => config('services.provider.provider_secret_key'),
+-                'token_by' => "Health ID",
+-                'token' => $response->json()['data']['access_token'],
+-            ]);
+-            
+-            $profile = Http::withHeaders([
+-                'Content-type' => 'application/json',
+-                'Authorization' => 'Bearer ' . $provider->json()['data']['access_token'],
+-                'client-id' => config('services.provider.provider_client_id'),
+-                'secret-key' => config('services.provider.provider_secret_key'),
+-            ])->get('https://provider.id.th/api/v1/services/profile');
+-            
+-            // Update user with Provider ID data
+-            $profileData = $profile->json()['data'];
+-            $hash_cid = $profileData['hash_cid'] ?? null;
+-            $providerId = $profileData['provider_id'] ?? null;
+-            $accountId = $profileData['account_id'] ?? null;
+-            $nameTh = $profileData['name_th'] ?? null;
+-            $nameEng = $profileData['name_eng'] ?? null;
+-            $email = $profileData['email'] ?? null;
+-            
+-            // Safely get organization data
+-            $hcode = null;
+-            $hname = null;
+-            if (!empty($profileData['organization']) && is_array($profileData['organization']) && count($profileData['organization']) > 0) {
+-                $hcode = $profileData['organization'][0]['hcode'] ?? null;
+-                $hname = $profileData['organization'][0]['hname_th'] ?? null;
+-            }
+-            
+-            // Update user with the safely extracted data
+-            $user->update([
+-                'name' => $nameTh ?? $user->name,
+-                'name_en' => $nameEng ?? $user->name_en,
+-                'email' => $email ?? $user->email,
+-                'cid_hash' => $hash_cid ?? $user->cid_hash,
+-                'account_id' => $accountId ?? $user->account_id,
+-                'provider_id' => $providerId ?? $user->provider_id,
+-                'hcode' => $hcode ?? $user->hcode,
+-                'hname' => $hname ?? $user->hname,
+-            ]);
+-            
+-            // Clear the session data
+-            Session::forget(['profile_update', 'user_id_for_update']);
+-            
+-            // Return to profile page with success message
+-            session()->flash('success', 'อัพเดทข้อมูลจาก Provider ID สำเร็จ');
+-            return redirect()->route('profile.index');
+-            
+-        } catch (\Exception $e) {
+-            Log::error('Provider ID profile update failed', ['error' => $e->getMessage()]);
+-            Session::forget(['profile_update', 'user_id_for_update']);
+-            session()->flash('error', 'ไม่สามารถอัพเดทข้อมูลจาก Provider ID ได้: ' . $e->getMessage());
+-            return redirect()->route('profile.index');
+-        }
+-    }
+-
+-    public function render()
+-    {
+-        return view('livewire.provider.profile-callback');
+-    }
+-}
+--- base/resources/views/livewire/provider/profile-update.blade.php
++++ resources/views/livewire/provider/profile-update.blade.php
+@@ -1,16 +0,0 @@
+-<div>
+-    <div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+-        <div class="text-center">
+-            <div class="spinner-border text-primary mb-3" role="status">
+-                <span class="sr-only">Loading...</span>
+-            </div>
+-            <h3>กำลังเชื่อมต่อกับระบบ Provider ID</h3>
+-            <p class="text-muted">กรุณารอสักครู่...</p>
+-        </div>
+-    </div>
+-
+-    <script>
+-        // Immediately redirect to the Provider ID auth - no delay
+-        window.location.href = "{{ $redirectUrl }}";
+-    </script>
+-</div>
+--- base/resources/views/livewire/provider/profile-callback.blade.php
++++ resources/views/livewire/provider/profile-callback.blade.php
+@@ -1,9 +0,0 @@
+-<div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+-    <div class="text-center">
+-        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+-            <span class="sr-only">Loading...</span>
+-        </div>
+-        <h3>กำลังอัพเดทข้อมูลจาก Provider ID</h3>
+-        <p class="text-muted">กรุณารอสักครู่...</p>
+-    </div>
+-</div>
+--- base/app/Http/Controllers/ThaID/AuthController.php
++++ app/Http/Controllers/ThaID/AuthController.php
+@@ -93,8 +93,6 @@
+                 return $this->deny('ไม่พบสิทธิ์เข้าใช้งานระบบ');
+             }
+ 
+-            // Keep the access token only for the existing profile integration, after personnel authorization.
+-            Session::put('thaid_access_token', $tokenData['access_token'] ?? null);
+             Session::put('thaid_pid', $cid);
+             Session::put('thaid_name', $userData['name'] ?? '');
+             Session::put('thaid_name_en', $userData['name_en'] ?? '');
+--- base/tests/Feature/ProfileSelfEditTest.php
++++ tests/Feature/ProfileSelfEditTest.php
+@@ -38,6 +38,8 @@
+     Livewire::test(Index::class)
+         ->assertSeeHtml('wire:click="openEdit"')
+         ->assertSeeHtml('id="profileEditModal"')
++        ->assertDontSee('อัพเดทข้อมูลจาก ThaID')
++        ->assertDontSee('อัพเดทข้อมูลจาก Provider ID')
+         ->call('openEdit')
+         ->assertSet('editName', 'ชื่อเดิม')
+         ->assertSet('editNameEn', 'Old Name')
+@@ -133,16 +135,19 @@
+ 
+ test('the rendered profile events open the modal and close it before showing the saved toast', function () {
+     $component = Livewire::test(Index::class);
++    $component->assertSee('การแก้ไขนี้มีผลเฉพาะครั้งนี้เท่านั้น เมื่อท่านเข้าสู่ระบบใหม่ ข้อมูลจะถูกแทนที่ด้วยข้อมูลจากแอพฯภาครัฐ ให้ท่านอัพเดทข้อมูลจากต้นทางให้เป็นปัจจุบัน');
+     $scripts = implode("\n", $component->effects['scripts']);
+     $script = preg_replace('/<\/?script[^>]*>/', '', $scripts);
+     $runner = <<<'JS'
+ const handlers = {};
+ const modal = { open: false };
++const notice = { open: false };
+ let toastMessage;
+ globalThis.$wire = { on: (name, handler) => { handlers[name] = handler; } };
+ globalThis.document = { getElementById: (id) => {
+-    if (id !== 'profileEditModal') throw Error('wrong modal');
+-    return modal;
++    if (id === 'profileEditModal') return modal;
++    if (id === 'profileEditNoticeModal') return notice;
++    throw Error('wrong modal');
+ } };
+ globalThis.window = {
+     portalModal: {
+@@ -161,6 +166,7 @@
+ if (!modal.open) throw Error('modal did not open');
+ handlers['profile-saved']({ message: 'saved' });
+ if (modal.open || toastMessage !== 'saved') throw Error('save feedback missing');
++if (!notice.open) throw Error('government source notice not shown after save');
+ console.log('profile-modal-events-pass');
+ JS;
+     $process = new \Symfony\Component\Process\Process(['node', '--eval', $runner], base_path());
+@@ -168,3 +174,11 @@
+     expect($process->getExitCode())->toBe(0, $process->getErrorOutput())
+         ->and($process->getOutput())->toContain('profile-modal-events-pass');
+ });
++
++
++test('removed profile refresh actions cannot be invoked directly', function (string $action) {
++    \Illuminate\Support\Facades\Http::preventStrayRequests();
++    $component = Livewire::test(Index::class);
++    expect(fn () => $component->call($action))
++        ->toThrow(\Livewire\Exceptions\MethodNotFoundException::class);
++})->with(['updateFromThaID', 'updateFromProviderID']);
+--- base/tests/Feature/ProviderProfileUpdateTest.php
++++ tests/Feature/ProviderProfileUpdateTest.php
+@@ -1,20 +1,15 @@
+ <?php
+ 
+-use App\Livewire\Provider\ProfileUpdate;
+ use App\Models\User;
+-use Livewire\Livewire;
++use Illuminate\Support\Facades\Http;
+ 
+-test('provider profile update binds the callback to the authenticated user session', function () {
+-    config()->set('services.provider.auth_url', 'https://provider.example/authorize');
+-    config()->set('services.provider.healthid_client_id', 'test-client');
+-
++test('obsolete ProviderID profile refresh endpoints are unavailable', function () {
+     $user = new User;
+     $user->forceFill(['id' => 99]);
+     $user->exists = true;
+     $this->actingAs($user);
++    Http::preventStrayRequests();
+ 
+-    Livewire::test(ProfileUpdate::class);
+-
+-    expect(session('profile_update'))->toBeTrue()
+-        ->and(session('user_id_for_update'))->toBe(99);
++    $this->get('/provider/profile/update')->assertNotFound();
++    $this->get('/provider/profile/callback?state=old&code=old')->assertNotFound();
+ });
+--- base/tests/Feature/ThaidPersonnelAccessTest.php
++++ tests/Feature/ThaidPersonnelAccessTest.php
+@@ -66,7 +66,8 @@
+ 
+     $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
+         ->get('/thaid/callback?state=state&code=code')
+-        ->assertRedirect(route('home'));
++        ->assertRedirect(route('home'))
++        ->assertSessionMissing('thaid_access_token');
+ 
+     expect(DB::table('users')->where('pid', '1234567890123')->exists())->toBeTrue();
+ });

@@ -1,0 +1,26 @@
+
+   PASS  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.15s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.02s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.02s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.03s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.02s  
+
+   PASS  Tests\Feature\SsoUserProvisionerTest
+  ✓ a trusted SSO CID matching personnel creates a linked user           0.05s  
+  ✓ an SSO CID absent from personnel is denied without creating a user   0.01s  
+  ✓ an existing linked user is refreshed without changing local role or… 0.01s  
+  ✓ refreshing an existing SSO user without an email keeps the existing… 0.01s  
+  ✓ conflicting SSO account links do not select or log in either user    0.01s  
+  ✓ SSO profiles that omit address preserve the existing address         0.01s  
+
+   PASS  Tests\Feature\ProviderPersonnelAccessTest
+  ✓ ProviderID decodes HealthID id_card and provisions a matching perso… 0.04s  
+  ✓ ProviderID denies a valid SSO identity that is absent from personne… 0.01s  
+
+  Tests:    16 passed (78 assertions)
+  Duration: 0.45s
+

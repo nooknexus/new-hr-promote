@@ -1,0 +1,19 @@
+{
+  "priorCalls": [
+    {
+      "call": 1,
+      "outcome": "ship",
+      "generation": 0
+    },
+    {
+      "call": 2,
+      "outcome": "ship",
+      "generation": 1
+    }
+  ],
+  "priorBlockers": [],
+  "authority": "Material new user-authorized authoritative ThaiD address refresh, generation2. Budget retains2/3.",
+  "runtimeAvailabilityClosure": "not-applicable: all prior runtime gates passed; exact rollout proofs generation0 and1",
+  "currentClosure": "New full tests273pass1726assertions, focused35pass171assertions, RED4fail expected missing/empty address before code. Parent complete delta and adversarial pass. No source login guard changed.",
+  "buildReuse": "Exact build inputs unchanged from gen1, including resources/, config/build dependencies. Delivery manifest byte-identical. Backend-only change; no frontend compilation needed."
+}

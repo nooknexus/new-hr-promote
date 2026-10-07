@@ -1,0 +1,8 @@
+
+   INFO  Running migrations.  
+
+  2026_10_06_150000_add_account_status_to_users ..............................  
+  ⇂ alter table `users` add `is_active` tinyint(1) not null default '1'  
+  ⇂ alter table `user_access_audits` add `before_active` tinyint(1) null  
+  ⇂ alter table `user_access_audits` add `after_active` tinyint(1) null  
+

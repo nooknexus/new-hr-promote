@@ -1,0 +1,120 @@
+{
+  "schema": "profile-self-edit-candidate-v1",
+  "generation": 2,
+  "base": {
+    "head": "aa82c7f2855eca7a030e0c8f9290e3d9d038846a",
+    "files": [
+      {
+        "path": "app/Services/SsoUserProvisioner.php",
+        "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+      },
+      {
+        "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+        "sha256": "deeafa40f3ba48f3eaf4a787b52f6735f3a2c1a947c523c58eedc0027336cbee"
+      },
+      {
+        "path": "tests/Feature/SsoUserProvisionerTest.php",
+        "sha256": "429ab2b4adc35874e3fb44a17c14e4a9409614d8fd5c5744ac57ef235d01d075"
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "exists": true,
+      "sha256": "1b8441962ccb1707bc51f7495097c0429d2b6b76eb062955b75e1c2b550ec67e",
+      "gitStatus": "?? app/Services/SsoUserProvisioner.php"
+    },
+    {
+      "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+      "exists": true,
+      "sha256": "735c536d2d1f2b34648f50af9286efa807021cdffbe9774f8d70d0a63e7212cd",
+      "gitStatus": "?? tests/Feature/ThaidPersonnelAccessTest.php"
+    },
+    {
+      "path": "tests/Feature/SsoUserProvisionerTest.php",
+      "exists": true,
+      "sha256": "7a3aa0d6c9f06f45457362e63c6862c2f65bee34d3c05a6d25637b73703b7326",
+      "gitStatus": "?? tests/Feature/SsoUserProvisionerTest.php"
+    }
+  ],
+  "context": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "4fb6b012888ea2408d537c3d537bce63e83fed336426e27371b90bea63595d7e"
+    },
+    {
+      "path": "app/Http/Controllers/ThaID/AuthController.php",
+      "sha256": "0841f185edef73756c22732eaf8ed16079dbdb51311deabfdf4a1c7d96a792bd"
+    },
+    {
+      "path": "app/Services/ThaidIdTokenVerifier.php",
+      "sha256": "7d7db393776d10e913fe213f50e25ecd677450c359e7ea64fbf8aeab8beb2d86"
+    },
+    {
+      "path": "app/Livewire/Provider/Callback.php",
+      "sha256": "58aa61b02bb29e529c9b8344d3bf51629f4ed9790739821000633a7eebf561e7"
+    },
+    {
+      "path": "app/Http/Controllers/Auth/MyMOPHController.php",
+      "sha256": "c85527530c90d9f8924fe321f41827281845d4764297d1ea7c024c07d156d5f6"
+    },
+    {
+      "path": "app/Models/User.php",
+      "sha256": "c70fb064a7e6408fd34ad2a68090ac26a0a323e602157189ba9b0be1248bed95"
+    },
+    {
+      "path": "app/Livewire/Profile/Index.php",
+      "sha256": "7ee9a6c4ed178576b903de94476879e0eb5d9d3fc74b90c098b16833902464f4"
+    },
+    {
+      "path": "resources/views/livewire/profile/index.blade.php",
+      "sha256": "73fd48d4e79824f3ac5eb24cfa3cb6a5ff416705daf3913f4aac53c5cdc98324"
+    },
+    {
+      "path": "routes/web.php",
+      "sha256": "2425c8936a45bbf995a6f8864908d9c4d8cbc20f6b6b545ee2dd5d59e2926680"
+    },
+    {
+      "path": "resources/js/app.js",
+      "sha256": "4d93b2747d8c58fb5345c10ad4db46ba9fc8e0f2e726f10f87689102fcc8a8b3"
+    },
+    {
+      "path": "resources/css/app.css",
+      "sha256": "13396b9eec0e0554a538831af3edb643346c59a35bd6a11e9877377c9445a6c1"
+    },
+    {
+      "path": "package.json",
+      "sha256": "5a4dae8a691012b9dee06f4123addfe823c42b08056efc2a15cb54dc5d778d85"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "f499b2f2eb6c50a30f27ccbf625f7f07b334f1b747312186b24d47e5ebd8d797"
+    },
+    {
+      "path": "vite.config.js",
+      "sha256": "6a562a21aad726576b254b7f4b8270a9e135327b705e98c9ddcb57a8d74ef12c"
+    },
+    {
+      "path": "composer.json",
+      "sha256": "499b93de5838481aa92170e5ade3fe48c78b48dcfba0ca81dae11fb1fd694c7a"
+    },
+    {
+      "path": "composer.lock",
+      "sha256": "40bbe4dc4e988adbeadea536fbbff0cc81e9879fd1913ffc3cc7f1e2f6187495"
+    },
+    {
+      "path": "phpunit.xml",
+      "sha256": "bbc808f5e83ec45da2c9e2493b73282149bef023dd3ed91e762a49f18f951e0f"
+    },
+    {
+      "path": "tests/Pest.php",
+      "sha256": "198632917ab7761af28a3cecce6492398d666ad6955cc67bf770f0f4c50bb3aa"
+    },
+    {
+      "path": "database/migrations/2025_06_05_000001_add_thaid_fields_to_users_table.php",
+      "sha256": "5a7dca6c9c78e9b38d3d7895c1a8b99fbbbea8b54630241ca38e2aa18c034a2a"
+    }
+  ],
+  "deliveryManifestSha256": "726cfbade881fea29f2fbd5cf1e2ef8b5ab7b75eaf89f937e9b2f12c11b9cc87"
+}

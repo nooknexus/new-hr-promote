@@ -1,0 +1,24 @@
+
+   FAIL  Tests\Feature\ProfileSelfEditTest
+  ⨯ the edit target cannot be replaced by a client payload               0.13s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > the edit target cannot be rep…   
+  Exception "Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException" not thrown.
+
+  at tests/Feature/ProfileSelfEditTest.php:130
+    126▕ 
+    127▕ test('the edit target cannot be replaced by a client payload', function () {
+    128▕     $component = Livewire::test(Index::class)->call('openEdit');
+    129▕     expect(fn () => $component->set('editingUserId', $this->other->id))
+  ➜ 130▕         ->toThrow(\Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException::class);
+    131▕     expect($this->owner->fresh()->name)->toBe('ชื่อเดิม')->and($this->other->fresh()->name)->toBe('อีกคน');
+    132▕ });
+    133▕ 
+    134▕ test('the rendered profile events open the modal and close it before showing the saved toast', function () {
+
+  1   tests/Feature/ProfileSelfEditTest.php:130
+
+
+  Tests:    1 failed (1 assertions)
+  Duration: 0.22s
+

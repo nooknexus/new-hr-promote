@@ -1,0 +1,12 @@
+{
+  "VERDICT": "ship",
+  "AUDIT_COMPLETENESS": "complete",
+  "FINDING_CLASS": "none",
+  "BEHAVIOR_BLOCKERS": "none",
+  "CANDIDATE_CHANGE_REQUIRED": "no",
+  "FINDINGS": [],
+  "candidate": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+  "agentPath": "/root/thaid_address_review",
+  "evidence": "Complete behavior audit plus one same-attempt metadata closure: fresh build, all hashes unchanged, machine validator passed, same reservation child/candidate.",
+  "residualRisk": "No live ThaiD endpoint contacted; fixtures matching repository-documented claims."
+}

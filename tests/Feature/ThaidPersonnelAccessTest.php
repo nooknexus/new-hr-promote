@@ -1,0 +1,150 @@
+<?php
+
+use App\Services\ThaidIdTokenVerifier;
+use App\Models\User;
+use Firebase\JWT\JWT;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
+use Mockery\MockInterface;
+
+beforeEach(function () {
+    Schema::create('person', function (Blueprint $table) {
+        $table->string('cid', 13)->primary();
+        $table->string('pname')->nullable();
+        $table->string('fname')->nullable();
+        $table->string('lname')->nullable();
+    });
+    Schema::create('users', function (Blueprint $table) {
+        $table->id();
+        $table->string('name');
+        $table->string('name_en')->nullable();
+        $table->date('birthdate')->nullable();
+        $table->text('address')->nullable();
+        $table->string('email')->unique();
+        $table->timestamp('email_verified_at')->nullable();
+        $table->string('password');
+        $table->string('pid', 13)->nullable()->unique();
+        $table->string('thaid_pid', 13)->nullable()->unique();
+        $table->string('cid_hash')->nullable()->unique();
+        $table->string('provider_id')->nullable()->unique();
+        $table->string('account_id')->nullable()->unique();
+        $table->string('hcode')->nullable();
+        $table->string('hname')->nullable();
+        $table->timestamp('last_login_at')->nullable();
+        $table->timestamps();
+    });
+
+    config()->set('services.thaid.well_known_url', 'https://thaid.test/.well-known');
+    config()->set('services.thaid.token_endpoint', 'https://thaid.test/token');
+    config()->set('services.thaid.client_id', 'thaid-client');
+    config()->set('services.thaid.client_secret', 'thaid-secret');
+    config()->set('services.thaid.redirect_uri', 'http://localhost:8000/thaid/callback');
+    config()->set('services.thaid.issuer', 'https://thaid.test');
+    cache()->forget('thaid_well_known_config');
+});
+
+test('ThaiD login replaces the address only when the current claim is nonempty', function (array $addressClaim, string $expectedAddress) {
+    DB::table('person')->insert(['cid' => '1234567890123']);
+    $user = User::forceCreate([
+        'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
+        'pid' => '1234567890123', 'address' => 'ที่อยู่ที่แก้ไขเอง',
+    ]);
+    $this->mock(ThaidIdTokenVerifier::class, function (MockInterface $mock) use ($addressClaim) {
+        $mock->shouldReceive('verify')->once()->andReturn([
+            'pid' => '1234567890123', 'name' => 'ชื่อจาก ThaiD', ...$addressClaim,
+        ]);
+    });
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://thaid.test/.well-known' => Http::response([
+            'token_endpoint' => 'https://thaid.test/token', 'jwks_uri' => 'https://thaid.test/jwks',
+        ]),
+        'https://thaid.test/token' => Http::response(['id_token' => 'synthetic-id-token']),
+        'https://thaid.test/jwks' => Http::response(['keys' => []]),
+    ]);
+
+    $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
+        ->get('/thaid/callback?state=state&code=code')
+        ->assertRedirect(route('home'));
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->address)->toBe($expectedAddress);
+})->with([
+    'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+    'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+    'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+    'missing claim' => [[], 'ที่อยู่ที่แก้ไขเอง'],
+    'null claim' => [['address' => null], 'ที่อยู่ที่แก้ไขเอง'],
+    'empty claim' => [['address' => ''], 'ที่อยู่ที่แก้ไขเอง'],
+    'blank formatted claim' => [['address' => ['formatted' => '   ']], 'ที่อยู่ที่แก้ไขเอง'],
+]);
+
+test('ThaiD provisions and logs in only a CID registered in personnel', function () {
+    DB::table('person')->insert(['cid' => '1234567890123', 'pname' => 'นาย', 'fname' => 'สมชาย', 'lname' => 'ใจดี']);
+    $this->mock(ThaidIdTokenVerifier::class, function (MockInterface $mock) {
+        $mock->shouldReceive('verify')->once()->andReturn([
+            'pid' => '1234567890123',
+            'name' => 'นายสมชาย ใจดี',
+            'name_en' => 'Mr Somchai Jaidee',
+            'birthdate' => '1990-01-01',
+            'address' => ['formatted' => 'พิษณุโลก'],
+        ]);
+    });
+    Http::fake([
+        'https://thaid.test/.well-known' => Http::response([
+            'token_endpoint' => 'https://thaid.test/token',
+            'jwks_uri' => 'https://thaid.test/jwks',
+            'authorization_endpoint' => 'https://thaid.test/authorize',
+        ]),
+        'https://thaid.test/token' => Http::response(['id_token' => 'synthetic-id-token', 'access_token' => 'synthetic-access-token']),
+        'https://thaid.test/jwks' => Http::response(['keys' => []]),
+    ]);
+
+    $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
+        ->get('/thaid/callback?state=state&code=code')
+        ->assertRedirect(route('home'))
+        ->assertSessionMissing('thaid_access_token');
+
+    expect(DB::table('users')->where('pid', '1234567890123')->exists())->toBeTrue();
+});
+
+test('ThaiD callback handles the address object decoded from a real signed token', function (string $formatted, string $expectedAddress) {
+    DB::table('person')->insert(['cid' => '1234567890123']);
+    $user = User::forceCreate([
+        'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
+        'pid' => '1234567890123', 'address' => 'ที่อยู่ที่แก้ไขเอง',
+    ]);
+    $key = openssl_pkey_new(['private_key_type' => OPENSSL_KEYTYPE_EC, 'curve_name' => 'prime256v1']);
+    openssl_pkey_export($key, $privatePem);
+    $details = openssl_pkey_get_details($key);
+    $encode = fn (string $value): string => rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+    $jwks = ['keys' => [[
+        'kty' => 'EC', 'kid' => 'callback-key', 'alg' => 'ES256', 'use' => 'sig', 'crv' => 'P-256',
+        'x' => $encode($details['ec']['x']), 'y' => $encode($details['ec']['y']),
+    ]]];
+    $token = JWT::encode([
+        'iss' => 'https://thaid.test', 'aud' => 'thaid-client', 'nonce' => 'nonce',
+        'iat' => time(), 'exp' => time() + 300, 'pid' => '1234567890123',
+        'name' => 'ชื่อจาก ThaiD', 'address' => ['formatted' => $formatted],
+    ], $privatePem, 'ES256', 'callback-key');
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://thaid.test/.well-known' => Http::response([
+            'token_endpoint' => 'https://thaid.test/token', 'jwks_uri' => 'https://thaid.test/jwks',
+        ]),
+        'https://thaid.test/token' => Http::response(['id_token' => $token]),
+        'https://thaid.test/jwks' => Http::response($jwks),
+    ]);
+
+    $this->withSession(['thaid_state' => 'state', 'thaid_nonce' => 'nonce'])
+        ->get('/thaid/callback?state=state&code=code')
+        ->assertRedirect(route('home'));
+
+    $this->assertAuthenticatedAs($user);
+    expect($user->fresh()->address)->toBe($expectedAddress);
+})->with([
+    'nonempty object' => [' ที่อยู่ล่าสุดจาก ThaiD ', 'ที่อยู่ล่าสุดจาก ThaiD'],
+    'blank object preserves local value' => ['   ', 'ที่อยู่ที่แก้ไขเอง'],
+]);

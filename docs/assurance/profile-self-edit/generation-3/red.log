@@ -1,0 +1,82 @@
+
+   FAIL  Tests\Feature\ThaidPersonnelAccessTest
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.19s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ⨯ ThaiD login replaces the address only when the current claim is non… 0.02s  
+  ⨯ ThaiD login replaces the address only when the current claim is non… 0.02s  
+  ⨯ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ⨯ ThaiD login replaces the address only when the current claim is non… 0.01s  
+  ✓ ThaiD provisions and logs in only a CID registered in personnel      0.03s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD login replaces the…   
+  Failed asserting that null is identical to 'ที่อยู่ที่แก้ไขเอง'.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD login replaces the…   
+  Failed asserting that null is identical to 'ที่อยู่ที่แก้ไขเอง'.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD login replaces the…   
+  Failed asserting that null is identical to 'ที่อยู่ที่แก้ไขเอง'.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ThaidPersonnelAccessTest > ThaiD login replaces the…   
+  Failed asserting that null is identical to 'ที่อยู่ที่แก้ไขเอง'.
+
+  at tests/Feature/ThaidPersonnelAccessTest.php:72
+     68▕         ->get('/thaid/callback?state=state&code=code')
+     69▕         ->assertRedirect(route('home'));
+     70▕ 
+     71▕     $this->assertAuthenticatedAs($user);
+  ➜  72▕     expect($user->fresh()->address)->toBe($expectedAddress);
+     73▕ })->with([
+     74▕     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     75▕     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     76▕     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+
+  1   tests/Feature/ThaidPersonnelAccessTest.php:72
+
+
+  Tests:    4 failed, 4 passed (54 assertions)
+  Duration: 0.54s
+

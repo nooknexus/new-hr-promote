@@ -1,0 +1,88 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/profile/self-edit",
+  "REOPEN_GENERATION": 2,
+  "UNIT_STATUS": "open",
+  "REVIEW_READY": true,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 3,
+  "ACTIVE_REVIEW_RESERVATION": "profile-self-edit-call-3",
+  "TDD_REQUIRED": true,
+  "scope": [
+    "app/Services/SsoUserProvisioner.php",
+    "tests/Feature/ThaidPersonnelAccessTest.php",
+    "tests/Feature/SsoUserProvisionerTest.php"
+  ],
+  "generationDirectory": "generation-2",
+  "authority": "User explicitly requests every ThaiD login replace existing address, including missing/empty source. Material new behavior generation2; retains used2/max3.",
+  "objective": "Authoritative address refresh on every successful ThaiD login",
+  "coordination": "atomic os.mkdir docs/assurance/profile-self-edit/coordination.lock; journal outside behavior candidate",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "parent rollout turn_context"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/ProfileSelfEditTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable: established workflow runs Laravel directly on macOS, no required Compose rehearsal"
+  },
+  "protectedBoundaries": "No production records, deployment, merge, release, auth providers or secrets changed",
+  "FROZEN_CANDIDATE_ID": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+  "ASSURANCE_PACKET_ID": "sha256:196688d973c7406e2f5dd491be10d7146c78a2e6d88e8ac3ab8c3c1b0bf0d87a",
+  "REVIEWABILITY": "pass",
+  "PARENT_ADVERSARIAL_READY": true,
+  "acceptance": [
+    "ThaiD every successful login replaces address even missing/empty",
+    "Omitted field in other provider login preserves address",
+    "Unchanged identity/personnel/role/office validation"
+  ],
+  "candidateManifest": "generation-2/candidate-manifest.json",
+  "deliveryManifest": "generation-2/delivery-manifest.txt",
+  "deliveryRecipe": "generation-2/delivery-recipe.txt",
+  "FINAL_STRICT_READINESS_RECORD_LOCATION": "/Users/phanupongdongyen/development/laravel/new-hrpromote/docs/assurance/profile-self-edit/generation-2/metadata-closure/readiness.json",
+  "TDD": {
+    "RED": "generation-2/red.log4failed10passed70assertions",
+    "GREEN": "generation-2/green.log35passed171assertions",
+    "REFACTOR": "no further refactor; currentGREEN. RED proves four-case mutation sensitivity"
+  },
+  "adversarial": [
+    "Absent/null/empty/blank clears; RED detects omission of authoritative override",
+    "Array/JSON/plain replace current address",
+    "Provider omission preserves; guarded personnel/account linking and roleoffice unchanged"
+  ],
+  "candidateVerification": {
+    "candidate": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+    "timestampUTC": "2026-10-06T14:16:04.132247+00:00",
+    "fullTests": {
+      "command": "php artisan test",
+      "exit": 0,
+      "count": 273,
+      "assertions": 1726,
+      "receipt": "generation-2/full-tests.log"
+    },
+    "build": {
+      "command": "npm run build",
+      "exit": 0,
+      "receipt": "generation-2/build.log",
+      "candidate": "sha256:a348c8ffc8cc53c01c44167b44ca2827803ab1ab08dfcbd3199d7582196e7454",
+      "deliveryUnchanged": true
+    },
+    "database": "read-only SELECT1 and nullable address schema confirmed",
+    "syntax": "php -l service exit0; git diff --check exit0"
+  },
+  "fullGateRuns": 1,
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "No live external ThaiD contact; actual callback and DB exercised via verified claims fixtures"
+  ],
+  "reReviewClosure": "generation-2/re-review-closure.json",
+  "generationHistory": "gen0shipcall1/gen1shipcall2; same unit fixed2/3 used",
+  "finalBoundary": "address semantics implemented and all gates green before call3",
+  "WORK_STATUS": "in-progress",
+  "ACCEPTANCE_STATUS": "pending",
+  "KNOWN_BLOCKERS": "none",
+  "ASSURANCE_STATUS": "pending",
+  "SAME_ATTEMPT_METADATA_CLOSURE": true
+}

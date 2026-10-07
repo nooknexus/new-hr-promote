@@ -1,0 +1,49 @@
+--- base/app/Services/SsoUserProvisioner.php
++++ app/Services/SsoUserProvisioner.php
+@@ -66,6 +66,7 @@
+                 'name' => $name,
+                 'name_en' => $this->nullableText($attributes['name_en'] ?? null),
+                 'birthdate' => $this->nullableText($attributes['birthdate'] ?? null),
++                'address' => $this->nullableText($attributes['address'] ?? null),
+                 'email' => $email,
+                 'pid' => $cid,
+                 'thaid_pid' => $this->nullableText($attributes['thaid_pid'] ?? null),
+@@ -77,12 +78,6 @@
+                 'hospcode' => $this->nullableText($attributes['hospcode'] ?? null),
+                 'last_login_at' => now(),
+             ], static fn ($value) => $value !== null);
+-
+-            // An explicitly supplied address is authoritative, including an empty value.
+-            // Providers that do not supply this field keep the existing address.
+-            if (array_key_exists('address', $attributes)) {
+-                $data['address'] = $this->nullableText($attributes['address']);
+-            }
+ 
+             if ($user === null) {
+                 $user = new User;
+--- base/tests/Feature/ThaidPersonnelAccessTest.php
++++ tests/Feature/ThaidPersonnelAccessTest.php
+@@ -44,7 +44,7 @@
+     cache()->forget('thaid_well_known_config');
+ });
+ 
+-test('every successful ThaiD login replaces the existing address with the current claim', function (array $addressClaim, ?string $expectedAddress) {
++test('ThaiD login replaces the address only when the current claim is nonempty', function (array $addressClaim, string $expectedAddress) {
+     DB::table('person')->insert(['cid' => '1234567890123']);
+     $user = User::forceCreate([
+         'name' => 'ชื่อเดิม', 'email' => 'existing@example.test', 'password' => 'hashed',
+@@ -74,10 +74,10 @@
+     'formatted array' => [['address' => ['formatted' => ' ที่อยู่ล่าสุดจาก ThaiD ']], 'ที่อยู่ล่าสุดจาก ThaiD'],
+     'JSON string' => [['address' => '{"formatted":"ที่อยู่จากบัตร"}'], 'ที่อยู่จากบัตร'],
+     'plain string' => [['address' => 'ที่อยู่แบบข้อความ'], 'ที่อยู่แบบข้อความ'],
+-    'missing claim' => [[], null],
+-    'null claim' => [['address' => null], null],
+-    'empty claim' => [['address' => ''], null],
+-    'blank formatted claim' => [['address' => ['formatted' => '   ']], null],
++    'missing claim' => [[], 'ที่อยู่ที่แก้ไขเอง'],
++    'null claim' => [['address' => null], 'ที่อยู่ที่แก้ไขเอง'],
++    'empty claim' => [['address' => ''], 'ที่อยู่ที่แก้ไขเอง'],
++    'blank formatted claim' => [['address' => ['formatted' => '   ']], 'ที่อยู่ที่แก้ไขเอง'],
+ ]);
+ 
+ test('ThaiD provisions and logs in only a CID registered in personnel', function () {

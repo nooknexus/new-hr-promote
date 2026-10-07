@@ -1,0 +1,13 @@
+{
+  "priorCall": 1,
+  "priorGeneration": 0,
+  "outcome": "ship",
+  "closure": "No unresolved blockers from accepted generation0. Explicit user material scope reopens generation1; maximum3 and used1 preserved. Call2 reviews complete new delta from prior ship plus unchanged self-edit invariants.",
+  "newScope": "Post-save exact government-source notice and remove dedicated refresh paths",
+  "candidateRefrozen": "sha256:d19c8353cd61927c313e13302f7d0f7af81aa5ec48ff86884aa8bcd1d216a03a",
+  "focused": "27 pass/117 assertions",
+  "full": "265 pass/1676 assertions, build exit0",
+  "runtimeAvailability": "Prior observed gpt-5.6-sol/max via generation-0/reviewer-runtime.json; package role supported. No prior runtime gate failure.",
+  "regression": "Full existing SSO callback, redirect, personnel authorization and profile self-only tests pass; exact ThaiD deletion verified login-preservation.json",
+  "knownLimitations": "Source-provided fields refresh per existing login policy; exact notice requested by user. Node adapters rather than browser E2E, no required Compose."
+}

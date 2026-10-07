@@ -1,0 +1,10 @@
+[
+  {
+    "path": "app/Services/SsoUserProvisioner.php",
+    "sha256": "1b8441962ccb1707bc51f7495097c0429d2b6b76eb062955b75e1c2b550ec67e"
+  },
+  {
+    "path": "tests/Feature/ThaidPersonnelAccessTest.php",
+    "sha256": "735c536d2d1f2b34648f50af9286efa807021cdffbe9774f8d70d0a63e7212cd"
+  }
+]

@@ -39,6 +39,7 @@ class Login extends Component
         $credentials = [
             'email' => $this->email,
             'password' => $this->password,
+            'is_active' => true,
         ];
 
         // dd($credentials);
@@ -85,6 +86,14 @@ class Login extends Component
                 $this->addError('general', 'ไม่พบข้อมูล Provider ID กรุณาเข้าสู่ระบบใหม่');
                 return;
             }
+
+            if ($this->hasDisabledIdentity($validatedData['pid'], [
+                'cid_hash' => $providerData['hash_cid'] ?? null,
+                'provider_id' => $providerData['provider_id'] ?? null,
+            ])) {
+                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
+                return;
+            }
             
             // Check if a user with this cid_hash already exists
             $existingUser = null;
@@ -92,6 +101,11 @@ class Login extends Component
                 $existingUser = User::where('cid_hash', $providerData['hash_cid'])->first();
             }
             
+            if ($existingUser?->is_active === false) {
+                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
+                return;
+            }
+
             if ($existingUser) {
                 // Update existing user with Provider ID data
                 Log::info('Updating existing user during Provider ID registration', ['user_id' => $existingUser->id]);
@@ -101,7 +115,6 @@ class Login extends Component
                     'name_en' => $providerData['name_eng'] ?? $existingUser->name_en,
                     'email' => $providerData['email'] ?? $existingUser->email,
                     'provider_id' => $providerData['provider_id'] ?? $existingUser->provider_id,
-                    'account_id' => $providerData['account_id'] ?? $existingUser->account_id,
                     'cid_hash' => $providerData['hash_cid'] ?? $existingUser->cid_hash,
                     'hcode' => $providerData['hcode'] ?? $existingUser->hcode,
                     'hname' => $providerData['hname'] ?? $existingUser->hname,
@@ -119,7 +132,6 @@ class Login extends Component
                     'password' => bcrypt($validatedData['password']),
                     'pid' => $validatedData['pid'],
                     'provider_id' => $providerData['provider_id'] ?? '',
-                    'account_id' => $providerData['account_id'] ?? '',
                     'cid_hash' => $providerData['hash_cid'] ?? '',
                     'hcode' => $providerData['hcode'] ?? '',
                     'hname' => $providerData['hname'] ?? '',
@@ -169,6 +181,11 @@ class Login extends Component
                 $this->addError('general', 'ไม่พบข้อมูล ThaID กรุณาเข้าสู่ระบบใหม่');
                 return;
             }
+
+            if ($this->hasDisabledIdentity($thaidPid)) {
+                $this->addError('general', 'บัญชีนี้ไม่สามารถเข้าใช้งานระบบได้');
+                return;
+            }
             
             // สร้างผู้ใช้ใหม่พร้อมข้อมูลจาก ThaID
             $user = User::create([
@@ -201,6 +218,20 @@ class Login extends Component
             Log::error('ThaID registration error', ['message' => $e->getMessage()]);
             $this->addError('general', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
         }
+    }
+
+    private function hasDisabledIdentity(string $cid, array $identifiers = []): bool
+    {
+        return User::query()->where('is_active', false)
+            ->where(function ($query) use ($cid, $identifiers) {
+                $query->where('pid', $cid)->orWhere('thaid_pid', $cid)
+                    ->orWhere('cid_hash', hash('sha256', $cid));
+                foreach (['cid_hash', 'provider_id'] as $field) {
+                    if (filled($identifiers[$field] ?? null)) {
+                        $query->orWhere($field, $identifiers[$field]);
+                    }
+                }
+            })->exists();
     }
     
     /**

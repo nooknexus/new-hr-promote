@@ -1,0 +1,80 @@
+{
+  "ASSURANCE_UNIT_ID": "new-hrpromote/profile/self-edit",
+  "REOPEN_GENERATION": 4,
+  "UNIT_STATUS": "parent-completed",
+  "REVIEW_READY": false,
+  "REVIEW_BUDGET_MODE": "default",
+  "TARGET_REVIEW_CALLS": 1,
+  "MAX_REVIEW_CALLS": 3,
+  "REVIEW_CALLS_USED": 3,
+  "ACTIVE_REVIEW_RESERVATION": null,
+  "TDD_REQUIRED": true,
+  "scope": [
+    "app/Http/Controllers/ThaID/AuthController.php",
+    "tests/Feature/ThaidPersonnelAccessTest.php"
+  ],
+  "generationDirectory": "generation-4",
+  "authority": "User reports address not updating despite scope and requests response parsing investigation. New concrete nested-object decoder bug discovered; authorized bounded fix while preserving empty-address policy. Budget retained3/3 no reviewer.",
+  "objective": "Parse verified ThaiD address objects from real JWT decoder",
+  "coordination": "atomic os.mkdir docs/assurance/profile-self-edit/coordination.lock; journal outside behavior candidate",
+  "parent_runtime": {
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "evidence": "parent rollout turn_context"
+  },
+  "verificationProfile": {
+    "focused": "php artisan test tests/Feature/ProfileSelfEditTest.php",
+    "candidate": "php artisan test; npm run build",
+    "compose": "not-applicable: established workflow runs Laravel directly on macOS, no required Compose rehearsal"
+  },
+  "protectedBoundaries": "No deploy/merge/release/production profile mutation or external provider call",
+  "FROZEN_CANDIDATE_ID": "sha256:0cb74485797403ae307731972c131eaa9aa459c01d06b4da522cac96a49c7ad4",
+  "ASSURANCE_PACKET_ID": "sha256:11357dc0ead2fdfa30fee4717975afc6cf40f7f586f2e287c118f30dfbd7e305",
+  "REVIEWABILITY": "pass",
+  "PARENT_ADVERSARIAL_READY": true,
+  "acceptance": [
+    "Verified JWT address stdClass.formatted updates existing user address",
+    "Blank/missing claim preserves address",
+    "Array/JSON/plain cases and all login security guards unchanged"
+  ],
+  "candidateManifest": "generation-4/candidate-manifest.json",
+  "deliveryManifest": "generation-4/delivery-manifest.txt",
+  "deliveryRecipe": "generation-4/delivery-recipe.txt",
+  "TDD": {
+    "RED": "generation-4/red.log:1failed9passed66assertions; real ES256 JWT/JWK callback retained old address for nonempty object",
+    "GREEN": "generation-4/green.log:22passed95assertions",
+    "REFACTOR": "3-line stdClass normalization, no other changes"
+  },
+  "adversarial": [
+    "Real cryptographic verifier and decoded object pipeline exercised without mocking verifier",
+    "Blank real signed object still preserves local address",
+    "RED demonstrates absence of normalization misses nonempty address",
+    "Arrays/JSON/plain existing cases pass; JWT audience/JWK and personnel/roleoffice gates remain unchanged"
+  ],
+  "candidateVerification": {
+    "candidate": "sha256:0cb74485797403ae307731972c131eaa9aa459c01d06b4da522cac96a49c7ad4",
+    "fullTests": "php artisan test275pass1738assertions generation-4/full-tests.log",
+    "build": "npm run build exit0 generation-4/build.log",
+    "syntax": "php -l and git diff --check pass",
+    "fullGateRuns": 1
+  },
+  "fullGateRuns": 1,
+  "missingEvidence": [],
+  "nonBlockingGaps": [
+    "No real external ThaiD response/account contacted: synthetic signed token uses actual library/verification/callback",
+    "No fresh independent review: cumulative budget3/3 retained"
+  ],
+  "reReviewClosure": "generation-2/re-review-closure.json",
+  "generationHistory": "gen0shipcall1/gen1shipcall2; same unit fixed2/3 used",
+  "finalBoundary": "address semantics implemented and all gates green before call3",
+  "WORK_STATUS": "complete",
+  "ACCEPTANCE_STATUS": "met",
+  "KNOWN_BLOCKERS": "none",
+  "ASSURANCE_STATUS": "final-strict-not-achieved",
+  "INDEPENDENT_ATTESTATION": "not-obtained-within-budget",
+  "FINAL_STATUS": "parent-completed",
+  "completedAt": "2026-10-06T14:37:48.974849+00:00",
+  "REVIEW_STATUS": "review-exhausted",
+  "NEXT_REVIEW_ALLOWED": false,
+  "rootCause": "Firebase JWT jsonDecode returns nested stdClass; verifier casts only outer claims array; formatAddress accepted arrays/strings only and discarded nonempty object. Previous array-mocked tests masked integration shape."
+}

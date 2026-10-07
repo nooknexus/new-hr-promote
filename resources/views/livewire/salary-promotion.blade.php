@@ -62,8 +62,6 @@
                                                 @endif">
                                                 ครั้งที่ {{ $promotion['round_number'] }}
                                             </span>
-                                        @else
-                                            <span class="badge badge-warning">พิเศษ</span>
                                         @endif
                                     </td>
                                     <td class="text-right">
@@ -125,7 +123,7 @@
                     <h5 class="modal-title" id="promotionDetailModalLabel">
                         รายละเอียดการเลื่อนขั้นเงินเดือน {{ $selectedPromotion ? $selectedPromotion['round'] : '' }}
                     </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-modal-close aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -259,7 +257,7 @@
                     @endif
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-secondary" data-modal-close>ปิด</button>
                 </div>
             </div>
         </div>
@@ -273,7 +271,7 @@
                     <h5 class="modal-title" id="pdfPreviewModalLabel">
                         ตัวอย่างหนังสือแจ้งผลการเลื่อนเงินเดือน {{ $selectedPromotion ? $selectedPromotion['round'] : '' }}
                     </h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <button type="button" class="close" data-modal-close aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
@@ -475,7 +473,7 @@
                     @endif
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">ปิด</button>
+                    <button type="button" class="btn btn-secondary" data-modal-close>ปิด</button>
                     <button type="button" class="btn btn-success" wire:click="generatePDF" id="download-pdf-btn">
                         <i class="fas fa-file-pdf mr-1"></i> ดาวน์โหลด PDF
                     </button>
@@ -488,12 +486,12 @@
 @script
 <script>
     $wire.on('show-promotion-detail', () => {
-        $('#promotionDetailModal').modal('show');
+        window.portalModal.show('promotionDetailModal');
     });
 
     $wire.on('show-pdf-preview', () => {
         console.log('Opening PDF preview modal');
-        $('#pdfPreviewModal').modal('show');
+        window.portalModal.show('pdfPreviewModal');
         
         // Delay the timestamp update to ensure the modal is visible
         setTimeout(() => {

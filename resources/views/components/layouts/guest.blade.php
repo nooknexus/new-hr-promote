@@ -1,21 +1,18 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>{{ $title ?? 'Provider Connect' }}</title>
-    @vite(['resources/assets/vendor/fontawesome-free/css/all.min.css', 'resources/assets/css/sb-admin-2.min.css', 'resources/assets/vendor/jquery/jquery.min.js', 'resources/assets/vendor/bootstrap/js/bootstrap.bundle.min.js', 'resources/assets/vendor/jquery-easing/jquery.easing.min.js', 'resources/assets/js/sb-admin-2.min.js'])
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="theme-color" content="#056b3e">
+    <title>{{ $title ?? 'MyPPH' }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
 </head>
-
-<body  class="bg-gradient-primary">
-
+<body class="bg-gradient-to-br from-brand-700 via-brand-600 to-emerald-500">
     {{ $slot }}
-
-
-
+    @livewireScripts
 </body>
-
 </html>

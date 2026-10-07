@@ -23,3 +23,6 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+
+# Real payroll and tax sample files; never commit
+/Example/

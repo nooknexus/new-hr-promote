@@ -1,0 +1,76 @@
+{
+  "head": "aa82c7f2855eca7a030e0c8f9290e3d9d038846a",
+  "dirtyStatus": " M .env.example\n M AGENTS.md\n M README.md\n M SKILL.md\n M app/Http/Controllers/Auth/MyMOPHController.php\n M app/Http/Controllers/ThaID/AuthController.php\n M app/Livewire/Home.php\n D app/Livewire/Post.php\n M app/Livewire/Profile/Edit.php\n M app/Livewire/Profile/Index.php\n M app/Livewire/Profile/Payslip.php\n M app/Livewire/Provider/Callback.php\n D app/Livewire/Provider/ProfileCallback.php\n D app/Livewire/Provider/ProfileUpdate.php\n M app/Livewire/Provider/Redirect.php\n M app/Livewire/SalaryPromotion.php\n M app/Livewire/TaxCertificate.php\n D app/Models/Posts.php\n M app/Services/PayslipPdfService.php\n M app/Support/AdminAccess.php\n M bootstrap/app.php\n M composer.json\n M composer.lock\n M config/app.php\n M config/livewire.php\n M config/services.php\n M config/session.php\n D database/seeders/PostSeeder.php\n M docs/superpowers/specs/2026-10-02-tax-certificate-management-design.md\n M package-lock.json\n M package.json\n M resources/css/app.css\n M resources/js/app.js\n M resources/js/bootstrap.js\n M resources/views/components/layouts/app.blade.php\n M resources/views/components/layouts/guest.blade.php\n M resources/views/livewire/about.blade.php\n M resources/views/livewire/home.blade.php\n M resources/views/livewire/login.blade.php\n M resources/views/livewire/logout.blade.php\n M resources/views/livewire/mymoph/login.blade.php\n D resources/views/livewire/post.blade.php\n M resources/views/livewire/profile/index.blade.php\n M resources/views/livewire/profile/payslip.blade.php\n D resources/views/livewire/provider/profile-callback.blade.php\n D resources/views/livewire/provider/profile-update.blade.php\n M resources/views/livewire/provider/redirect.blade.php\n M resources/views/livewire/salary-promotion.blade.php\n M resources/views/livewire/tax-certificate.blade.php\n M resources/views/livewire/thaid/login.blade.php\n M resources/views/pages/provider-info.blade.php\n M resources/views/payslip/print-view.blade.php\n D resources/views/training-info.blade.php\n M routes/web.php\n M tests/Feature/ProviderProfileUpdateTest.php\n M tests/Feature/ProviderRedirectTest.php\n M vite.config.js\n?? Example/\n?? GOOGLEHOLIDAY.md\n?? GOOGLE_SHEET_LEAVE_SYNC.md\n?? PROVIDER.md\n?? app/Http/Controllers/TaxCertificateController.php\n?? app/Http/Middleware/\n?? app/Livewire/Admin/LeaveManagement.php\n?? app/Livewire/Admin/LeaveSheetSync.php\n?? app/Livewire/Admin/PayslipManagement.php\n?? app/Livewire/Admin/PersonnelManagement.php\n?? app/Livewire/Admin/SalaryPromotionManagement.php\n?? app/Livewire/Admin/Signatories.php\n?? app/Livewire/Admin/UserManagement.php\n?? app/Livewire/LeaveHistory.php\n?? app/Models/LeaveSyncRun.php\n?? app/Models/PayslipSignatory.php\n?? app/Services/LeaveEntitlementService.php\n?? app/Services/LeaveSheetSyncException.php\n?? app/Services/LeaveSheetSyncService.php\n?? app/Services/PersonnelImportService.php\n?? app/Services/PersonnelMatcher.php\n?? app/Services/SsoUserProvisioner.php\n?? app/Services/TaxCertificatePdfService.php\n?? app/Services/ThaiHolidayService.php\n?? app/Services/UserAccessService.php\n?? app/Support/LeaveTypeCatalog.php\n?? app/Support/ThaiCitizenId.php\n?? database/migrations/2026_09_22_153426_create_payslip_signatories_table.php\n?? database/migrations/2026_09_24_090000_create_leave_sync_runs_table.php\n?? database/migrations/2026_09_25_100000_create_leave_history_tables.php\n?? database/migrations/2026_09_25_110000_add_employment_started_at_to_person_table.php\n?? database/migrations/2026_09_25_120000_add_cancelled_status_to_leave_requests_table.php\n?? database/migrations/2026_09_30_100000_add_management_to_data_promote.php\n?? docs/TAX_CERTIFICATE_MANAGEMENT.md\n?? docs/assurance/\n?? docs/superpowers/plans/\n?? public/fonts/\n?? resources/js/charts.js\n?? resources/templates/\n?? resources/views/livewire/admin/leave-management.blade.php\n?? resources/views/livewire/admin/leave-sheet-sync.blade.php\n?? resources/views/livewire/admin/partials/\n?? resources/views/livewire/admin/payslip-management.blade.php\n?? resources/views/livewire/admin/personnel-management.blade.php\n?? resources/views/livewire/admin/salary-promotion-management.blade.php\n?? resources/views/livewire/admin/signatories.blade.php\n?? resources/views/livewire/admin/user-management.blade.php\n?? resources/views/livewire/leave-history.blade.php\n?? scratch/\n?? storage/fonts/Sarabun-Bold.ttf\n?? storage/fonts/Sarabun-Regular.ttf\n?? tests/Feature/AboutPageTest.php\n?? tests/Feature/AdminLeaveManagementTest.php\n?? tests/Feature/AdminPersonnelManagementTest.php\n?? tests/Feature/AdminRoleAccessTest.php\n?? tests/Feature/AdminRoleLivewireTest.php\n?? tests/Feature/AdminSalaryPromotionManagementTest.php\n?? tests/Feature/AdminUserManagementTest.php\n?? tests/Feature/ChartBundleTest.php\n?? tests/Feature/CompleteStreamedLivewireResponseTest.php\n?? tests/Feature/DashboardLeaveSummaryTest.php\n?? tests/Feature/LeaveHistoryStorageTest.php\n?? tests/Feature/LeaveSheetSyncButtonTest.php\n?? tests/Feature/ModernLayoutTest.php\n?? tests/Feature/PayslipDownloadTest.php\n?? tests/Feature/PersonnelImportServiceTest.php\n?? tests/Feature/PersonnelMatcherTest.php\n?? tests/Feature/ProfileSelfEditTest.php\n?? tests/Feature/ProviderPersonnelAccessTest.php\n?? tests/Feature/SalaryPromotionMigrationTest.php\n?? tests/Feature/SsoUserProvisionerTest.php\n?? tests/Feature/TaxCertificateDownloadTest.php\n?? tests/Feature/ThaidPersonnelAccessTest.php\n?? tests/Unit/LeaveEntitlementServiceTest.php\n?? tests/Unit/LeaveSheetSyncServiceTest.php\n?? tests/Unit/PayslipPdfLayoutTest.php\n?? tests/Unit/TaxCertificatePdfServiceTest.php\n?? tests/Unit/TaxCertificatePreviewLayoutTest.php\n?? tmp/\n",
+  "files": [
+    {
+      "path": "app/Livewire/Admin/UserManagement.php",
+      "exists": true,
+      "sha256": "87ee58727002e9d7a1e4cecee1f6cf7539328e67312cd3e6bd1e0d9f00aa1a5e"
+    },
+    {
+      "path": "resources/views/livewire/admin/user-management.blade.php",
+      "exists": true,
+      "sha256": "7925fd7a2f259b163423ef8f2377c9619eecff54d4604db1a62776c656aab863"
+    },
+    {
+      "path": "app/Services/UserAccessService.php",
+      "exists": true,
+      "sha256": "eb954d5ad964d932571f0964e2c9eb5426dfee3319561f3d3185fd0aa158de1e"
+    },
+    {
+      "path": "app/Services/SsoUserProvisioner.php",
+      "exists": true,
+      "sha256": "74af75b2bb2cd0f9c91ed59fa05a8e4d05b88d7d9a5fc62d282e9b28642df7a8"
+    },
+    {
+      "path": "app/Models/User.php",
+      "exists": true,
+      "sha256": "c70fb064a7e6408fd34ad2a68090ac26a0a323e602157189ba9b0be1248bed95"
+    },
+    {
+      "path": "app/Support/AdminAccess.php",
+      "exists": true,
+      "sha256": "4de8906e97a6f46aaa1df4abefac603933327704d6bcddf07675a9f9dccd0bcd"
+    },
+    {
+      "path": "app/Livewire/Login.php",
+      "exists": true,
+      "sha256": "9b4b1494f8cc1db8f9966630182243ea124ad25a25d399d22501c52899d1cd37"
+    },
+    {
+      "path": "app/Http/Middleware/EnsureUserIsActive.php",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "bootstrap/app.php",
+      "exists": true,
+      "sha256": "bee939742d1aec13f184311f1ee5ac36e09010591ba341a6ad04781d84c0bea8"
+    },
+    {
+      "path": "database/migrations/2026_10_06_150000_add_account_status_to_users.php",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/Feature/AdminUserManagementTest.php",
+      "exists": true,
+      "sha256": "d7141d47e8ef44be0e038e82a5b58c43b9173c1dcc9f50cd934d0690add400bc"
+    },
+    {
+      "path": "tests/Feature/UserAccountStatusTest.php",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/Feature/UserAccountStatusMigrationTest.php",
+      "exists": false,
+      "sha256": null
+    },
+    {
+      "path": "tests/Support/UserAccountConcurrencyProbe.php",
+      "exists": false,
+      "sha256": null
+    }
+  ]
+}

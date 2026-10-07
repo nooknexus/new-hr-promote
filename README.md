@@ -6,9 +6,9 @@
 
 - Laravel 12 และ PHP 8.2+
 - Livewire 3
-- Vite, Tailwind CSS และ jQuery
+- Vite 6, Tailwind CSS 4.3 และ JavaScript modules ของแอป
 - MySQL
-- TCPDF และ Dompdf สำหรับสร้างเอกสาร PDF
+- TCPDF และ Dompdf สำหรับสร้างเอกสาร PDF (payslip ใช้ TCPDF)
 - Pest/PHPUnit สำหรับทดสอบ
 
 ## ความต้องการของระบบ
@@ -102,16 +102,88 @@ npm run build
 
 - `/login` และ `/register`: เข้าสู่ระบบและลงทะเบียน
 - `/`: หน้าหลักหลัง login
-- `/profile`: ดูข้อมูลโปรไฟล์
-- `/profile/{id}/edit`: แก้ไขโปรไฟล์
+- `/profile`: ดูและแก้ไขข้อมูลของตนเองผ่าน modal
 - `/profile/payslip`: ดูสลิปเงินเดือน
 - `/profile/salary-promotion`: งานเลื่อนเงินเดือน
 - `/tax-certificate`: หนังสือรับรองภาษี
-- `/provider/profile/update`: เชื่อมต่อเพื่ออัปเดตข้อมูลจาก Provider
+- `/admin/tax-certificates`: จัดการและนำเข้าใบรับรองภาษี (เฉพาะ `ADMIN` และ `FINANCE`)
 - `/provider-info`: ข้อมูล Provider
-- `/training-info`: ข้อมูลการฝึกอบรม
+- `/leave-history`: ประวัติการลา เลือกดูแยกตามปีงบประมาณ
+- `/admin/leaves`: จัดการประวัติการลาและเพิ่มรายการด้วยตนเอง (เฉพาะ ADMIN)
+- `/admin/leave-sheet-sync`: ซิงค์ประวัติการลาจาก Google Sheet (เฉพาะ ADMIN)
+- `/admin/users`: แก้ไขสิทธิ์และหน่วยงานจากแถวผู้ใช้ พร้อมเปิด/ปิดบัญชี (เฉพาะ ADMIN)
 
-เส้นทาง callback ของระบบภายนอก ได้แก่ `/thaid/callback`, `/provider/callback`, `/provider/profile/callback` และ `/mymoph/callback` โดยค่าตั้งค่าต้องอยู่ใน `.env` ตามชื่อที่ระบุใน `.env.example`
+เส้นทาง callback ของระบบภายนอก ได้แก่ `/thaid/callback`, `/provider/callback` และ `/mymoph/callback` โดยค่าตั้งค่าต้องอยู่ใน `.env` ตามชื่อที่ระบุใน `.env.example`
+
+การซิงค์ข้อมูลลาทำได้จากหน้า ADMIN โดยวาง URL ของ Google Sheets ที่ต้องการในช่องก่อนเริ่มแต่ละครั้ง รองรับลิงก์ชีตทั่วไปและ CSV export URL; ข้อมูลจะเก็บในฐานข้อมูลหลักของแอป (`providerid.leave_requests` และ `providerid.leave_types`) เท่านั้น บัญชีที่ server ใช้เปิดชีตต้องมีสิทธิ์อ่านข้อมูล ค่า `.env` ใช้กำหนดเฉพาะขนาด CSV สูงสุดและประเภทการลาที่ไม่ต้องนำเข้า
+
+ทั้งการเพิ่มรายการเองและการซิงค์รองรับลาคลอดบุตร, ลาไปช่วยเหลือภริยาที่คลอดบุตร, ลาอุปสมบท และลาศึกษา หน้า `/leave-history` จะไม่แสดงการ์ดสรุปของสี่ประเภทนี้หากไม่มีรายการในปีงบประมาณที่เลือก
+
+## บัญชีผู้ใช้และ SSO
+
+Session มีอายุเมื่อไม่ได้ใช้งาน 420 นาที (7 ชั่วโมง) กำหนดด้วย `SESSION_LIFETIME=420` ใน `.env` หากเปลี่ยนค่าบนเครื่องที่ cache config อยู่ ให้รัน `php artisan config:clear`
+
+ทุก SSO ใช้ `App\Services\SsoUserProvisioner` ตรวจเลขบัตร 13 หลักกับ `person.cid` ก่อนสร้างหรือเข้าสู่บัญชี ไม่ให้ข้อมูลภายนอกเปลี่ยนสิทธิ์ `users.role` หรือหน่วยงาน `users.office` ที่ผู้ดูแลกำหนดไว้
+
+| SSO | แหล่งเลขบัตร | ฟิลด์ใน `users` |
+| --- | --- | --- |
+| ThaiD | `pid` จาก ID token ที่ตรวจสอบแล้ว | `pid`, `thaid_pid` |
+| ProviderID / HealthID | `scopes_detail.id_card` จาก access-token JWT | `pid` |
+| MyMOPH | `cid` จาก user-info | `pid` |
+
+ทุกช่องทางเก็บ SHA-256 ของเลขบัตรใน `cid_hash` ด้วย ProviderID ยังเก็บ `provider_id` แต่ไม่อ่านหรือบันทึก `account_id` อีก
+
+หน้า `/admin/users` บันทึกสิทธิ์และหน่วยงานทันทีเมื่อเลือกค่า การปิด/เปิดบัญชีต้องยืนยันผ่าน modal และมี audit ระบบไม่อนุญาตให้ปิดบัญชีตัวเองหรือทำให้ไม่มี ADMIN ที่เปิดใช้งานเหลืออยู่
+
+บัญชีที่ `users.is_active = false` จะถูกปฏิเสธก่อนตรวจบุคลากร แม้เลขบัตรอยู่ใน `person` การปิดบัญชีล้าง session ในฐานข้อมูลและ remember token ของบัญชีนั้น และ middleware ปฏิเสธการเข้าถึงจาก session เดิมในการร้องขอถัดไป การเปิดบัญชีกลับไม่เปลี่ยนเลขบัตร สิทธิ์ หรือหน่วยงาน
+
+สำหรับฐานข้อมูลเดิม ต้องรัน migration ก่อนใช้หน้าและโค้ดล็อกอินใหม่:
+
+```bash
+php artisan migrate --path=database/migrations/2026_10_06_150000_add_account_status_to_users.php
+```
+
+Migration สร้าง `is_active` โดยเปิดบัญชีเดิมทั้งหมด ลบคอลัมน์ `account_id` ที่เลิกใช้ และเพิ่มสถานะก่อน/หลังใน audit การ rollback จะถูกปฏิเสธหากมีบัญชีที่ปิดไว้หรือมี audit สถานะแล้ว และไม่สามารถคืนค่า Provider account ID ที่ถูกลบได้
+
+การแก้ไขจาก `/profile` มีผลจนกว่าจะเข้าสู่ระบบใหม่ ซึ่งข้อมูลที่ SSO ส่งมาจะถูกนำมาแทนที่ ผู้ใช้ควรแก้ข้อมูลที่แอปภาครัฐต้นทางให้เป็นปัจจุบัน สำหรับที่อยู่ ThaiD ระบบแทนที่เมื่อได้รับค่าที่ไม่ว่าง หากไม่ส่งหรือส่งค่าว่างจะคงที่อยู่เดิมไว้ ปุ่มและเส้นทางอัปเดตข้อมูลจาก ThaiD/ProviderID แยกต่างหากถูกถอดออกแล้ว
+
+## จัดการใบรับรองการหักภาษี
+
+ผู้ใช้บทบาท `ADMIN` และ `FINANCE` ใช้หน้า `/admin/tax-certificates` เพื่อค้นหา
+เพิ่ม แก้ไข ลบ และนำเข้าใบรับรองจากกรมบัญชีกลาง ข้อมูลทุกทางเก็บใน
+`data_tax` เดียวกับที่ผู้ใช้ดูจาก `/tax-certificate` และ PDF จึงใช้ข้อมูลชุดเดียวกัน
+โดยผู้ใช้ทั่วไปจะเห็นได้เฉพาะรายการที่ `data_tax.CID` ตรงกับ `users.pid` ของตนเอง
+
+การนำเข้าเลือกไฟล์ `.txt` ขนาดไม่เกิน 5 MB ซึ่งมี `$` เป็นตัวคั่นและมี 20 คอลัมน์
+ตามรูปแบบกรมบัญชีกลาง ก่อน preview และยืนยันนำเข้าผู้ดูแลต้องเลือกรหัสอักขระของไฟล์
+ให้ตรงกับต้นทาง:
+
+- `TIS-620` — ค่าเริ่มต้นสำหรับไฟล์ต้นทางแบบเดิม
+- `UTF-8` — สำหรับไฟล์ที่ส่งออกเป็น UTF-8
+
+ระบบไม่เดารหัสอักขระเอง เพราะข้อความภาษาไทยบางชุดแยก TIS-620 กับ UTF-8
+โดยอัตโนมัติได้ไม่แน่นอน การนำเข้าจะ upsert ด้วยคีย์ `(CID, income_year)`:
+รายการคนและปีเดิมถูกปรับปรุง รายการที่ไม่มีในไฟล์จะไม่ถูกลบ และแถวผิดรูปแบบหรือมี
+key ซ้ำในไฟล์จะถูกข้ามพร้อมสรุปข้อผิดพลาดที่ปกปิดเลขบัตรประชาชน
+
+รายละเอียดสำหรับผู้พัฒนาต่ออยู่ที่
+[`docs/TAX_CERTIFICATE_MANAGEMENT.md`](docs/TAX_CERTIFICATE_MANAGEMENT.md)
+
+## สถานะ UI และเอกสารล่าสุด
+
+- Frontend runtime ใช้ Tailwind CSS ผ่าน Vite เท่านั้น ไม่โหลด Bootstrap, SB Admin, jQuery หรือ Bootstrap CDN
+- Modal ใช้ `window.portalModal` และ `data-modal-close`; ห้ามเปลี่ยนกลับไปใช้ Bootstrap modal API หรือ jQuery
+- `/profile/payslip` มี modal preview ขนาด A4 และ `/payslip/print-view/{id}` ใช้ geometry เอกสารเดียวกัน
+- Payslip preview และ print view ใช้ footer แบบ fixed ที่ขอบล่างกระดาษ และ PDF ต้องเป็น A4 หน้าเดียว
+- ลายเซ็นใน preview และ PDF ใช้ block ชิดขวากว้าง 85 มม. โดยข้อความทุกบรรทัดจัดกึ่งกลางภายใน block; รูปลายเซ็นกว้าง 12 มม. และเพิ่มช่องว่างระหว่างข้อความ 20%
+- PDF ใช้ `App\Services\PayslipPdfService`; ลายเซ็นกำหนดความกว้างโดยไม่บังคับความสูง เพื่อรักษาอัตราส่วนภาพ และชื่อผู้ใช้จะใช้ `user->name` ก่อน fallback ไป `firstname`/`lastname`
+- CSS เอกสาร print อยู่ใน `.payslip-document` และไม่ควรเพิ่ม third-party stylesheet กลับเข้าไป
+
+การทดสอบ layout อยู่ที่ `tests/Unit/PayslipPdfLayoutTest.php` ครอบคลุมจำนวนหน้า A4, Bootstrap-free print view, สัดส่วนลายเซ็น, ชื่อผู้ใช้ใน PDF และตำแหน่ง signature block
+
+## การนำขึ้น production
+
+ขั้นตอนติดตั้งบนเซิร์ฟเวอร์ที่ใช้ aaPanel ดูที่ [`docs/DEPLOYMENT_AAPANEL.md`](docs/DEPLOYMENT_AAPANEL.md)
 
 ## Scheduler และคำสั่งดูแลไฟล์ PDF
 
@@ -140,6 +212,20 @@ php artisan route:list
 
 ```bash
 php artisan test
+
+# ตรวจเฉพาะ payslip layout/PDF
+php artisan test tests/Unit/PayslipPdfLayoutTest.php
+
+# ตรวจ parser, การนำเข้า, สิทธิ์ผู้ดูแล และเอกสารภาษี
+php artisan test tests/Unit/TaxCertificateTxtImportServiceTest.php \
+  tests/Feature/TaxCertificateTxtImportCommitTest.php \
+  tests/Feature/AdminTaxCertificateAccessTest.php \
+  tests/Feature/AdminTaxCertificateManagementTest.php \
+  tests/Feature/TaxCertificateDownloadTest.php \
+  tests/Unit/TaxCertificatePdfServiceTest.php
+
+# ตรวจ frontend production bundle
+npm run build
 ```
 
 หรือใช้ script ที่กำหนดไว้ใน Composer:
@@ -199,18 +285,3 @@ php artisan view:cache
 - รหัสผ่านฐานข้อมูล
 - เลขประจำตัวประชาชนและข้อมูลส่วนบุคคล
 - ข้อมูล production ในไฟล์ dump หรือไฟล์ PDF
-https://docs.google.com/document/d/1oRNVwrCe-StLwCCpKY-LsQzNzZ5qxd1z3m65uAJ3T-E/edit?tab=t.0
-
-วิธีตรวจสอบว่า Schedule ทำงานถูกต้อง
-เพิ่ม Cron Job บนเซิร์ฟเวอร์เพื่อให้ Laravel Scheduler ทำงาน:
-* * * * * cd /path-to-your-project && php artisan schedule:run >> /dev/null 2>&1
-
-
-ทดสอบ Command โดยตรง:
-php artisan temp:clean-pdf --days=1
-
-Deploy
-docker build -t provider-test .
-
-Run
-docker run -d -p 8080:8080 provider-test

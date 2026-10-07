@@ -1,0 +1,39 @@
+
+   FAIL  Tests\Feature\ProfileSelfEditTest
+  ⨯ the rendered profile events open the modal and close it before show… 0.28s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\ProfileSelfEditTest > the rendered profile events o…   
+  [eval]:32
+if (!notice.open) throw Error('government source notice not shown after save');
+                  ^
+
+Error: government source notice not shown after save
+    at [eval]:32:25
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:118:14
+    at [eval]-wrapper:6:24
+    at runScript (node:internal/process/execution:101:62)
+    at evalScript (node:internal/process/execution:133:3)
+    at node:internal/main/eval_string:51:3
+
+Node.js v20.19.5
+
+Failed asserting that 1 is identical to 0.
+
+  at tests/Feature/ProfileSelfEditTest.php:174
+    170▕ console.log('profile-modal-events-pass');
+    171▕ JS;
+    172▕     $process = new \Symfony\Component\Process\Process(['node', '--eval', $runner], base_path());
+    173▕     $process->run();
+  ➜ 174▕     expect($process->getExitCode())->toBe(0, $process->getErrorOutput())
+    175▕         ->and($process->getOutput())->toContain('profile-modal-events-pass');
+    176▕ });
+    177▕ 
+    178▕
+
+  1   tests/Feature/ProfileSelfEditTest.php:174
+
+
+  Tests:    1 failed (2 assertions)
+  Duration: 0.59s
+

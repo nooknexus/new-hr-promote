@@ -1,0 +1,23 @@
+
+   FAIL  Tests\Feature\UserAccountStatusTest
+  ⨯ disabled remembered sessions and Livewire requests cannot enter the… 0.18s  
+  ────────────────────────────────────────────────────────────────────────────  
+   FAILED  Tests\Feature\UserAccountStatusTest > disabled remembered session…   
+  Expected response status code [201, 301, 302, 303, 307, 308] but received 200.
+Failed asserting that false is true.
+
+  at tests/Feature/UserAccountStatusTest.php:125
+    121▕ test('disabled remembered sessions and Livewire requests cannot enter the application', function () {
+    122▕     DB::table('users')->where('id', 2)->update(['is_active' => false]);
+    123▕     $user = User::find(2);
+    124▕     $this->withCookie(Auth::guard()->getRecallerName(), $user->id.'|remember-value|'.$user->password)
+  ➜ 125▕         ->get('/profile')->assertRedirect(route('login'));
+    126▕     $this->assertGuest();
+    127▕     $this->actingAs($user)->postJson('/livewire/update', ['components' => []], ['X-Livewire' => 'true'])
+    128▕         ->assertForbidden();
+    129▕     $this->assertGuest();
+
+
+  Tests:    1 failed (1 assertions)
+  Duration: 0.29s
+
