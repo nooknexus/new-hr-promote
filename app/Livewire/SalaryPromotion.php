@@ -117,7 +117,10 @@ class SalaryPromotion extends Component
             
             return [
                 'id' => (int) $item->id,
-                'round' => "{$item->round_month} {$calendarYearBE}",
+                // Only April and October are regular rounds; any other month is a special round.
+                'round' => in_array($evaluationDate->month, [4, 10], true)
+                    ? $this->getThaiMonth($evaluationDate->month) . " {$calendarYearBE}"
+                    : 'รอบพิเศษ',
                 'round_number' => $item->round_number,
                 'round_type' => $item->round_month,
                 'old_salary' => $item->old_salary,

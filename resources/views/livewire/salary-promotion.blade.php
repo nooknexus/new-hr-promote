@@ -62,8 +62,6 @@
                                                 @endif">
                                                 ครั้งที่ {{ $promotion['round_number'] }}
                                             </span>
-                                        @else
-                                            <span class="badge badge-warning">พิเศษ</span>
                                         @endif
                                     </td>
                                     <td class="text-right">

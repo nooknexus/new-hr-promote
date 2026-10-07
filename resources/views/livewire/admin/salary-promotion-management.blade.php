@@ -4,7 +4,6 @@
     $money = static fn ($value) => is_numeric($value) ? number_format((float) $value, 2) : '—';
 @endphp
 <div class="space-y-6">
-    <livewire:admin.salary-promotion-import />
     <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
             <p class="text-sm font-semibold text-brand-700">จัดการข้อมูล</p>
@@ -16,6 +15,8 @@
         </button>
     </header>
 
+    <livewire:admin.salary-promotion-import />
+
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="promotion-list-heading">
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 id="promotion-list-heading" class="font-bold text-brand-700">ทะเบียนการเลื่อนขั้นเงินเดือน</h2>
@@ -25,8 +26,8 @@
                     <select id="promotion-year-filter" wire:model.live="yearFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกปีงบประมาณ</option>@foreach($years as $year)<option value="{{ $year }}">ปี {{ $year }}</option>@endforeach</select>
                 </div>
                 <div>
-                    <label for="promotion-office-filter" class="sr-only">หน่วยงาน</label>
-                    <select id="promotion-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกหน่วยงาน</option>@foreach($offices as $officeOption)<option value="{{ $officeOption->office_id }}">{{ $officeOption->office_name ?: $officeOption->office_id }}</option>@endforeach<option value="unmatched">ไม่พบบุคลากร</option></select>
+                    <label for="promotion-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
+                    <select id="promotion-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกต้นสังกัด</option>@foreach($offices as $officeOption)<option value="{{ $officeOption->office_id }}">{{ $officeOption->office_id }} — {{ $officeOption->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>@endforeach<option value="unmatched">ไม่พบบุคลากร</option></select>
                 </div>
                 <div>
                     <label for="promotion-result-filter" class="sr-only">ผลการเลื่อนขั้น</label>

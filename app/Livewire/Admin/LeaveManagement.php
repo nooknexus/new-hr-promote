@@ -4,12 +4,15 @@ namespace App\Livewire\Admin;
 
 use App\Support\AdminAccess;
 use App\Support\LeaveTypeCatalog;
+use App\Support\OfficeScope;
 use App\Services\ThaiHolidayService;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -32,9 +35,18 @@ class LeaveManagement extends Component
 
     private const INACTIVE_STATUSES = ['rejected', 'cancelled'];
 
+    private const MONTHS = [
+        1 => 'มกราคม', 2 => 'กุมภาพันธ์', 3 => 'มีนาคม', 4 => 'เมษายน',
+        5 => 'พฤษภาคม', 6 => 'มิถุนายน', 7 => 'กรกฎาคม', 8 => 'สิงหาคม',
+        9 => 'กันยายน', 10 => 'ตุลาคม', 11 => 'พฤศจิกายน', 12 => 'ธันวาคม',
+    ];
+
     public string $search = '';
     public string $statusFilter = '';
     public string $leaveTypeFilter = '';
+    public string $officeFilter = '';
+    public string $yearFilter = '';
+    public string $monthFilter = '';
 
     #[Locked]
     public ?int $editingId = null;
@@ -59,7 +71,7 @@ class LeaveManagement extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'statusFilter', 'leaveTypeFilter'], true)) {
+        if (in_array($property, ['search', 'statusFilter', 'leaveTypeFilter', 'officeFilter', 'yearFilter', 'monthFilter'], true)) {
             $this->resetPage();
         }
 
@@ -78,7 +90,7 @@ class LeaveManagement extends Component
     public function selectPerson(string $cid): void
     {
         $this->ensureAdministrator();
-        $person = DB::table('person')->where('cid', $cid)->first(['cid', 'pname', 'fname', 'lname']);
+        $person = $this->scopedPersonnel()->where('cid', $cid)->first(['cid', 'pname', 'fname', 'lname']);
         abort_unless($person, 404);
 
         $this->cid = $person->cid;
@@ -96,7 +108,7 @@ class LeaveManagement extends Component
     public function edit(int $id): void
     {
         $this->ensureAdministrator();
-        $leave = DB::table('leave_requests')->where('id', $id)->first();
+        $leave = $this->scopedLeaves()->where('requests.id', $id)->first(['requests.*']);
         abort_unless($leave, 404);
         abort_if($leave->status === 'cancelled', 403);
 
@@ -139,6 +151,7 @@ class LeaveManagement extends Component
         ];
 
         if ($this->editingId !== null) {
+            abort_unless($this->scopedLeaves()->where('requests.id', $this->editingId)->exists(), 404);
             $updated = DB::table('leave_requests')
                 ->where('id', $this->editingId)
                 ->where('status', '!=', 'cancelled')
@@ -172,7 +185,7 @@ class LeaveManagement extends Component
     {
         $this->ensureAdministrator();
         abort_unless(
-            DB::table('leave_requests')->where('id', $id)->where('status', '!=', 'cancelled')->exists(),
+            $this->scopedLeaves()->where('requests.id', $id)->where('requests.status', '!=', 'cancelled')->exists(),
             404,
         );
 
@@ -188,6 +201,7 @@ class LeaveManagement extends Component
             return;
         }
 
+        abort_unless($this->scopedLeaves()->where('requests.id', $this->pendingCancellationId)->exists(), 404);
         DB::table('leave_requests')
             ->where('id', $this->pendingCancellationId)
             ->update(['status' => 'cancelled', 'updated_at' => now()]);
@@ -234,7 +248,7 @@ class LeaveManagement extends Component
         $days = $this->workingDays();
 
         return view('livewire.admin.leave-management', [
-            'leaves' => DB::table('leave_requests as requests')
+            'leaves' => $this->scopedLeaves(filtersByOffice: trim($this->officeFilter) !== '')
                 ->leftJoin('leave_types as types', 'types.id', '=', 'requests.leave_type_id')
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
@@ -244,6 +258,8 @@ class LeaveManagement extends Component
                 })
                 ->when($this->statusFilter !== '', fn ($query) => $query->where('requests.status', $this->statusFilter))
                 ->when($this->leaveTypeFilter !== '', fn ($query) => $query->where('requests.leave_type_id', (int) $this->leaveTypeFilter))
+                ->when(trim($this->officeFilter) !== '', fn ($query) => $query->where('owner.office_id', trim($this->officeFilter)))
+                ->tap(fn ($query) => $this->applyPeriodFilter($query))
                 ->orderByDesc('requests.start_date')
                 ->orderByDesc('requests.id')
                 ->select([
@@ -258,7 +274,7 @@ class LeaveManagement extends Component
                 ->orderBy('name')
                 ->get(['id', 'name', 'is_active']),
             'personResults' => $this->cid === '' && mb_strlen($personSearch) >= 2
-                ? DB::table('person')
+                ? $this->scopedPersonnel()
                     ->where(function ($query) use ($personSearch) {
                         // Every word must match, so "สมชาย ใจดี" finds first + last name.
                         foreach (preg_split('/\s+/u', $personSearch) as $term) {
@@ -274,6 +290,21 @@ class LeaveManagement extends Component
                     ->limit(10)
                     ->get(['cid', 'pname', 'fname', 'lname', 'office_name'])
                 : collect(),
+            'offices' => $this->scopedPersonnel()
+                ->whereNotNull('office_id')
+                ->where('office_id', '!=', '')
+                ->select('office_id', DB::raw('MAX(office_name) as office_name'))
+                ->groupBy('office_id')
+                ->orderBy('office_id')
+                ->get(),
+            'years' => $this->scopedLeaves()
+                ->selectRaw('DISTINCT SUBSTR(requests.start_date, 1, 4) AS leave_year')
+                ->pluck('leave_year')
+                ->map(fn ($year) => (int) $year)
+                ->filter()
+                ->sortDesc()
+                ->values(),
+            'months' => self::MONTHS,
             'workingDays' => $days,
             'statuses' => self::STATUSES,
         ]);
@@ -286,7 +317,7 @@ class LeaveManagement extends Component
             // the owner of an existing row is not editable.
             'cid' => $this->editingId !== null
                 ? ['nullable']
-                : ['required', 'digits:13', Rule::exists('person', 'cid')],
+                : ['required', 'digits:13', $this->scopedPersonExistsRule()],
             'leave_type_id' => ['required', 'integer', Rule::exists('leave_types', 'id')],
             'start_date' => ['required', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
@@ -332,6 +363,62 @@ class LeaveManagement extends Component
             'start_date', 'end_date', 'duration', 'reason',
         ]);
         $this->resetErrorBag();
+    }
+
+    /**
+     * Keep leaves that overlap the selected Gregorian year and/or month, so a
+     * leave spanning two months appears under both. A month without a year
+     * matches leaves starting in that month of any year.
+     */
+    private function applyPeriodFilter(Builder $query): void
+    {
+        $year = ctype_digit($this->yearFilter) ? (int) $this->yearFilter : null;
+        $month = ctype_digit($this->monthFilter) && isset(self::MONTHS[(int) $this->monthFilter]) ? (int) $this->monthFilter : null;
+
+        if ($year === null) {
+            if ($month !== null) {
+                $query->whereMonth('requests.start_date', $month);
+            }
+
+            return;
+        }
+
+        $start = CarbonImmutable::create($year, $month ?? 1, 1);
+        $end = $month === null ? $start->endOfYear() : $start->endOfMonth();
+        $query->where('requests.start_date', '<=', $end->toDateString())
+            ->where('requests.end_date', '>=', $start->toDateString());
+    }
+
+    private function scopedPersonnel(): Builder
+    {
+        return OfficeScope::apply(DB::table('person'), Auth::user());
+    }
+
+    /** Leave requests of personnel the current user may manage, aliased as requests. */
+    /**
+     * Leave requests the current user may manage, aliased as requests.
+     *
+     * person is joined (as owner) only when an office condition needs it: the
+     * two cid columns use different collations, so an unconditioned join cannot
+     * use person's primary key and scans every person for every leave.
+     */
+    private function scopedLeaves(bool $filtersByOffice = false): Builder
+    {
+        $query = DB::table('leave_requests as requests');
+
+        if (! $filtersByOffice && OfficeScope::officeFor(Auth::user()) === null) {
+            return $query;
+        }
+
+        $query->leftJoin('person as owner', 'owner.cid', '=', 'requests.cid');
+
+        return OfficeScope::apply($query, Auth::user(), 'owner.office_id');
+    }
+
+    private function scopedPersonExistsRule(): Exists
+    {
+        return Rule::exists('person', 'cid')
+            ->where(fn ($query) => OfficeScope::apply($query, Auth::user()));
     }
 
     private function ensureAdministrator(): void

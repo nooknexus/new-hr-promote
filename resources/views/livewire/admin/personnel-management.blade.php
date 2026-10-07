@@ -3,7 +3,7 @@
         <div>
             <p class="text-sm font-semibold text-brand-700">จัดการข้อมูล</p>
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">ข้อมูลบุคลากร</h1>
-            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">บันทึกวันเริ่มงานเพื่อใช้ตรวจอายุงานและสิทธิการลาพักผ่อนในอนาคต ข้อมูลนี้จัดเก็บในตาราง <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">providerid.person</code></p>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">บันทึกวันเริ่มงานเพื่อใช้ตรวจอายุงานและสิทธิการลาพักผ่อนในอนาคต</p>
         </div>
         <button type="button" wire:click="openCreate" onclick="window.portalModal.show('personnelFormModal')" class="btn btn-primary">
             <i class="fas fa-user-plus" aria-hidden="true"></i><span>เพิ่มบุคลากร</span>
@@ -14,7 +14,8 @@
         <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
                 <h2 id="personnel-import-heading" class="font-bold text-slate-900">นำเข้าข้อมูลจาก Excel</h2>
-                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">ใช้ไฟล์ template เท่านั้น ระบบสร้างบุคลากรใหม่จาก CID ที่ยังไม่มี และอัปเดต CID ที่มีอยู่แล้ว ช่องข้อมูลเสริมที่ปล่อยว่างจะไม่ลบข้อมูลเดิม</p>
+                <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">ระบบอ่านข้อมูลตามตำแหน่งคอลัมน์ ไม่ตรวจชื่อหัวตาราง และข้ามแถวที่ 1 เสมอ ระบบสร้างบุคลากรใหม่จาก CID ที่ยังไม่มี และอัปเดต CID ที่มีอยู่แล้ว ช่องข้อมูลเสริมที่ปล่อยว่างจะไม่ลบข้อมูลเดิม</p>
+                <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A เลขประจำตัวประชาชน · B คำนำหน้า · C ชื่อ · D นามสกุล · E ประเภท (ตัวเลข) · F ชื่อประเภทเจ้าหน้าที่ · G ต้นสังกัด (ตัวเลข 2 หลัก) · H ชื่อต้นสังกัด · I วันเริ่มงาน</p>
             </div>
             <a href="{{ route('admin.personnel.template') }}" class="btn btn-secondary shrink-0">
                 <i class="fas fa-file-download" aria-hidden="true"></i><span>ดาวน์โหลด template</span>
@@ -58,11 +59,20 @@
             <h2 id="personnel-list-heading" class="font-bold text-brand-700">รายชื่อบุคลากร</h2>
             <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                 <div class="sm:w-56">
-                    <label for="personnel-office-filter" class="sr-only">กรองตามหน่วยงาน</label>
+                    <label for="personnel-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
                     <select id="personnel-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
-                        <option value="">ทุกหน่วยงาน</option>
+                        <option value="">ทุกต้นสังกัด</option>
                         @foreach($offices as $office)
-                            <option value="{{ $office->office_id }}">{{ $office->office_id }} — {{ $office->office_name ?: 'ไม่ระบุชื่อหน่วยงาน' }}</option>
+                            <option value="{{ $office->office_id }}">{{ $office->office_id }} — {{ $office->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:w-48">
+                    <label for="personnel-type-filter" class="sr-only">กรองตามประเภทการจ้าง</label>
+                    <select id="personnel-type-filter" wire:model.live="typeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                        <option value="">ทุกประเภทการจ้าง</option>
+                        @foreach($personnelTypes as $typeId => $typeName)
+                            <option value="{{ $typeId }}">{{ $typeName }}</option>
                         @endforeach
                     </select>
                 </div>

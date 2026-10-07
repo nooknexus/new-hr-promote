@@ -16,6 +16,7 @@ beforeEach(function () {
         $table->string('pname')->nullable();
         $table->string('fname')->nullable();
         $table->string('lname')->nullable();
+        $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
     });
     Schema::create('leave_types', function ($table) {
@@ -300,3 +301,236 @@ test('opening the modal preserves a previously synced type identity', function (
     expect(DB::table('leave_types')->where('name', $name)->count())->toBe(1);
     expect(DB::table('leave_types')->where('name', $name)->value('id'))->toEqual($typeId);
 })->with(['ลาคลอดบุตร', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร', 'ลาอุปสมบท', 'ลาศึกษา']);
+
+function leaveOfficeUser(?string $role, ?string $office): User
+{
+    $user = new User;
+    $user->forceFill(['id' => 3, 'name' => 'ผู้ทดสอบ', 'staff_type' => 'STAFF', 'role' => $role, 'office' => $office]);
+    $user->exists = true;
+
+    return $user;
+}
+
+/** @return array{int, int} Leave IDs for a person of office 01 and a person of office 02. */
+function seedLeavesInTwoOffices(): array
+{
+    DB::table('person')->where('cid', '1234567890123')->update(['office_id' => '01']);
+    DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02']);
+
+    return [
+        insertLeave(['external_name' => 'ผู้ลาหน่วยหนึ่ง']),
+        insertLeave(['cid' => '2222222222222', 'external_name' => 'ผู้ลาหน่วยสอง']),
+    ];
+}
+
+test('only ADMIN and LEAVE may open leave management', function () {
+    foreach (['FINANCE', 'PROMOTE', null] as $role) {
+        Livewire::actingAs(leaveOfficeUser($role, '00'))->test(LeaveManagement::class)->assertForbidden();
+    }
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '00'))->test(LeaveManagement::class)->assertOk();
+});
+
+test('ADMIN and LEAVE in office 00 see leave of every office', function (string $role, ?string $office) {
+    seedLeavesInTwoOffices();
+
+    Livewire::actingAs(leaveOfficeUser($role, $office))
+        ->test(LeaveManagement::class)
+        ->assertSee('ผู้ลาหน่วยหนึ่ง')
+        ->assertSee('ผู้ลาหน่วยสอง');
+})->with([
+    'ADMIN without an office' => ['ADMIN', null],
+    'ADMIN of another office' => ['ADMIN', '01'],
+    'LEAVE of office 00' => ['LEAVE', '00'],
+]);
+
+test('LEAVE of another office sees and searches only their own office', function () {
+    seedLeavesInTwoOffices();
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '01'))
+        ->test(LeaveManagement::class)
+        ->assertSee('ผู้ลาหน่วยหนึ่ง')
+        ->assertDontSee('ผู้ลาหน่วยสอง')
+        ->set('personSearch', 'ทดสอบ')
+        ->assertDontSee('บุคลากรหน่วยสอง');
+});
+
+test('LEAVE without an office sees no leave', function () {
+    seedLeavesInTwoOffices();
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', null))
+        ->test(LeaveManagement::class)
+        ->assertDontSee('ผู้ลาหน่วยหนึ่ง')
+        ->assertDontSee('ผู้ลาหน่วยสอง');
+});
+
+test('LEAVE of another office cannot edit, cancel, or create leave for another office', function () {
+    [, $otherOfficeLeave] = seedLeavesInTwoOffices();
+    $user = leaveOfficeUser('LEAVE', '01');
+
+    Livewire::actingAs($user)->test(LeaveManagement::class)->call('edit', $otherOfficeLeave)->assertNotFound();
+    Livewire::actingAs($user)->test(LeaveManagement::class)->call('prepareCancel', $otherOfficeLeave)->assertNotFound();
+    Livewire::actingAs($user)->test(LeaveManagement::class)->call('selectPerson', '2222222222222')->assertNotFound();
+
+    Livewire::actingAs($user)
+        ->test(LeaveManagement::class)
+        ->set('cid', '2222222222222')
+        ->set('leave_type_id', $this->sickLeaveId)
+        ->set('start_date', '2026-10-05')
+        ->set('end_date', '2026-10-05')
+        ->call('save')
+        ->assertHasErrors(['cid' => 'exists']);
+
+    expect(DB::table('leave_requests')->where('id', $otherOfficeLeave)->value('status'))->toBe('approved')
+        ->and(DB::table('leave_requests')->where('cid', '2222222222222')->count())->toBe(1);
+});
+
+test('LEAVE can add leave for personnel of their own office', function () {
+    seedLeavesInTwoOffices();
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '01'))
+        ->test(LeaveManagement::class)
+        ->call('selectPerson', '1234567890123')
+        ->set('leave_type_id', $this->sickLeaveId)
+        ->set('start_date', '2026-10-05')
+        ->set('end_date', '2026-10-05')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(DB::table('leave_requests')->where('cid', '1234567890123')->count())->toBe(2);
+});
+
+test('the leave register can be filtered by office', function () {
+    seedLeavesInTwoOffices();
+    DB::table('person')->where('office_id', '01')->update(['office_name' => 'หน่วยบริการหนึ่ง']);
+    DB::table('person')->where('office_id', '02')->update(['office_name' => 'หน่วยบริการสอง']);
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '00'))
+        ->test(LeaveManagement::class)
+        ->assertSee('ทุกต้นสังกัด')
+        ->assertSee('01 — หน่วยบริการหนึ่ง')
+        ->assertSee('02 — หน่วยบริการสอง')
+        ->set('officeFilter', '02')
+        ->assertSee('ผู้ลาหน่วยสอง')
+        ->assertDontSee('ผู้ลาหน่วยหนึ่ง')
+        ->set('officeFilter', '')
+        ->assertSee('ผู้ลาหน่วยหนึ่ง')
+        ->assertSee('ผู้ลาหน่วยสอง');
+});
+
+test('an office-scoped LEAVE user sees only their own office in the leave office filter', function () {
+    seedLeavesInTwoOffices();
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '01'))
+        ->test(LeaveManagement::class)
+        ->assertSee('01 — สสจ.')
+        ->assertDontSee('02 — ไม่ระบุชื่อต้นสังกัด')
+        ->set('officeFilter', '02')
+        ->assertDontSee('ผู้ลาหน่วยสอง');
+});
+
+test('the leave register can be filtered by Buddhist year and month including leaves spanning months', function () {
+    insertLeave(['external_name' => 'ลากันยายน', 'start_date' => '2026-09-01', 'end_date' => '2026-09-02']);
+    insertLeave(['external_name' => 'ลาคร่อมเดือน', 'start_date' => '2026-09-30', 'end_date' => '2026-10-01']);
+    insertLeave(['external_name' => 'ลาปีก่อน', 'start_date' => '2025-09-10', 'end_date' => '2025-09-10']);
+
+    Livewire::actingAs(leaveAdmin())
+        ->test(LeaveManagement::class)
+        ->assertSee('ทุกปี (พ.ศ.)')
+        ->assertSeeHtml('<option value="2026">2569</option>')
+        ->assertSeeHtml('<option value="2025">2568</option>')
+        ->set('yearFilter', '2026')
+        ->assertSee('ลากันยายน')
+        ->assertSee('ลาคร่อมเดือน')
+        ->assertDontSee('ลาปีก่อน')
+        ->set('monthFilter', '10')
+        ->assertSee('ลาคร่อมเดือน')
+        ->assertDontSee('ลากันยายน')
+        ->set('yearFilter', '')
+        ->set('monthFilter', '9')
+        ->assertSee('ลากันยายน')
+        ->assertSee('ลาคร่อมเดือน')
+        ->assertSee('ลาปีก่อน');
+});
+
+test('only ADMIN and office 00 LEAVE users may sync leave from Google Sheets', function (?string $role, ?string $office, bool $allowed) {
+    $user = leaveOfficeUser($role, $office);
+
+    expect(\App\Support\AdminAccess::allows($user, 'leave-sync'))->toBe($allowed);
+
+    $response = $this->actingAs($user)->get(route('admin.leave-sheet-sync'));
+    $allowed ? $response->assertOk() : $response->assertForbidden();
+
+    if ($allowed) {
+        Livewire::actingAs($user)->test(\App\Livewire\Admin\LeaveSheetSync::class)->assertOk();
+    } else {
+        Livewire::actingAs($user)->test(\App\Livewire\Admin\LeaveSheetSync::class)->assertForbidden();
+    }
+})->with([
+    'ADMIN without an office' => ['ADMIN', null, true],
+    'ADMIN of another office' => ['ADMIN', '01', true],
+    'LEAVE of office 00' => ['LEAVE', '00', true],
+    'LEAVE of another office' => ['LEAVE', '01', false],
+    'LEAVE without an office' => ['LEAVE', null, false],
+    'FINANCE of office 00' => ['FINANCE', '00', false],
+]);
+
+test('the leave register shows the sync button only to users who may sync', function () {
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '00'))
+        ->test(LeaveManagement::class)
+        ->assertSee('ดึงประวัติการลา')
+        ->assertSeeHtml(route('admin.leave-sheet-sync'));
+
+    Livewire::actingAs(leaveOfficeUser('LEAVE', '01'))
+        ->test(LeaveManagement::class)
+        ->assertDontSee('ดึงประวัติการลา')
+        ->assertDontSeeHtml(route('admin.leave-sheet-sync'));
+});
+
+test('an office-scoped LEAVE user cannot run a sync from an already open component', function () {
+    $component = Livewire::actingAs(leaveOfficeUser('LEAVE', '00'))
+        ->test(\App\Livewire\Admin\LeaveSheetSync::class)
+        ->set('sheetUrl', 'https://docs.google.com/spreadsheets/d/test/edit');
+    \Illuminate\Support\Facades\Auth::setUser(leaveOfficeUser('LEAVE', '01'));
+
+    $component->call('syncFromGoogleSheet')->assertForbidden();
+
+    expect(DB::table('leave_sync_runs')->count())->toBe(0);
+});
+
+test('the add-leave person search lists only personnel the user may manage', function (?string $role, ?string $office, bool $seesOfficeOne, bool $seesOfficeTwo) {
+    DB::table('person')->insert([
+        ['cid' => '1111111111111', 'fname' => 'คนหน่วยหนึ่ง', 'lname' => 'ค้นหาร่วม', 'office_id' => '01', 'office_name' => 'หน่วยหนึ่ง'],
+        ['cid' => '2222222222222', 'fname' => 'คนหน่วยสอง', 'lname' => 'ค้นหาร่วม', 'office_id' => '02', 'office_name' => 'หน่วยสอง'],
+    ]);
+
+    $component = Livewire::actingAs(leaveOfficeUser($role, $office))
+        ->test(LeaveManagement::class)
+        ->set('personSearch', 'ค้นหาร่วม');
+
+    $seesOfficeOne ? $component->assertSee('คนหน่วยหนึ่ง') : $component->assertDontSee('คนหน่วยหนึ่ง');
+    $seesOfficeTwo ? $component->assertSee('คนหน่วยสอง') : $component->assertDontSee('คนหน่วยสอง');
+})->with([
+    'ADMIN of another office' => ['ADMIN', '01', true, true],
+    'LEAVE of office 00' => ['LEAVE', '00', true, true],
+    'LEAVE of office 01' => ['LEAVE', '01', true, false],
+    'LEAVE without an office' => ['LEAVE', null, false, false],
+]);
+
+test('the leave register joins person only when an office condition needs it', function (?string $role, ?string $office, string $officeFilter, bool $joinsPerson) {
+    seedLeavesInTwoOffices();
+    $component = Livewire::actingAs(leaveOfficeUser($role, $office))->test(LeaveManagement::class);
+
+    DB::flushQueryLog();
+    DB::enableQueryLog();
+    $component->set('officeFilter', $officeFilter)->call('$refresh');
+    $leaveQueries = collect(DB::getQueryLog())->pluck('query')->filter(fn ($sql) => str_contains($sql, '"leave_requests" as "requests"'));
+
+    expect($leaveQueries)->not->toBeEmpty()
+        ->and($leaveQueries->contains(fn ($sql) => str_contains($sql, '"person" as "owner"')))->toBe($joinsPerson);
+})->with([
+    'ADMIN without a filter' => ['ADMIN', null, '', false],
+    'office 00 without a filter' => ['LEAVE', '00', '', false],
+    'office 00 filtering by office' => ['LEAVE', '00', '02', true],
+    'office-scoped user' => ['LEAVE', '01', '', true],
+]);

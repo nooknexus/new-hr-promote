@@ -57,7 +57,7 @@ class UserManagement extends Component
     {
         $service->updateOffice((int) Auth::id(), $userId, $office === '' ? null : $office);
         $this->resetErrorBag();
-        $this->dispatch('user-access-saved', message: 'บันทึกหน่วยงานผู้ใช้แล้ว');
+        $this->dispatch('user-access-saved', message: 'บันทึกต้นสังกัดผู้ใช้แล้ว');
     }
 
     public function requestStatusChange(int $userId, bool $active): void
@@ -93,9 +93,10 @@ class UserManagement extends Component
 
         return view('livewire.admin.user-management', [
             'users' => DB::table('users')
-                ->select(['id', 'name', 'email', 'role', 'office', 'is_active'])
+                ->select(['id', 'name', 'hname', 'role', 'office', 'is_active'])
                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('hname', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 }))
                 ->when($this->roleFilter === 'none', fn ($query) => $query->whereNull('role'))

@@ -44,8 +44,14 @@ class SalaryPromotionImportService
 
     private const MONEY = ['before_salary', 'base', 'percent', 'sum', 'extra', 'new_salary'];
 
-    /** @return array{rows: array<int, array<string, mixed>>, insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, warnings: array<int, string>, errors: array<int, string>, baseline_hash: string} */
-    public function preview(string $path): array
+    /** Workbook fields copied onto the matching person row; blank cells keep the stored value. */
+    private const PERSON_FIELDS = ['no_position' => 'no_position', 'position' => 'position', 'level' => 'position_level'];
+
+    /**
+     * @param  string|null  $officeScope  When set, rows for personnel outside this office are skipped; null keeps every row.
+     * @return array{rows: array<int, array<string, mixed>>, insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, skipped_count: int, warnings: array<int, string>, errors: array<int, string>, baseline_hash: string}
+     */
+    public function preview(string $path, ?string $officeScope = null): array
     {
         if (! is_file($path) || filesize($path) > 10 * 1024 * 1024) {
             throw ValidationException::withMessages(['file' => 'ไฟล์ไม่ถูกต้องหรือมีขนาดเกิน 10 MB']);
@@ -76,6 +82,7 @@ class SalaryPromotionImportService
                 'update_count' => 0,
                 'unmatched_person_count' => 0,
                 'unmatched_user_count' => 0,
+                'skipped_count' => 0,
                 'warnings' => [],
                 'errors' => [],
             ];
@@ -92,6 +99,12 @@ class SalaryPromotionImportService
                     $result['errors'][] = "แถว {$number}: {$error}";
                 }
                 if ($errors !== []) {
+                    continue;
+                }
+
+                if ($officeScope !== null && ($officeScope === ''
+                    || DB::table('person')->where('cid', $row['cid'])->value('office_id') !== $officeScope)) {
+                    $result['skipped_count']++;
                     continue;
                 }
 
@@ -113,11 +126,13 @@ class SalaryPromotionImportService
 
                 $person = null;
                 $user = null;
-                if ($row['no_position'] !== null) {
-                    $person = DB::table('person')->where('cid', $row['cid'])->first(['cid', 'no_position']);
+                if ($this->personUpdates($row) !== []) {
+                    $person = DB::table('person')->where('cid', $row['cid'])->first(['cid', ...array_values(self::PERSON_FIELDS)]);
                     if ($person === null) {
                         $result['unmatched_person_count']++;
                     }
+                }
+                if ($row['no_position'] !== null) {
                     $users = DB::table('users')->where('pid', $row['cid'])
                         ->orWhere('thaid_pid', $row['cid'])->get(['id', 'no_position']);
                     if ($users->count() > 1) {
@@ -147,11 +162,11 @@ class SalaryPromotionImportService
         }
     }
 
-    /** @return array{insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int} */
-    public function commit(string $path, int $actorId, string $expectedBaselineHash): array
+    /** @return array{insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, skipped_count: int} */
+    public function commit(string $path, int $actorId, string $expectedBaselineHash, ?string $officeScope = null): array
     {
-        return DB::transaction(function () use ($path, $actorId, $expectedBaselineHash): array {
-            $preview = $this->preview($path);
+        return DB::transaction(function () use ($path, $actorId, $expectedBaselineHash, $officeScope): array {
+            $preview = $this->preview($path, $officeScope);
             if ($preview['errors'] !== []) {
                 throw ValidationException::withMessages([
                     'file' => implode(' | ', array_slice($preview['errors'], 0, 10)),
@@ -166,19 +181,27 @@ class SalaryPromotionImportService
                 'update_count' => 0,
                 'unmatched_person_count' => 0,
                 'unmatched_user_count' => 0,
+                'skipped_count' => $preview['skipped_count'],
             ];
             $lockedBaselines = [];
-            $identityBaselines = [];
+            // First-seen hashes per CID, so a later row for the same person compares
+            // against the state the preview saw rather than this import's own writes.
+            $personBaselines = [];
+            $userBaselines = [];
 
             foreach ($preview['rows'] as $row) {
                 $person = null;
                 $user = null;
-                if ($row['no_position'] !== null) {
+                $personUpdates = $this->personUpdates($row);
+                if ($personUpdates !== []) {
                     $person = DB::table('person')->where('cid', $row['cid'])
-                        ->lockForUpdate()->first(['cid', 'no_position']);
+                        ->lockForUpdate()->first(['cid', ...array_values(self::PERSON_FIELDS)]);
                     if ($person === null) {
                         $result['unmatched_person_count']++;
                     }
+                    $personBaselines[$row['cid']] ??= $this->recordHash($person);
+                }
+                if ($row['no_position'] !== null) {
                     $users = DB::table('users')->where('pid', $row['cid'])
                         ->orWhere('thaid_pid', $row['cid'])
                         ->lockForUpdate()->get(['id', 'no_position']);
@@ -189,10 +212,7 @@ class SalaryPromotionImportService
                     if ($user === null) {
                         $result['unmatched_user_count']++;
                     }
-                    $identityBaselines[$row['cid']] ??= [
-                        'person' => $this->recordHash($person),
-                        'user' => $this->recordHash($user),
-                    ];
+                    $userBaselines[$row['cid']] ??= $this->recordHash($user);
                 }
 
                 $promotionQuery = DB::table('data_promote')
@@ -203,9 +223,11 @@ class SalaryPromotionImportService
                     throw ValidationException::withMessages(['file' => 'รายการเดิมถูกยกเลิกหลังแสดงตัวอย่าง']);
                 }
                 $lockedBaseline = $this->rowBaseline($existing, $person, $user);
-                if (isset($identityBaselines[$row['cid']])) {
-                    $lockedBaseline['person'] = $identityBaselines[$row['cid']]['person'];
-                    $lockedBaseline['user'] = $identityBaselines[$row['cid']]['user'];
+                if ($personUpdates !== []) {
+                    $lockedBaseline['person'] = $personBaselines[$row['cid']];
+                }
+                if ($row['no_position'] !== null) {
+                    $lockedBaseline['user'] = $userBaselines[$row['cid']];
                 }
                 $lockedBaselines[$row['cid'].'|'.$row['evaluation_date']] = $lockedBaseline;
 
@@ -227,6 +249,8 @@ class SalaryPromotionImportService
                 $before = [
                     'promotion' => $existing === null ? null : array_intersect_key((array) $existing, $values),
                     'person_no_position' => $person?->no_position,
+                    'person_position' => $person?->position,
+                    'person_position_level' => $person?->position_level,
                     'user_no_position' => $user?->no_position,
                 ];
 
@@ -241,17 +265,17 @@ class SalaryPromotionImportService
                     $result['insert_count']++;
                 }
 
-                if ($row['no_position'] !== null) {
-                    if ($person) {
-                        DB::table('person')->where('cid', $row['cid'])->update(['no_position' => $row['no_position']]);
-                    }
-                    if ($user) {
-                        DB::table('users')->where('id', $user->id)->update(['no_position' => $row['no_position']]);
-                    }
+                if ($person) {
+                    DB::table('person')->where('cid', $row['cid'])->update($personUpdates);
+                }
+                if ($user) {
+                    DB::table('users')->where('id', $user->id)->update(['no_position' => $row['no_position']]);
                 }
                 $after = [
                     'promotion' => array_diff_key($values, ['CID' => true]),
-                    'person_no_position' => $person ? $row['no_position'] : null,
+                    'person_no_position' => $person ? ($personUpdates['no_position'] ?? $person->no_position) : null,
+                    'person_position' => $person ? ($personUpdates['position'] ?? $person->position) : null,
+                    'person_position_level' => $person ? ($personUpdates['position_level'] ?? $person->position_level) : null,
                     'user_no_position' => $user ? $row['no_position'] : null,
                 ];
 
@@ -270,6 +294,19 @@ class SalaryPromotionImportService
 
             return $result;
         });
+    }
+
+    /** @return array<string, string> person columns to update from this row's non-blank cells */
+    private function personUpdates(array $row): array
+    {
+        $updates = [];
+        foreach (self::PERSON_FIELDS as $field => $column) {
+            if (($row[$field] ?? null) !== null) {
+                $updates[$column] = $row[$field];
+            }
+        }
+
+        return $updates;
     }
 
     private function rowBaseline(?object $promotion, ?object $person, ?object $user): array
@@ -344,6 +381,8 @@ class SalaryPromotionImportService
             'cid' => $values['cid'] ?? '',
             'evaluation_date' => $values['evaluation_date'] ?? null,
             'no_position' => ($values['no_position'] ?? '') === '' ? null : $values['no_position'],
+            'position' => ($values['position'] ?? '') === '' ? null : $values['position'],
+            'level' => ($values['level'] ?? '') === '' ? null : $values['level'],
             'promote' => strtoupper($values['promote'] ?? ''),
             'ps' => $values['ps'] ?? null,
             'office' => $values['office'] ?? null,
@@ -362,7 +401,7 @@ class SalaryPromotionImportService
         if ($row['no_position'] !== null && mb_strlen($row['no_position']) > 255) {
             $errors[] = 'เลขตำแหน่งยาวเกิน 255 ตัวอักษร';
         }
-        foreach (['ps', 'office', 'department'] as $field) {
+        foreach (['ps', 'office', 'department', 'position', 'level'] as $field) {
             if (mb_strlen((string) $row[$field]) > 255) {
                 $errors[] = "{$field} ยาวเกิน 255 ตัวอักษร";
             }

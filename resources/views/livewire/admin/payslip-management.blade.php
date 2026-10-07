@@ -1,11 +1,23 @@
-<div class="space-y-8">
+<div class="space-y-6">
+    <header>
+        <p class="text-sm font-semibold text-brand-700">จัดการข้อมูล</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">จัดการข้อมูลสลิปเงินเดือน</h1>
+        <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">นำเข้า ตรวจสอบ และค้นหาข้อมูลสลิปเงินเดือนของบุคลากร</p>
+    </header>
 
     <!-- Card 1: Import -->
     <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 class="text-lg font-bold text-emerald-800">นำเข้าสลิปเงินเดือน</h2>
-        <p class="mt-2 text-sm text-slate-500">
-            รองรับไฟล์ข้อมูล <strong>.txt</strong> (จากกรมบัญชีกลางรูปแบบเดิม) หรือ <strong>.xlsx</strong> (ใช้ไฟล์ Excel <a href="{{ route('admin.payslips.template') }}" class="text-emerald-600 underline font-medium">ดาวน์โหลดเทมเพลตที่นี่</a>)
-        </p>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+                <h2 class="text-lg font-bold text-emerald-800">นำเข้าสลิปเงินเดือน</h2>
+                <p class="mt-2 text-sm text-slate-500">
+                    รองรับไฟล์ข้อมูล <strong>.txt</strong> (จากกรมบัญชีกลางรูปแบบเดิม) หรือ <strong>.xlsx</strong> (ใช้ไฟล์ Excel ตาม template)
+                </p>
+            </div>
+            <a href="{{ route('admin.payslips.template') }}" class="btn btn-secondary shrink-0">
+                <i class="fas fa-file-download" aria-hidden="true"></i><span>ดาวน์โหลด template</span>
+            </a>
+        </div>
 
         <form wire:submit.prevent="import" class="mt-6">
             <div class="mb-2">
@@ -39,7 +51,11 @@
                     <div class="ml-3">
                         <h3 class="text-sm font-medium text-emerald-800">นำเข้าข้อมูลเสร็จสิ้น</h3>
                         <div class="mt-2 text-sm text-emerald-700">
-                            <p>สำเร็จ: <span class="font-bold">{{ $importResult['success'] }}</span> รายการ | ไม่สำเร็จ (ข้อมูลไม่ครบ/ผิดรูปแบบ): <span class="font-bold text-rose-600">{{ $importResult['failed'] }}</span> รายการ</p>
+                            <p>สำเร็จ: <span class="font-bold">{{ $importResult['success'] }}</span> รายการ | ไม่สำเร็จ (ข้อมูลไม่ครบ/ผิดรูปแบบ): <span class="font-bold text-rose-600">{{ $importResult['failed'] }}</span> รายการ
+                                @if(($importResult['skipped'] ?? 0) > 0)
+                                    | ข้าม (ไม่ใช่บุคลากรในหน่วยงาน): <span class="font-bold">{{ $importResult['skipped'] }}</span> รายการ
+                                @endif
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -48,21 +64,12 @@
         </form>
     </div>
 
-    <!-- Section 2: Header -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-            <h2 class="text-sm font-bold text-emerald-700">จัดการข้อมูล</h2>
-            <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">จัดการข้อมูลสลิปเงินเดือน</h1>
-            <p class="mt-1 text-sm text-slate-500">ตรวจสอบและจัดการข้อมูลสลิปเงินเดือนที่นำเข้าแล้ว</p>
-        </div>
-    </div>
-
     <!-- Card 3: Table and Filters -->
     <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div class="p-6 border-b border-slate-200">
             <h2 class="text-lg font-bold text-emerald-800 mb-4">ทะเบียนสลิปเงินเดือน</h2>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                 <select wire:model.live="searchYear" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm">
                     <option value="">ทุกปี (พ.ศ.)</option>
                     @for($y = (date('Y') + 543) + 1; $y >= 2560; $y--)
@@ -84,6 +91,14 @@
                     <option value="10">ตุลาคม</option>
                     <option value="11">พฤศจิกายน</option>
                     <option value="12">ธันวาคม</option>
+                </select>
+
+                <label for="payslip-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
+                <select id="payslip-office-filter" wire:model.live="officeFilter" class="block w-full rounded-md border-slate-300 shadow-sm focus:border-emerald-500 focus:ring-emerald-500 sm:text-sm">
+                    <option value="">ทุกต้นสังกัด</option>
+                    @foreach($this->offices as $office)
+                        <option value="{{ $office->office_id }}">{{ $office->office_id }} — {{ $office->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>
+                    @endforeach
                 </select>
             </div>
 

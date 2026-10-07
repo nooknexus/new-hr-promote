@@ -17,6 +17,7 @@ beforeEach(function () {
         $table->string('pname')->nullable();
         $table->string('fname')->nullable();
         $table->string('lname')->nullable();
+        $table->string('office_id', 2)->nullable();
     });
 
     Schema::create('data_tax', function (Blueprint $table) {
@@ -54,13 +55,14 @@ afterEach(function () {
     Schema::dropIfExists('person');
 });
 
-function taxManagementActor(string $role): User
+function taxManagementActor(string $role, ?string $office = '00'): User
 {
     $user = new User;
     $user->forceFill([
         'id' => 91,
         'name' => 'ผู้ทดสอบการเงิน',
         'role' => $role,
+        'office' => $office,
     ]);
     $user->exists = true;
 
@@ -464,4 +466,96 @@ test('management view uses application modals and toast events for successful mu
         ->toContain('data-modal-close')
         ->toContain('value="tis-620"')
         ->toContain('value="utf-8"');
+});
+
+function seedTaxCertificatesInTwoOffices(): void
+{
+    DB::table('person')->insert([
+        ['cid' => '1111111111111', 'fname' => 'บุคลากรหน่วยหนึ่ง', 'office_id' => '01'],
+        ['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'office_id' => '02'],
+    ]);
+    DB::table('data_tax')->insert([
+        taxManagementRecord(['cid' => '1111111111111', 'running_code1' => 'TC-OFFICE-01']),
+        taxManagementRecord(['cid' => '2222222222222', 'running_code1' => 'TC-OFFICE-02']),
+    ]);
+}
+
+test('ADMIN and FINANCE in office 00 see tax certificates of every office', function (string $role, ?string $office) {
+    seedTaxCertificatesInTwoOffices();
+
+    Livewire::actingAs(taxManagementActor($role, $office))
+        ->test(TaxCertificateManagement::class)
+        ->assertSee('TC-OFFICE-01')
+        ->assertSee('TC-OFFICE-02');
+})->with([
+    'ADMIN without an office' => ['ADMIN', null],
+    'ADMIN of another office' => ['ADMIN', '01'],
+    'FINANCE of office 00' => ['FINANCE', '00'],
+]);
+
+test('FINANCE of another office sees only tax certificates of their own office', function () {
+    seedTaxCertificatesInTwoOffices();
+
+    Livewire::actingAs(taxManagementActor('FINANCE', '01'))
+        ->test(TaxCertificateManagement::class)
+        ->assertSee('TC-OFFICE-01')
+        ->assertDontSee('TC-OFFICE-02');
+});
+
+test('FINANCE without an office sees no tax certificates', function () {
+    seedTaxCertificatesInTwoOffices();
+
+    Livewire::actingAs(taxManagementActor('FINANCE', null))
+        ->test(TaxCertificateManagement::class)
+        ->assertDontSee('TC-OFFICE-01')
+        ->assertDontSee('TC-OFFICE-02');
+});
+
+test('FINANCE of another office cannot edit, delete, or add certificates for another office', function () {
+    seedTaxCertificatesInTwoOffices();
+    $finance = taxManagementActor('FINANCE', '01');
+
+    Livewire::actingAs($finance)->test(TaxCertificateManagement::class)
+        ->call('edit', '2222222222222', 2567)->assertNotFound();
+    Livewire::actingAs($finance)->test(TaxCertificateManagement::class)
+        ->call('confirmDelete', '2222222222222', 2567)->assertNotFound();
+
+    $component = Livewire::actingAs($finance)->test(TaxCertificateManagement::class);
+    foreach (taxManagementRecord(['cid' => '2222222222222', 'income_year' => 2568]) as $field => $value) {
+        if (property_exists(TaxCertificateManagement::class, $field)) {
+            $component->set($field, (string) $value);
+        }
+    }
+    $component->call('save')->assertHasErrors('cid');
+
+    expect(DB::table('data_tax')->where('cid', '2222222222222')->count())->toBe(1);
+});
+
+test('an office-scoped TXT import skips personnel outside the importing office', function () {
+    DB::table('person')->insert([
+        ['cid' => '1111111111111', 'office_id' => '01'],
+        ['cid' => '2222222222222', 'office_id' => '02'],
+    ]);
+    $contents = implode("\n", [
+        taxManagementTxtRecord([4 => '1111111111111']),
+        taxManagementTxtRecord([4 => '2222222222222']),
+        taxManagementTxtRecord([4 => '3333333333333']),
+    ])."\n";
+
+    $component = Livewire::actingAs(taxManagementActor('FINANCE', '01'))
+        ->test(TaxCertificateManagement::class)
+        ->set('importEncoding', 'utf-8')
+        ->set('importFile', taxManagementTxtUpload($contents))
+        ->call('previewImport')
+        ->assertSet('importPreviewReady', true)
+        ->assertSee('ข้าม ไม่ใช่บุคลากรในหน่วยงาน')
+        ->assertDontSee('2222222222222');
+
+    expect($component->get('importPreview'))->toMatchArray(['read' => 3, 'valid' => 1, 'skipped' => 2]);
+
+    $component->call('confirmImport')
+        ->assertHasNoErrors()
+        ->assertDispatched('tax-certificate-import-saved', message: 'นำเข้าใบรับรองภาษีแล้ว เพิ่มใหม่ 1 ปรับปรุง 0 ข้าม 2 รายการ');
+
+    expect(DB::table('data_tax')->pluck('cid')->all())->toBe(['1111111111111']);
 });

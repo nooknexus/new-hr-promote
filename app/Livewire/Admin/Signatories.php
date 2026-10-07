@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\PayslipSignatory;
 use App\Support\AdminAccess;
+use App\Support\OfficeScope;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -64,8 +65,23 @@ class Signatories extends Component
         return "1 ต.ค. {$startYear} - 30 ก.ย. {$endYear} (ปีงบประมาณ {$fiscalYear})";
     }
 
+    /**
+     * Signatories are shared by every office, so only unrestricted users (ADMIN or
+     * office 00) may change them; other FINANCE users have read-only access.
+     */
+    public function canManage(): bool
+    {
+        return OfficeScope::officeFor(Auth::user()) === null;
+    }
+
+    private function ensureCanManage(): void
+    {
+        abort_unless($this->canManage(), 403);
+    }
+
     public function openCreateModal(): void
     {
+        $this->ensureCanManage();
         $this->resetForm();
         $this->fiscal_year = $this->currentFiscalYear();
         $this->showFormModal = true;
@@ -73,6 +89,7 @@ class Signatories extends Component
 
     public function edit(int $id): void
     {
+        $this->ensureCanManage();
         $signatory = PayslipSignatory::findOrFail($id);
 
         $this->editingId = $signatory->id;
@@ -87,6 +104,7 @@ class Signatories extends Component
 
     public function save(): void
     {
+        $this->ensureCanManage();
         $validated = $this->validate();
 
         $data = [
@@ -113,6 +131,7 @@ class Signatories extends Component
 
     public function delete(int $id): void
     {
+        $this->ensureCanManage();
         PayslipSignatory::findOrFail($id)->delete();
     }
 

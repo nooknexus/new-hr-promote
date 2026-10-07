@@ -2,9 +2,13 @@
 
 namespace App\Livewire\Admin;
 
+use App\Support\AdminAccess;
+use App\Support\OfficeScope;
+use Illuminate\Database\Query\Builder;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
@@ -21,6 +25,12 @@ class PayslipManagement extends Component
     public $searchYear = '';
     public $searchMonth = '';
     public $search = '';
+    public $officeFilter = '';
+
+    public function boot(): void
+    {
+        abort_unless(AdminAccess::allows(Auth::user(), 'payslip'), 403);
+    }
 
     public function updatedSearchYear()
     {
@@ -37,13 +47,44 @@ class PayslipManagement extends Component
         $this->resetPage();
     }
 
+    public function updatedOfficeFilter()
+    {
+        $this->resetPage();
+    }
+
+    /** Offices the current user may filter by. */
+    #[Computed]
+    public function offices()
+    {
+        return OfficeScope::apply(DB::table('person'), Auth::user())
+            ->whereNotNull('office_id')
+            ->where('office_id', '!=', '')
+            ->select('office_id', DB::raw('MAX(office_name) as office_name'))
+            ->groupBy('office_id')
+            ->orderBy('office_id')
+            ->get();
+    }
+
     public function mount()
     {
         // ตั้งค่าเริ่มต้นเป็น ปี และ เดือน ล่าสุดที่มีข้อมูล
-        $latest = DB::table('data_salary')
-            ->select('yearNO', 'monthNO')
-            ->orderBy('yearNO', 'desc')
-            ->orderBy('monthNO', 'desc')
+        $this->selectLatestPeriod();
+    }
+
+    /** Payslips joined to the personnel the current user may manage. */
+    private function scopedPayslips(): Builder
+    {
+        $query = DB::table('data_salary')->leftJoin('person', 'data_salary.cid', '=', 'person.cid');
+
+        return OfficeScope::apply($query, Auth::user(), 'person.office_id');
+    }
+
+    private function selectLatestPeriod(): void
+    {
+        $latest = $this->scopedPayslips()
+            ->select('data_salary.yearNO', 'data_salary.monthNO')
+            ->orderBy('data_salary.yearNO', 'desc')
+            ->orderBy('data_salary.monthNO', 'desc')
             ->first();
 
         if ($latest) {
@@ -55,8 +96,7 @@ class PayslipManagement extends Component
     #[Computed]
     public function payslips()
     {
-        $query = DB::table('data_salary')
-            ->leftJoin('person', 'data_salary.cid', '=', 'person.cid')
+        $query = $this->scopedPayslips()
             ->select('data_salary.*', 'person.pname', 'person.fname', 'person.lname')
             ->orderBy('data_salary.yearNO', 'desc')
             ->orderBy('data_salary.monthNO', 'desc');
@@ -66,6 +106,9 @@ class PayslipManagement extends Component
         }
         if ($this->searchMonth) {
             $query->where('data_salary.monthNO', str_pad($this->searchMonth, 2, '0', STR_PAD_LEFT));
+        }
+        if (trim((string) $this->officeFilter) !== '') {
+            $query->where('person.office_id', trim((string) $this->officeFilter));
         }
         if (trim($this->search)) {
             $search = trim($this->search);
@@ -171,7 +214,13 @@ class PayslipManagement extends Component
             $extension = strtolower($this->fileUpload->getClientOriginalExtension());
             $success = 0;
             $failed = 0;
+            $skipped = 0;
             $total = 0;
+            $office = OfficeScope::officeFor(Auth::user());
+            // Office-scoped users may import only personnel of their own office; other rows are skipped.
+            $allowedCids = $office === null
+                ? null
+                : DB::table('person')->where('office_id', $office)->where('office_id', '!=', '')->pluck('cid')->flip();
 
             DB::beginTransaction();
 
@@ -193,6 +242,11 @@ class PayslipManagement extends Component
                     }
 
                     $total++;
+
+                    if ($allowedCids !== null && ! $allowedCids->has(trim($column[1]))) {
+                        $skipped++;
+                        continue;
+                    }
 
                     $record = [
                         'pname' => $column[2] ?? null,
@@ -295,6 +349,11 @@ class PayslipManagement extends Component
 
                     $total++;
 
+                    if ($allowedCids !== null && ! $allowedCids->has($cidData)) {
+                        $skipped++;
+                        continue;
+                    }
+
                     $record = [
                         'ministry' => $objArr[6],
                         'depart' => $objArr[7],
@@ -393,23 +452,18 @@ class PayslipManagement extends Component
             $this->importResult = [
                 'success' => $success,
                 'failed' => $failed,
+                'skipped' => $skipped,
                 'total' => $total
             ];
 
             $this->reset('fileUpload');
+            $this->selectLatestPeriod();
 
-            $latest = DB::table('data_salary')
-                ->select('yearNO', 'monthNO')
-                ->orderBy('yearNO', 'desc')
-                ->orderBy('monthNO', 'desc')
-                ->first();
-
-            if ($latest) {
-                $this->searchYear = $latest->yearNO;
-                $this->searchMonth = $latest->monthNO;
+            $message = "นำเข้าข้อมูลสำเร็จ ($success รายการ)";
+            if ($skipped > 0) {
+                $message .= " ข้ามบุคลากรนอกหน่วยงาน $skipped รายการ";
             }
-
-            $this->dispatch('toast', message: "นำเข้าข้อมูลสำเร็จ ($success รายการ)");
+            $this->dispatch('toast', message: $message);
 
         } catch (\Exception $e) {
             DB::rollBack();

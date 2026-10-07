@@ -229,3 +229,143 @@ test('only an administrator can open personnel management and download its Excel
         ->assertOk()
         ->assertDownload('personnel-import-template.xlsx');
 });
+
+function personnelOfficeAdmin(?string $office): User
+{
+    $user = personnelAdmin();
+    $user->forceFill(['role' => 'LEAVE', 'office' => $office]);
+
+    return $user;
+}
+
+function seedPersonnelInTwoOffices(): void
+{
+    DB::table('person')->insert([
+        ['cid' => '1111111111111', 'fname' => 'บุคลากรหน่วยหนึ่ง', 'lname' => 'ทดสอบ', 'office_id' => '01', 'office_name' => 'หน่วยบริการหนึ่ง'],
+        ['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02', 'office_name' => 'หน่วยบริการสอง'],
+    ]);
+}
+
+test('an ADMIN sees personnel of every office regardless of their assigned office', function () {
+    seedPersonnelInTwoOffices();
+
+    foreach ([null, '01'] as $office) {
+        $admin = personnelAdmin();
+        $admin->forceFill(['office' => $office]);
+
+        Livewire::actingAs($admin)
+            ->test(PersonnelManagement::class)
+            ->assertSee('บุคลากรหน่วยหนึ่ง')
+            ->assertSee('บุคลากรหน่วยสอง');
+    }
+});
+
+test('a user assigned to office 00 sees personnel of every office', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin('00'))
+        ->test(PersonnelManagement::class)
+        ->assertSee('บุคลากรหน่วยหนึ่ง')
+        ->assertSee('บุคลากรหน่วยสอง');
+});
+
+test('a user assigned to another office sees only personnel and offices of their own office', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->assertSee('บุคลากรหน่วยหนึ่ง')
+        ->assertDontSee('บุคลากรหน่วยสอง')
+        ->assertDontSee('หน่วยบริการสอง')
+        ->set('officeFilter', '02')
+        ->assertDontSee('บุคลากรหน่วยสอง');
+});
+
+test('a user without an assigned office sees no personnel', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin(null))
+        ->test(PersonnelManagement::class)
+        ->assertDontSee('บุคลากรหน่วยหนึ่ง')
+        ->assertDontSee('บุคลากรหน่วยสอง');
+});
+
+test('an office-scoped user cannot edit or delete personnel of another office', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->call('edit', '2222222222222')
+        ->assertNotFound();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->call('prepareDelete', '2222222222222')
+        ->assertNotFound();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->set('pendingDeletionCid', '2222222222222')
+        ->call('deletePersonnel')
+        ->assertNotFound();
+
+    expect(DB::table('person')->where('cid', '2222222222222')->exists())->toBeTrue();
+});
+
+test('an office-scoped user can only save personnel into their own office', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->call('edit', '1111111111111')
+        ->set('office_id', '02')
+        ->call('save')
+        ->assertHasErrors(['office_id' => 'in']);
+
+    expect(DB::table('person')->where('cid', '1111111111111')->value('office_id'))->toBe('01');
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->set('cid', '3333333333333')
+        ->set('fname', 'เพิ่มใหม่')
+        ->set('lname', 'ทดสอบ')
+        ->set('office_id', '01')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(DB::table('person')->where('cid', '3333333333333')->value('office_id'))->toBe('01');
+});
+
+test('the office filter is labelled ต้นสังกัด and lists only the user own office when scoped', function () {
+    seedPersonnelInTwoOffices();
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->assertSee('กรองตามต้นสังกัด')
+        ->assertSee('ทุกต้นสังกัด')
+        ->assertSeeHtml('<option value="01">')
+        ->assertDontSeeHtml('<option value="02">');
+});
+
+test('the personnel list can be filtered by employment type within the user office scope', function () {
+    DB::table('person')->insert([
+        ['cid' => '1111111111111', 'fname' => 'ข้าราชการหน่วยหนึ่ง', 'lname' => 'ทดสอบ', 'type_id' => 1, 'type_name' => 'ข้าราชการ', 'office_id' => '01'],
+        ['cid' => '2222222222222', 'fname' => 'พนักงานราชการหน่วยหนึ่ง', 'lname' => 'ทดสอบ', 'type_id' => 3, 'type_name' => 'พนักงานราชการ', 'office_id' => '01'],
+        ['cid' => '3333333333333', 'fname' => 'ข้าราชการหน่วยสอง', 'lname' => 'ทดสอบ', 'type_id' => 1, 'type_name' => 'ข้าราชการ', 'office_id' => '02'],
+    ]);
+
+    Livewire::actingAs(personnelOfficeAdmin('01'))
+        ->test(PersonnelManagement::class)
+        ->assertSee('ทุกประเภทการจ้าง')
+        ->assertSeeHtml('<option value="3">พนักงานราชการ</option>')
+        ->set('typeFilter', '1')
+        ->assertSee('ข้าราชการหน่วยหนึ่ง')
+        ->assertDontSee('พนักงานราชการหน่วยหนึ่ง')
+        ->assertDontSee('ข้าราชการหน่วยสอง')
+        ->set('typeFilter', '3')
+        ->assertSee('พนักงานราชการหน่วยหนึ่ง')
+        ->assertDontSee('ข้าราชการหน่วยหนึ่ง')
+        ->set('typeFilter', '')
+        ->assertSee('ข้าราชการหน่วยหนึ่ง')
+        ->assertSee('พนักงานราชการหน่วยหนึ่ง');
+});

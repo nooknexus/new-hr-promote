@@ -37,6 +37,8 @@ beforeEach(function () {
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
         $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
     });
     Schema::create('users', function (Blueprint $table) {
         $table->id();
@@ -55,10 +57,10 @@ beforeEach(function () {
     });
 });
 
-function salaryImportActor(string $role): User
+function salaryImportActor(string $role, ?string $office = '00'): User
 {
     $user = new User;
-    $user->forceFill(['id' => 9, 'name' => 'ผู้ทดสอบ', 'role' => $role]);
+    $user->forceFill(['id' => 9, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'office' => $office]);
     $user->exists = true;
 
     return $user;
@@ -199,4 +201,43 @@ test('the management page embeds the importer and confirmation uses portal modal
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
         ->assertSeeHtml('window.portalModal.show(\'salaryImportConfirmModal\')');
+});
+
+test('an office-scoped PROMOTE import skips personnel outside their office', function () {
+    DB::table('person')->insert([
+        ['cid' => '3650200600388', 'office_id' => '01'],
+        ['cid' => '1111111111111', 'office_id' => '02'],
+    ]);
+    $otherOffice = SalaryPromotionWorkbook::ROW;
+    $otherOffice[0] = '1111111111111';
+    $notInPerson = SalaryPromotionWorkbook::ROW;
+    $notInPerson[0] = '2222222222222';
+    $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $otherOffice, $notInPerson]);
+
+    Livewire::actingAs(salaryImportActor('PROMOTE', '01'))
+        ->test(SalaryPromotionImport::class)
+        ->set('importFile', salaryImportUpload($book))
+        ->call('previewUpload')
+        ->assertSet('previewReady', true)
+        ->assertSet('previewCounts.insert_count', 1)
+        ->assertSet('previewCounts.skipped_count', 2)
+        ->assertSee('ข้าม (ไม่ใช่บุคลากรในหน่วยงาน) 2')
+        ->call('confirmImport')
+        ->assertHasNoErrors()
+        ->assertDispatched('salary-import-saved', message: 'นำเข้าเลื่อนขั้นเงินเดือนแล้ว เพิ่มใหม่ 1 ปรับปรุง 0 รายการ ข้ามบุคลากรนอกหน่วยงาน 2 รายการ');
+
+    expect(DB::table('data_promote')->pluck('CID')->all())->toBe(['3650200600388']);
+});
+
+test('ADMIN imports every row regardless of their office', function () {
+    $other = SalaryPromotionWorkbook::ROW;
+    $other[0] = '1111111111111';
+    $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $other]);
+
+    Livewire::actingAs(salaryImportActor('ADMIN', '05'))
+        ->test(SalaryPromotionImport::class)
+        ->set('importFile', salaryImportUpload($book))
+        ->call('previewUpload')
+        ->assertSet('previewCounts.insert_count', 2)
+        ->assertSet('previewCounts.skipped_count', 0);
 });

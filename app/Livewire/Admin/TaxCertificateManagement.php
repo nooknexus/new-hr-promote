@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Services\TaxCertificateTxtImportService;
 use App\Support\AdminAccess;
+use App\Support\OfficeScope;
 use Closure;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
@@ -217,31 +218,11 @@ class TaxCertificateManagement extends Component
     public function edit(string $cid, int $incomeYear): void
     {
         $this->ensureAuthorized();
-        $record = DB::table('data_tax')
-            ->select([
-                'cid as cid',
-                'income_year',
-                'running_code1',
-                'department_name',
-                'department_tax_id',
-                'department_addr',
-                'tax_id',
-                'fullname',
-                'addr',
-                'running_code2',
-                'income_type_id',
-                'income_money',
-                'withholding_tax',
-                'total_money',
-                'sumTaxAmount',
-                'sumTaxText',
-                'outcomeType',
-                'outcomeAmount',
-                'tax_type_id',
-                'date_report',
-            ])
-            ->where('cid', $cid)
-            ->where('income_year', $incomeYear)
+        $record = $this->scopedTaxes()
+            // taxes.* keeps legacy schemas working; the alias normalises an uppercase CID column.
+            ->select(['taxes.*', 'taxes.cid as cid'])
+            ->where('taxes.cid', $cid)
+            ->where('taxes.income_year', $incomeYear)
             ->first();
 
         abort_unless($record, 404);
@@ -273,10 +254,10 @@ class TaxCertificateManagement extends Component
                     return;
                 }
 
-                $existing = DB::table('data_tax')
-                    ->where('cid', $this->editingCid)
-                    ->where('income_year', $this->editingIncomeYear)
-                    ->first();
+                $existing = $this->scopedTaxes()
+                    ->where('taxes.cid', $this->editingCid)
+                    ->where('taxes.income_year', $this->editingIncomeYear)
+                    ->first(['taxes.cid']);
                 abort_unless($existing, 404);
 
                 $updateValues = $values;
@@ -318,10 +299,10 @@ class TaxCertificateManagement extends Component
 
         if ($cid !== null && $cid !== '') {
             abort_unless($incomeYear !== null, 404);
-            $record = DB::table('data_tax')
-                ->select(['cid as cid', 'income_year'])
-                ->where('cid', $cid)
-                ->where('income_year', $incomeYear)
+            $record = $this->scopedTaxes()
+                ->select(['taxes.cid as cid', 'taxes.income_year'])
+                ->where('taxes.cid', $cid)
+                ->where('taxes.income_year', $incomeYear)
                 ->first();
             abort_unless($record, 404);
             $this->pendingDeletionCid = (string) $record->cid;
@@ -340,6 +321,10 @@ class TaxCertificateManagement extends Component
     {
         $this->ensureAuthorized();
         abort_unless($this->pendingDeletionCid !== null && $this->pendingDeletionIncomeYear !== null, 404);
+        abort_unless($this->scopedTaxes()
+            ->where('taxes.cid', $this->pendingDeletionCid)
+            ->where('taxes.income_year', $this->pendingDeletionIncomeYear)
+            ->exists(), 404);
 
         try {
             $deleted = DB::table('data_tax')
@@ -375,7 +360,7 @@ class TaxCertificateManagement extends Component
         }
 
         try {
-            $preview = $importService->preview($path, $this->importEncoding);
+            $preview = $importService->preview($path, $this->importEncoding, OfficeScope::officeFor(Auth::user()));
         } catch (Throwable) {
             $this->addError('importFile', 'ไม่สามารถอ่านไฟล์นำเข้าได้');
 
@@ -417,7 +402,7 @@ class TaxCertificateManagement extends Component
         }
 
         try {
-            $result = $importService->commit($path, $this->importEncoding);
+            $result = $importService->commit($path, $this->importEncoding, OfficeScope::officeFor(Auth::user()));
         } catch (Throwable) {
             $this->addError('importFile', 'ไม่สามารถนำเข้าข้อมูลภาษีได้');
 
@@ -472,8 +457,7 @@ class TaxCertificateManagement extends Component
         $name = trim($this->nameFilter);
 
         return view('livewire.admin.tax-certificate-management', [
-            'certificates' => DB::table('data_tax as taxes')
-                ->leftJoin('person as people', 'people.cid', '=', 'taxes.cid')
+            'certificates' => $this->scopedTaxes()
                 ->select([
                     'taxes.cid as cid',
                     'taxes.income_year',
@@ -501,7 +485,7 @@ class TaxCertificateManagement extends Component
                 ->orderByDesc('taxes.income_year')
                 ->orderBy('taxes.cid')
                 ->paginate(20),
-            'years' => DB::table('data_tax')->select('income_year')->distinct()->orderByDesc('income_year')->pluck('income_year'),
+            'years' => $this->scopedTaxes()->select('taxes.income_year')->distinct()->orderByDesc('taxes.income_year')->pluck('income_year'),
             'incomeTypes' => self::INCOME_TYPES,
             'outcomeTypes' => self::OUTCOME_TYPES,
             'taxTypes' => self::TAX_TYPES,
@@ -512,7 +496,9 @@ class TaxCertificateManagement extends Component
     private function rules(): array
     {
         $rules = [
-            'cid' => ['required', 'digits:13'],
+            'cid' => $this->editingCid !== null
+                ? ['required', 'digits:13']
+                : ['required', 'digits:13', $this->scopedPersonRule()],
             'income_year' => ['required', 'integer', 'digits:4', 'between:2400,3000'],
             'running_code1' => ['required', 'string', 'max:255'],
             'department_name' => ['nullable', 'string', 'max:255'],
@@ -657,6 +643,27 @@ class TaxCertificateManagement extends Component
         $year = (int) substr($date, 4, 4);
 
         return $year >= 2400 && $year <= 3000 && checkdate($month, $day, $year - 543);
+    }
+
+    /** Tax certificates of personnel the current user may manage, aliased as taxes/people. */
+    private function scopedTaxes(): Builder
+    {
+        $query = DB::table('data_tax as taxes')->leftJoin('person as people', 'people.cid', '=', 'taxes.cid');
+
+        return OfficeScope::apply($query, Auth::user(), 'people.office_id');
+    }
+
+    /** Office-scoped users may only add certificates for personnel of their office. */
+    private function scopedPersonRule(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            if (OfficeScope::officeFor(Auth::user()) === null) {
+                return;
+            }
+            if (! OfficeScope::apply(DB::table('person'), Auth::user())->where('cid', (string) $value)->exists()) {
+                $fail('เพิ่มได้เฉพาะบุคลากรในหน่วยงานของตนเอง');
+            }
+        };
     }
 
     private function ensureAuthorized(): void

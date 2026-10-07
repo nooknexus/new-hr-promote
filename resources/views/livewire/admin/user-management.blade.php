@@ -3,8 +3,7 @@
     <header>
         <p class="text-sm font-semibold text-brand-700">จัดการข้อมูล</p>
         <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">จัดการผู้ใช้</h1>
-        <p class="mt-2 text-sm text-slate-500">กำหนดบทบาทและหน่วยงานของผู้ใช้ โดยไม่เปลี่ยนข้อมูลตัวตนจากระบบเข้าสู่ระบบ</p>
-        <p class="mt-1 text-sm font-semibold text-amber-700">หน่วยงานเป็นข้อมูลเตรียมใช้ในอนาคต ยังไม่จำกัดสิทธิ์ตามหน่วยงาน</p>
+        <p class="mt-2 text-sm text-slate-500">กำหนดบทบาทและต้นสังกัดของผู้ใช้ โดยไม่เปลี่ยนข้อมูลตัวตนจากระบบเข้าสู่ระบบ</p>
     </header>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="user-list-title">
@@ -12,7 +11,7 @@
             <h2 id="user-list-title" class="font-bold text-brand-700">บัญชีผู้ใช้</h2>
             <div class="mt-3 grid gap-2 sm:grid-cols-3">
                 <label class="sr-only" for="user-search">ค้นหาผู้ใช้</label>
-                <input id="user-search" type="search" wire:model.live.debounce.300ms="search" placeholder="ค้นหาชื่อหรืออีเมล" class="{{ $inputClass }}">
+                <input id="user-search" type="search" wire:model.live.debounce.300ms="search" placeholder="ค้นหาชื่อ หน่วยบริการ หรืออีเมล" class="{{ $inputClass }}">
                 <label class="sr-only" for="user-role-filter">กรองบทบาท</label>
                 <select id="user-role-filter" wire:model.live="roleFilter" class="{{ $inputClass }}">
                     <option value="">ทุกบทบาท</option>
@@ -21,10 +20,10 @@
                         <option value="{{ $option }}">{{ $option }}</option>
                     @endforeach
                 </select>
-                <label class="sr-only" for="user-office-filter">กรองหน่วยงาน</label>
+                <label class="sr-only" for="user-office-filter">กรองต้นสังกัด</label>
                 <select id="user-office-filter" wire:model.live="officeFilter" class="{{ $inputClass }}">
-                    <option value="">ทุกหน่วยงาน</option>
-                    <option value="none">ยังไม่ระบุหน่วยงาน</option>
+                    <option value="">ทุกต้นสังกัด</option>
+                    <option value="none">ยังไม่ระบุต้นสังกัด</option>
                     @foreach($offices as $option)
                         <option value="{{ $option->office_id }}">{{ $option->office_name ?: $option->office_id }}</option>
                     @endforeach
@@ -39,7 +38,7 @@
                     <tr>
                         <th scope="col" class="px-4 py-3">ผู้ใช้</th>
                         <th scope="col" class="px-4 py-3">บทบาท</th>
-                        <th scope="col" class="px-4 py-3">หน่วยงาน</th>
+                        <th scope="col" class="px-4 py-3">ต้นสังกัด</th>
                         <th scope="col" class="px-4 py-3 text-right">จัดการ</th>
                     </tr>
                 </thead>
@@ -48,7 +47,7 @@
                         <tr wire:key="access-user-{{ $user->id }}" class="hover:bg-slate-50">
                             <td class="whitespace-nowrap px-4 py-3">
                                 <p class="font-semibold text-slate-900">{{ $user->name }}</p>
-                                <p class="text-xs text-slate-500">{{ $user->email }}</p>
+                                <p class="text-xs text-slate-500">{{ $user->hname ?: 'ไม่ระบุหน่วยบริการ' }}</p>
                                 @if(!$user->is_active)<span class="mt-1 inline-block rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">ปิดการใช้งาน</span>@endif
                             </td>
                             <td class="whitespace-nowrap px-4 py-3">
@@ -61,9 +60,9 @@
                                 </select>
                             </td>
                             <td class="px-4 py-3">
-                                <label class="sr-only" for="user-office-{{ $user->id }}">หน่วยงานของ {{ $user->name }}</label>
+                                <label class="sr-only" for="user-office-{{ $user->id }}">ต้นสังกัดของ {{ $user->name }}</label>
                                 <select id="user-office-{{ $user->id }}" wire:change="updateOffice({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
-                                    <option value="" @selected(!$user->office)>ยังไม่ระบุหน่วยงาน</option>
+                                    <option value="" @selected(!$user->office)>ยังไม่ระบุต้นสังกัด</option>
                                     @foreach($offices as $option)
                                         <option value="{{ $option->office_id }}" @selected($user->office === (string) $option->office_id)>{{ $option->office_name ?: $option->office_id }}</option>
                                     @endforeach

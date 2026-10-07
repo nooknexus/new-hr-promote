@@ -41,7 +41,7 @@ class UserAccessService
                 throw ValidationException::withMessages(['role' => 'บทบาทไม่ถูกต้อง']);
             }
             if (isset($changes['office']) && (strlen($changes['office']) > 2 || ! DB::table('person')->where('office_id', $changes['office'])->exists())) {
-                throw ValidationException::withMessages(['office' => 'ไม่พบหน่วยงานที่เลือก']);
+                throw ValidationException::withMessages(['office' => 'ไม่พบต้นสังกัดที่เลือก']);
             }
 
             $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);

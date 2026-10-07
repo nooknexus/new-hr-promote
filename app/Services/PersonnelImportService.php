@@ -5,7 +5,6 @@ namespace App\Services;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -15,27 +14,36 @@ class PersonnelImportService
 {
     private const MAX_DATA_ROWS = 5000;
 
-    /** @var array<string, string> */
-    private const HEADERS = [
-        'เลขประจำตัวประชาชน' => 'cid',
-        'คำนำหน้า' => 'pname',
-        'ชื่อ' => 'fname',
-        'นามสกุล' => 'lname',
-        'รหัสประเภท' => 'type_id',
-        'ประเภทเจ้าหน้าที่' => 'type_name',
-        'รหัสหน่วยงาน' => 'office_id',
-        'หน่วยงาน' => 'office_name',
-        'วันเริ่มงาน' => 'employment_started_at',
+    /**
+     * Fixed template columns. Row 1 is a header row and is skipped; header text is
+     * not checked because users often rename it.
+     *
+     * @var array<string, string>
+     */
+    private const COLUMNS = [
+        'cid' => 'A',
+        'pname' => 'B',
+        'fname' => 'C',
+        'lname' => 'D',
+        'type_id' => 'E',
+        'type_name' => 'F',
+        'office_id' => 'G',
+        'office_name' => 'H',
+        'employment_started_at' => 'I',
     ];
 
     /**
+     * @param  string|null  $officeScope  When set, every row must belong to this office; null allows every office.
      * @return array{created: int, updated: int, skipped: int}
      */
-    public function import(string $path): array
+    public function import(string $path, ?string $officeScope = null): array
     {
+        if ($officeScope === '') {
+            throw new RuntimeException('บัญชีนี้ยังไม่ได้กำหนดหน่วยงาน จึงไม่สามารถนำเข้าข้อมูลบุคลากรได้');
+        }
+
         $spreadsheet = IOFactory::load($path);
         $sheet = $spreadsheet->getActiveSheet();
-        $headerMap = $this->headerMap($sheet);
         $lastRow = $sheet->getHighestDataRow();
 
         if ($lastRow - 1 > self::MAX_DATA_ROWS) {
@@ -47,7 +55,7 @@ class PersonnelImportService
         $errors = [];
 
         for ($row = 2; $row <= $lastRow; $row++) {
-            $record = $this->recordFromRow($sheet, $row, $headerMap);
+            $record = $this->recordFromRow($sheet, $row);
 
             if ($this->isEmptyRecord($record)) {
                 $skipped++;
@@ -80,7 +88,20 @@ class PersonnelImportService
                 continue;
             }
 
-            $records[] = $validator->validated();
+            $record = $validator->validated();
+
+            if ($officeScope !== null) {
+                $record['office_id'] ??= $officeScope;
+                $existing = DB::table('person')->where('cid', $record['cid'])->first(['office_id']);
+
+                if ($record['office_id'] !== $officeScope || ($existing !== null && $existing->office_id !== $officeScope)) {
+                    $errors[] = 'แถว '.$row.': นำเข้าได้เฉพาะบุคลากรของหน่วยงานตนเอง';
+
+                    continue;
+                }
+            }
+
+            $records[] = $record;
         }
 
         if ($errors !== []) {
@@ -113,31 +134,7 @@ class PersonnelImportService
         return compact('created', 'updated', 'skipped');
     }
 
-    /** @return array<string, int> */
-    private function headerMap(Worksheet $sheet): array
-    {
-        $headers = [];
-        $lastColumn = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
-
-        for ($column = 1; $column <= $lastColumn; $column++) {
-            $label = $this->normaliseHeader((string) $sheet->getCell(Coordinate::stringFromColumnIndex($column).'1')->getValue());
-
-            if (isset(self::HEADERS[$label])) {
-                $headers[self::HEADERS[$label]] = $column;
-            }
-        }
-
-        $missing = array_values(array_diff(['cid', 'fname', 'lname', 'employment_started_at'], array_keys($headers)));
-
-        if ($missing !== []) {
-            throw new RuntimeException('หัวตารางไม่ครบ กรุณาดาวน์โหลด template ล่าสุดจากหน้านี้แล้วกรอกข้อมูลใหม่');
-        }
-
-        return $headers;
-    }
-
-    /** @param array<string, int> $headerMap */
-    private function recordFromRow(Worksheet $sheet, int $row, array $headerMap): array
+    private function recordFromRow(Worksheet $sheet, int $row): array
     {
         $record = [
             'cid' => null,
@@ -151,8 +148,8 @@ class PersonnelImportService
             'employment_started_at' => null,
         ];
 
-        foreach ($headerMap as $field => $column) {
-            $cell = $sheet->getCell(Coordinate::stringFromColumnIndex($column).$row);
+        foreach (self::COLUMNS as $field => $column) {
+            $cell = $sheet->getCell($column.$row);
             $value = $cell->getValue();
 
             if ($field === 'employment_started_at') {
@@ -200,10 +197,5 @@ class PersonnelImportService
     private function isEmptyRecord(array $record): bool
     {
         return collect($record)->filter(fn ($value) => $value !== null && $value !== '')->isEmpty();
-    }
-
-    private function normaliseHeader(string $value): string
-    {
-        return trim(str_replace("\u{00A0}", ' ', $value));
     }
 }

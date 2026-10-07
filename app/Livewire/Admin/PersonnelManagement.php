@@ -3,7 +3,9 @@
 namespace App\Livewire\Admin;
 
 use App\Support\AdminAccess;
+use App\Support\OfficeScope;
 use App\Services\PersonnelImportService;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -30,6 +32,7 @@ class PersonnelManagement extends Component
 
     public string $search = '';
     public string $officeFilter = '';
+    public string $typeFilter = '';
 
     public ?string $editingCid = null;
     public ?string $pendingDeletionCid = null;
@@ -54,6 +57,8 @@ class PersonnelManagement extends Component
 
     protected function rules(): array
     {
+        $scope = $this->officeScope();
+
         return [
             'cid' => [
                 'required',
@@ -65,7 +70,9 @@ class PersonnelManagement extends Component
             'lname' => ['required', 'string', 'max:255'],
             'type_id' => ['nullable', 'integer', Rule::in(array_keys(self::PERSONNEL_TYPES))],
             'type_name' => ['nullable', 'string', 'max:255'],
-            'office_id' => ['nullable', 'string', 'max:2', 'exists:person,office_id'],
+            'office_id' => $scope === null
+                ? ['nullable', 'string', 'max:2', 'exists:person,office_id']
+                : ['required', 'string', Rule::in([$scope])],
             'office_name' => ['nullable', 'string', 'max:255'],
             'employment_started_at' => ['nullable', 'date', 'before_or_equal:today'],
         ];
@@ -75,6 +82,8 @@ class PersonnelManagement extends Component
         'cid.required' => 'กรุณาระบุเลขประจำตัวประชาชน',
         'cid.digits' => 'เลขประจำตัวประชาชนต้องมี 13 หลัก',
         'cid.unique' => 'มีบุคลากรเลขประจำตัวประชาชนนี้ในระบบแล้ว',
+        'office_id.required' => 'กรุณาเลือกหน่วยงาน',
+        'office_id.in' => 'เลือกได้เฉพาะหน่วยงานของตนเอง',
         'fname.required' => 'กรุณาระบุชื่อ',
         'lname.required' => 'กรุณาระบุนามสกุล',
         'employment_started_at.date' => 'รูปแบบวันเริ่มงานไม่ถูกต้อง',
@@ -91,6 +100,11 @@ class PersonnelManagement extends Component
         $this->resetPage();
     }
 
+    public function updatedTypeFilter(): void
+    {
+        $this->resetPage();
+    }
+
     public function openCreate(): void
     {
         $this->ensureAdministrator();
@@ -101,7 +115,7 @@ class PersonnelManagement extends Component
     public function edit(string $cid): void
     {
         $this->ensureAdministrator();
-        $person = DB::table('person')->where('cid', $cid)->first();
+        $person = $this->scopedPersonnel()->where('cid', $cid)->first();
         abort_unless($person, 404);
 
         $this->editingCid = $person->cid;
@@ -125,7 +139,8 @@ class PersonnelManagement extends Component
         $data = $this->normalisePersonnel($validated);
 
         if ($this->editingCid !== null) {
-            DB::table('person')->where('cid', $this->editingCid)->update($data);
+            abort_unless($this->scopedPersonnel()->where('cid', $this->editingCid)->exists(), 404);
+            $this->scopedPersonnel()->where('cid', $this->editingCid)->update($data);
             $message = 'ปรับปรุงข้อมูลบุคลากรแล้ว';
         } else {
             DB::table('person')->insert($data);
@@ -145,7 +160,7 @@ class PersonnelManagement extends Component
     public function prepareDelete(string $cid): void
     {
         $this->ensureAdministrator();
-        abort_unless(DB::table('person')->where('cid', $cid)->exists(), 404);
+        abort_unless($this->scopedPersonnel()->where('cid', $cid)->exists(), 404);
 
         $this->pendingDeletionCid = $cid;
         $this->dispatch('personnel-delete-confirmation-opened');
@@ -159,7 +174,8 @@ class PersonnelManagement extends Component
             return;
         }
 
-        DB::table('person')->where('cid', $this->pendingDeletionCid)->delete();
+        abort_unless($this->scopedPersonnel()->where('cid', $this->pendingDeletionCid)->exists(), 404);
+        $this->scopedPersonnel()->where('cid', $this->pendingDeletionCid)->delete();
         $this->pendingDeletionCid = null;
         session()->flash('personnel-status', 'ลบข้อมูลบุคลากรแล้ว');
         $this->dispatch('personnel-delete-confirmation-closed');
@@ -183,7 +199,7 @@ class PersonnelManagement extends Component
         ]);
 
         try {
-            $this->importResult = $importService->import($this->importFile->getRealPath());
+            $this->importResult = $importService->import($this->importFile->getRealPath(), $this->officeScope());
             $this->importFile = null;
         } catch (RuntimeException $exception) {
             $this->addError('importFile', $exception->getMessage());
@@ -195,10 +211,12 @@ class PersonnelManagement extends Component
         $this->ensureAdministrator();
         $search = trim($this->search);
         $officeFilter = trim($this->officeFilter);
+        $typeFilter = trim($this->typeFilter);
 
         return view('livewire.admin.personnel-management', [
-            'personnel' => DB::table('person')
+            'personnel' => $this->scopedPersonnel()
                 ->when($officeFilter !== '', fn ($query) => $query->where('office_id', $officeFilter))
+                ->when(isset(self::PERSONNEL_TYPES[(int) $typeFilter]), fn ($query) => $query->where('type_id', (int) $typeFilter))
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('cid', 'like', "%{$search}%")
@@ -211,7 +229,7 @@ class PersonnelManagement extends Component
                 ->orderBy('fname')
                 ->orderBy('lname')
                 ->paginate(20),
-            'offices' => DB::table('person')
+            'offices' => $this->scopedPersonnel()
                 ->select('office_id', DB::raw('MAX(office_name) as office_name'))
                 ->whereNotNull('office_id')
                 ->where('office_id', '!=', '')
@@ -255,6 +273,16 @@ class PersonnelManagement extends Component
             'type_name', 'office_id', 'office_name', 'employment_started_at',
         ]);
         $this->resetErrorBag();
+    }
+
+    private function officeScope(): ?string
+    {
+        return OfficeScope::officeFor(Auth::user());
+    }
+
+    private function scopedPersonnel(): Builder
+    {
+        return OfficeScope::apply(DB::table('person'), Auth::user());
     }
 
     private function ensureAdministrator(): void

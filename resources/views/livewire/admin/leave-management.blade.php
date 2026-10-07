@@ -18,9 +18,11 @@
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">ทะเบียนรายการลาทั้งหมดในระบบ เพิ่มรายการลา แก้ไข หรือยกเลิกวันลาได้ รายการที่ยกเลิกจะยังคงอยู่ในทะเบียนแต่ไม่นับเป็นวันลา</p>
         </div>
         <div class="flex flex-col gap-2 sm:flex-row">
-            <a href="{{ route('admin.leave-sheet-sync') }}" wire:navigate class="btn btn-info">
-                <i class="fas fa-cloud-download-alt" aria-hidden="true"></i><span>ดึงประวัติการลา</span>
-            </a>
+            @if(\App\Support\AdminAccess::allows(auth()->user(), 'leave-sync'))
+                <a href="{{ route('admin.leave-sheet-sync') }}" wire:navigate class="btn btn-info">
+                    <i class="fas fa-cloud-download-alt" aria-hidden="true"></i><span>ดึงประวัติการลา</span>
+                </a>
+            @endif
             <button type="button" wire:click="openCreate" onclick="window.portalModal.show('leaveFormModal')" class="btn btn-primary">
                 <i class="fas fa-calendar-plus" aria-hidden="true"></i><span>เพิ่มข้อมูลลา</span>
             </button>
@@ -28,9 +30,36 @@
     </header>
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="leave-list-heading">
-        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 id="leave-list-heading" class="font-bold text-brand-700">ทะเบียนการลา</h2>
-            <div class="flex w-full flex-col gap-2 sm:flex-row lg:w-auto">
+            <div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap">
+                <div class="sm:w-48">
+                    <label for="leave-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
+                    <select id="leave-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                        <option value="">ทุกต้นสังกัด</option>
+                        @foreach($offices as $office)
+                            <option value="{{ $office->office_id }}">{{ $office->office_id }} — {{ $office->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:w-36">
+                    <label for="leave-year-filter" class="sr-only">กรองตามปี</label>
+                    <select id="leave-year-filter" wire:model.live="yearFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                        <option value="">ทุกปี (พ.ศ.)</option>
+                        @foreach($years as $year)
+                            <option value="{{ $year }}">{{ $year + 543 }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="sm:w-36">
+                    <label for="leave-month-filter" class="sr-only">กรองตามเดือน</label>
+                    <select id="leave-month-filter" wire:model.live="monthFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                        <option value="">ทุกเดือน</option>
+                        @foreach($months as $number => $monthName)
+                            <option value="{{ $number }}">{{ $monthName }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="sm:w-44">
                     <label for="leave-type-filter" class="sr-only">กรองตามประเภทการลา</label>
                     <select id="leave-type-filter" wire:model.live="leaveTypeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">

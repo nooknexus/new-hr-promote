@@ -3,11 +3,13 @@
 namespace App\Livewire\Admin;
 
 use App\Support\AdminAccess;
+use App\Support\OfficeScope;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
@@ -88,7 +90,7 @@ class SalaryPromotionManagement extends Component
     {
         $this->ensureAdministrator();
         abort_if($this->editingId !== null, 403);
-        $person = DB::table('person')->where('cid', $cid)->first(['cid', 'pname', 'fname', 'lname', 'office_name']);
+        $person = $this->scopedPersonnel()->where('cid', $cid)->first(['cid', 'pname', 'fname', 'lname', 'office_name']);
         abort_unless($person, 404);
 
         $this->cid = $person->cid;
@@ -115,8 +117,7 @@ class SalaryPromotionManagement extends Component
     public function edit(int $id): void
     {
         $this->ensureAdministrator();
-        $row = DB::table('data_promote as promotions')
-            ->leftJoin('person as people', 'people.cid', '=', 'promotions.CID')
+        $row = $this->scopedPromotions()
             ->where('promotions.id', $id)
             ->whereNull('promotions.deleted_at')
             ->select('promotions.*', 'people.pname', 'people.fname', 'people.lname')
@@ -137,8 +138,8 @@ class SalaryPromotionManagement extends Component
     public function save(): void
     {
         $this->ensureAdministrator();
-        $original = $this->editingId === null ? null : DB::table('data_promote')
-            ->where('id', $this->editingId)->whereNull('deleted_at')->first();
+        $original = $this->editingId === null ? null : $this->scopedPromotions()
+            ->where('promotions.id', $this->editingId)->whereNull('promotions.deleted_at')->first(['promotions.*']);
         abort_if($this->editingId !== null && ! $original, 404);
 
         // Recalculate salary amounts from stored records and the editable, validated base.
@@ -257,8 +258,7 @@ class SalaryPromotionManagement extends Component
         $this->ensureAdministrator();
         $search = trim($this->search);
         $personSearch = trim($this->personSearch);
-        $query = DB::table('data_promote as promotions')
-            ->leftJoin('person as people', 'people.cid', '=', 'promotions.CID')
+        $query = $this->scopedPromotions()
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $query) use ($search): void {
                     $query->where('promotions.CID', 'like', "%{$search}%")
@@ -288,17 +288,17 @@ class SalaryPromotionManagement extends Component
                 ->select(['promotions.*', 'people.pname', 'people.fname', 'people.lname', 'people.office_name'])
                 ->paginate(20),
             'previewIncrease' => $this->previewIncrease(),
-            'years' => DB::table('data_promote')
-                ->selectRaw('DISTINCT SUBSTR(evaluation_date, 1, 7) AS evaluation_month_key')
+            'years' => $this->scopedPromotions()
+                ->selectRaw('DISTINCT SUBSTR(promotions.evaluation_date, 1, 7) AS evaluation_month_key')
                 ->pluck('evaluation_month_key')
                 ->map(fn (string $yearMonth) => (int) substr($yearMonth, 0, 4)
                     + ((int) substr($yearMonth, 5, 2) >= 10 ? 544 : 543))
                 ->unique()->sortDesc()->values(),
-            'offices' => DB::table('person')->whereNotNull('office_id')->where('office_id', '!=', '')
+            'offices' => $this->scopedPersonnel()->whereNotNull('office_id')->where('office_id', '!=', '')
                 ->select('office_id', DB::raw('MAX(office_name) as office_name'))
                 ->groupBy('office_id')->orderBy('office_id')->get(),
             'personResults' => $this->cid === '' && mb_strlen($personSearch) >= 2
-                ? DB::table('person')->where(function (Builder $query) use ($personSearch): void {
+                ? $this->scopedPersonnel()->where(function (Builder $query) use ($personSearch): void {
                     foreach (preg_split('/\s+/u', $personSearch) as $term) {
                         $query->where(function (Builder $query) use ($term): void {
                             $query->where('cid', 'like', "%{$term}%")
@@ -322,7 +322,7 @@ class SalaryPromotionManagement extends Component
             && $this->optionalMoney($this->new_salary) === $this->optionalMoney($original->new_salary);
 
         return [
-            'cid' => $original ? ['nullable'] : ['required', 'digits:13', Rule::exists('person', 'cid')],
+            'cid' => $original ? ['nullable'] : ['required', 'digits:13', $this->scopedPersonExistsRule()],
             'evaluation_date' => ['required', 'date_format:Y-m-d'],
             'promote' => [$original ? 'nullable' : 'required', Rule::in(['Y', 'N'])],
             'before_salary' => [$recalculate ? 'required' : 'nullable', 'numeric', 'min:0', 'max:9999999.99'],
@@ -349,8 +349,8 @@ class SalaryPromotionManagement extends Component
     private function prepareAction(int $id, bool $restore): void
     {
         $this->ensureAdministrator();
-        $query = DB::table('data_promote')->where('id', $id);
-        $restore ? $query->whereNotNull('deleted_at') : $query->whereNull('deleted_at');
+        $query = $this->scopedPromotions()->where('promotions.id', $id);
+        $restore ? $query->whereNotNull('promotions.deleted_at') : $query->whereNull('promotions.deleted_at');
         abort_unless($query->exists(), 404);
         $this->pendingActionId = $id;
         $this->pendingRestore = $restore;
@@ -362,6 +362,7 @@ class SalaryPromotionManagement extends Component
         $this->ensureAdministrator();
         abort_unless($this->pendingActionId !== null, 404);
         $id = $this->pendingActionId;
+        abort_unless($this->scopedPromotions()->where('promotions.id', $id)->exists(), 404);
 
         DB::transaction(function () use ($id, $restore): void {
             $query = DB::table('data_promote')->where('id', $id)->lockForUpdate();
@@ -508,6 +509,26 @@ class SalaryPromotionManagement extends Component
             'before_salary', 'new_salary', 'base', 'percent', 'extra', 'office', 'department', 'ps',
         ]);
         $this->resetErrorBag();
+    }
+
+    private function scopedPersonnel(): Builder
+    {
+        return OfficeScope::apply(DB::table('person'), Auth::user());
+    }
+
+    /** Promotions of personnel the current user may manage, aliased as promotions/people. */
+    private function scopedPromotions(): Builder
+    {
+        $query = DB::table('data_promote as promotions')
+            ->leftJoin('person as people', 'people.cid', '=', 'promotions.CID');
+
+        return OfficeScope::apply($query, Auth::user(), 'people.office_id');
+    }
+
+    private function scopedPersonExistsRule(): Exists
+    {
+        return Rule::exists('person', 'cid')
+            ->where(fn ($query) => OfficeScope::apply($query, Auth::user()));
     }
 
     private function ensureAdministrator(): void

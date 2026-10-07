@@ -1,9 +1,11 @@
 <div>
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">ผู้ลงนามในใบรับรองการจ่ายเงินเดือน</h1>
-        <button type="button" class="btn btn-primary" wire:click="openCreateModal">
-            <i class="fas fa-plus"></i> เพิ่มผู้ลงนาม
-        </button>
+        @if($this->canManage())
+            <button type="button" class="btn btn-primary" wire:click="openCreateModal">
+                <i class="fas fa-plus"></i> เพิ่มผู้ลงนาม
+            </button>
+        @endif
     </div>
 
     <div class="card shadow mb-4">
@@ -24,7 +26,9 @@
                                 <th>ลายเซ็น</th>
                                 <th>ชื่อ-นามสกุล</th>
                                 <th>ตำแหน่ง</th>
-                                <th class="text-right">การดำเนินการ</th>
+                                @if($this->canManage())
+                                    <th class="text-right">การดำเนินการ</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -45,6 +49,7 @@
                                             <div class="text-muted small">{{ $signatory->position_line2 }}</div>
                                         @endif
                                     </td>
+                                    @if($this->canManage())
                                     <td class="text-right whitespace-nowrap">
                                         <button type="button" class="btn btn-sm btn-info" wire:click="edit({{ $signatory->id }})">
                                             <i class="fas fa-edit"></i> แก้ไข
@@ -55,6 +60,7 @@
                                             <i class="fas fa-trash"></i> ลบ
                                         </button>
                                     </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>
@@ -65,6 +71,7 @@
     </div>
 
     <!-- Signatory Form Modal -->
+    @if($this->canManage())
     <div class="modal @if($showFormModal) show @endif" id="signatoryFormModal" tabindex="-1" role="dialog" aria-hidden="{{ $showFormModal ? 'false' : 'true' }}">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
@@ -128,4 +135,5 @@
             </div>
         </div>
     </div>
+    @endif
 </div>

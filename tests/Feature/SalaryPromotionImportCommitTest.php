@@ -30,6 +30,8 @@ beforeEach(function () {
     Schema::create('person', function (Blueprint $table) {
         $table->string('cid', 13)->primary();
         $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
     });
     Schema::create('users', function (Blueprint $table) {
         $table->id();
@@ -223,4 +225,75 @@ test('a late audit failure rolls back promotion and both position updates', func
     expect(DB::table('data_promote')->count())->toBe(0)
         ->and(DB::table('person')->value('no_position'))->toBe('เก่า-บุคลากร')
         ->and(DB::table('users')->value('no_position'))->toBe('เก่า-ผู้ใช้');
+});
+
+test('confirmed import saves position and level onto the matched person with an audit', function () {
+    seedPromotionIdentity();
+    DB::table('person')->update(['position' => 'ตำแหน่งเดิม', 'position_level' => 'ระดับเดิม']);
+    $row = SalaryPromotionWorkbook::ROW;
+    $row[6] = 'ชำนาญงาน';
+    confirmPromotionWorkbook(new SalaryPromotionWorkbook([$row]));
+
+    $person = DB::table('person')->first();
+    $audit = DB::table('data_promote_audits')->first();
+    expect($person->position)->toBe('ผู้ช่วยพยาบาล')
+        ->and($person->position_level)->toBe('ชำนาญงาน')
+        ->and(json_decode($audit->before_data, true))->toMatchArray([
+            'person_position' => 'ตำแหน่งเดิม', 'person_position_level' => 'ระดับเดิม',
+        ])
+        ->and(json_decode($audit->after_data, true))->toMatchArray([
+            'person_position' => 'ผู้ช่วยพยาบาล', 'person_position_level' => 'ชำนาญงาน',
+        ]);
+});
+
+test('blank position and level cells keep the stored person values', function () {
+    seedPromotionIdentity();
+    DB::table('person')->update(['position' => 'ตำแหน่งเดิม', 'position_level' => 'ระดับเดิม']);
+    $row = SalaryPromotionWorkbook::ROW;
+    $row[5] = '';
+    $row[6] = '';
+    confirmPromotionWorkbook(new SalaryPromotionWorkbook([$row]));
+
+    expect(DB::table('person')->first(['no_position', 'position', 'position_level']))->toMatchObject([
+        'no_position' => '01พล00139', 'position' => 'ตำแหน่งเดิม', 'position_level' => 'ระดับเดิม',
+    ]);
+});
+
+test('position and level update the person even when the position number is blank', function () {
+    seedPromotionIdentity();
+    $row = SalaryPromotionWorkbook::ROW;
+    $row[4] = '';
+    $row[6] = 'ปฏิบัติงาน';
+    confirmPromotionWorkbook(new SalaryPromotionWorkbook([$row]));
+
+    expect(DB::table('person')->first(['no_position', 'position', 'position_level']))->toMatchObject([
+        'no_position' => 'เก่า-บุคลากร', 'position' => 'ผู้ช่วยพยาบาล', 'position_level' => 'ปฏิบัติงาน',
+    ])->and(DB::table('users')->value('no_position'))->toBe('เก่า-ผู้ใช้');
+});
+
+test('confirmation rejects a person position changed after preview', function () {
+    seedPromotionIdentity();
+    $file = new SalaryPromotionWorkbook;
+    $service = app(SalaryPromotionImportService::class);
+    $baseline = $service->preview($file->path)['baseline_hash'];
+    DB::table('person')->update(['position' => 'แก้จากหน้าต่างอื่น']);
+
+    expect(fn () => $service->commit($file->path, 9, $baseline))->toThrow(ValidationException::class);
+    expect(DB::table('person')->value('position'))->toBe('แก้จากหน้าต่างอื่น')
+        ->and(DB::table('data_promote')->count())->toBe(0);
+});
+
+test('two rows for one person with different position data commit without a false conflict', function () {
+    seedPromotionIdentity();
+    $first = SalaryPromotionWorkbook::ROW;
+    $first[4] = '';
+    $second = SalaryPromotionWorkbook::ROW;
+    $second[2] = '2023-04-01';
+    $second[5] = 'พยาบาลวิชาชีพ';
+
+    $result = confirmPromotionWorkbook(new SalaryPromotionWorkbook([$first, $second]));
+
+    expect($result['insert_count'])->toBe(2)
+        ->and(DB::table('person')->value('position'))->toBe('พยาบาลวิชาชีพ')
+        ->and(DB::table('users')->value('no_position'))->toBe('01พล00139');
 });

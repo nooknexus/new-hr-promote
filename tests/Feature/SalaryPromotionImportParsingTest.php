@@ -19,6 +19,8 @@ beforeEach(function () {
     Schema::create('person', function (Blueprint $table) {
         $table->string('cid', 13)->primary();
         $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
     });
     Schema::create('users', function (Blueprint $table) {
         $table->id();

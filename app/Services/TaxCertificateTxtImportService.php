@@ -15,6 +15,8 @@ class TaxCertificateTxtImportService
 
     private const UPSERT_CHUNK_SIZE = 200;
 
+    private const OUTSIDE_OFFICE = 'ข้าม ไม่ใช่บุคลากรในหน่วยงาน';
+
     /** @var array<string, string> */
     private const INCOME_TYPE_NAMES = [
         '1' => 'ภ.ง.ด.1ก',
@@ -50,10 +52,12 @@ class TaxCertificateTxtImportService
     ];
 
     /**
+     * @param  string|null  $officeScope  When set, rows for personnel outside this office are skipped; null keeps every row.
      * @return array{rows: array<int, array<string, int|string|null>>, errors: array<int, string>, read: int, valid: int, skipped: int}
      */
-    public function preview(string $path, string $encoding = 'tis-620'): array
+    public function preview(string $path, string $encoding = 'tis-620', ?string $officeScope = null): array
     {
+        $allowedCids = $this->allowedCids($officeScope);
         $result = [
             'rows' => [],
             'errors' => [],
@@ -152,7 +156,16 @@ class TaxCertificateTxtImportService
                     continue;
                 }
 
-                $result['rows'][] = $this->mapRow($fields, $line);
+                $row = $this->mapRow($fields, $line);
+
+                if ($allowedCids !== null && ! isset($allowedCids[$row['cid']])) {
+                    $result['skipped']++;
+                    $this->appendRowError($result, $this->error($line, $row['cid'], self::OUTSIDE_OFFICE));
+
+                    continue;
+                }
+
+                $result['rows'][] = $row;
                 $result['valid']++;
             }
         } finally {
@@ -163,10 +176,12 @@ class TaxCertificateTxtImportService
     }
 
     /**
+     * @param  string|null  $officeScope  When set, rows for personnel outside this office are skipped; null keeps every row.
      * @return array{read: int, inserted: int, updated: int, skipped: int, failed: int, errors: array<int, string>}
      */
-    public function commit(string $path, string $encoding = 'tis-620'): array
+    public function commit(string $path, string $encoding = 'tis-620', ?string $officeScope = null): array
     {
+        $allowedCids = $this->allowedCids($officeScope);
         $result = [
             'read' => 0,
             'inserted' => 0,
@@ -234,7 +249,7 @@ class TaxCertificateTxtImportService
         $acceptedRows = 0;
 
         try {
-            DB::transaction(function () use ($stream, &$result, &$acceptedRows): void {
+            DB::transaction(function () use ($stream, &$result, &$acceptedRows, $allowedCids): void {
                 $chunk = [];
                 $seenKeys = [];
                 $line = 0;
@@ -267,6 +282,14 @@ class TaxCertificateTxtImportService
                         }
 
                         $row = $this->mapRow($fields, $line);
+
+                        if ($allowedCids !== null && ! isset($allowedCids[$row['cid']])) {
+                            $result['skipped']++;
+                            $this->appendRowError($result, $this->error($line, $row['cid'], self::OUTSIDE_OFFICE));
+
+                            continue;
+                        }
+
                         $key = $row['cid'].'|'.$row['income_year'];
 
                         if (isset($seenKeys[$key])) {
@@ -303,6 +326,19 @@ class TaxCertificateTxtImportService
         }
 
         return $result;
+    }
+
+    /** @return array<string, true>|null CIDs of the scoped office, or null when every office is allowed. */
+    private function allowedCids(?string $officeScope): ?array
+    {
+        if ($officeScope === null) {
+            return null;
+        }
+
+        return $officeScope === ''
+            ? []
+            : DB::table('person')->where('office_id', $officeScope)->pluck('cid')
+                ->mapWithKeys(fn ($cid): array => [(string) $cid => true])->all();
     }
 
     /**

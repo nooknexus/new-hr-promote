@@ -479,3 +479,141 @@ test('user promotion history uses fiscal years and omits archived rows', functio
         ->assertSet('years', [2568])
         ->assertSet('promotions.0.id', $april);
 });
+
+function promotionOfficeUser(?string $role, ?string $office): User
+{
+    $user = new User;
+    $user->forceFill(['id' => 11, 'name' => 'ผู้ทดสอบ', 'staff_type' => 'STAFF', 'role' => $role, 'office' => $office]);
+    $user->exists = true;
+
+    return $user;
+}
+
+/** @return array{int, int} Promotion IDs for a person of office 01 and a person of office 02. */
+function seedPromotionsInTwoOffices(): array
+{
+    DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02', 'office_name' => 'รพ.สอง']);
+
+    return [insertPromotion(), insertPromotion(['CID' => '2222222222222'])];
+}
+
+test('only ADMIN and PROMOTE may open salary promotion management', function () {
+    foreach (['LEAVE', 'FINANCE', null] as $role) {
+        Livewire::actingAs(promotionOfficeUser($role, '00'))->test(SalaryPromotionManagement::class)->assertForbidden();
+    }
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '00'))->test(SalaryPromotionManagement::class)->assertOk();
+});
+
+test('ADMIN and PROMOTE in office 00 see promotions of every office', function (string $role, ?string $office) {
+    seedPromotionsInTwoOffices();
+
+    Livewire::actingAs(promotionOfficeUser($role, $office))
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('สมศรี')
+        ->assertSee('บุคลากรหน่วยสอง');
+})->with([
+    'ADMIN without an office' => ['ADMIN', null],
+    'ADMIN of another office' => ['ADMIN', '01'],
+    'PROMOTE of office 00' => ['PROMOTE', '00'],
+]);
+
+test('PROMOTE of another office sees only promotions and personnel of their own office', function () {
+    seedPromotionsInTwoOffices();
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '01'))
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('สมศรี')
+        ->assertDontSee('บุคลากรหน่วยสอง')
+        ->assertDontSee('รพ.สอง')
+        ->set('personSearch', 'ทดสอบ')
+        ->assertDontSee('บุคลากรหน่วยสอง');
+});
+
+test('PROMOTE without an office sees no promotions', function () {
+    seedPromotionsInTwoOffices();
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', null))
+        ->test(SalaryPromotionManagement::class)
+        ->assertDontSee('สมศรี')
+        ->assertDontSee('บุคลากรหน่วยสอง');
+});
+
+test('PROMOTE of another office cannot edit, archive, or create promotions for another office', function () {
+    [, $otherOffice] = seedPromotionsInTwoOffices();
+    $user = promotionOfficeUser('PROMOTE', '01');
+
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('edit', $otherOffice)->assertNotFound();
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('prepareArchive', $otherOffice)->assertNotFound();
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('selectPerson', '2222222222222')->assertNotFound();
+
+    Livewire::actingAs($user)
+        ->test(SalaryPromotionManagement::class)
+        ->set('cid', '2222222222222')
+        ->set('evaluation_date', '2026-04-01')
+        ->set('before_salary', '30000')
+        ->set('base', '30000')
+        ->set('percent', '3')
+        ->set('new_salary', '30900')
+        ->call('save')
+        ->assertHasErrors(['cid' => 'exists']);
+
+    expect(DB::table('data_promote')->where('CID', '2222222222222')->count())->toBe(1)
+        ->and(DB::table('data_promote')->where('id', $otherOffice)->value('deleted_at'))->toBeNull();
+});
+
+test('salary promotion management starts with the page header above the importer', function () {
+    $html = $this->actingAs(promotionUser())->get('/admin/salary-promotions')->assertOk()->getContent();
+
+    expect(strpos($html, 'จัดการข้อมูลการเลื่อนขั้นเงินเดือน'))->toBeLessThan(strpos($html, 'นำเข้า Excel'));
+});
+
+test('the promotion register office filter uses ต้นสังกัด labels with code and name', function () {
+    seedPromotionsInTwoOffices();
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '00'))
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('ทุกต้นสังกัด')
+        ->assertDontSee('ทุกหน่วยงาน')
+        ->assertSee('01 — สสจ.')
+        ->assertSee('02 — รพ.สอง');
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '01'))
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('01 — สสจ.')
+        ->assertDontSee('02 — รพ.สอง');
+});
+
+test('user promotion history labels each round by Thai month and Buddhist year only', function () {
+    insertPromotion(['evaluation_date' => '2025-04-01']);
+    insertPromotion(['evaluation_date' => '2025-04-02']);
+    insertPromotion(['evaluation_date' => '2024-10-01']);
+
+    Livewire::actingAs(promotionUser(false))
+        ->test(SalaryPromotion::class)
+        ->call('selectYear', 2568)
+        ->assertSet('promotions.0.round', 'เมษายน 2568')
+        ->assertSet('promotions.0.round_number', 2)
+        ->assertSet('promotions.1.round', 'เมษายน 2568')
+        ->assertSet('promotions.1.round_number', 1)
+        ->assertSet('promotions.2.round', 'ตุลาคม 2567')
+        ->assertSee('เมษายน 2568')
+        ->assertDontSee('รอบ1 เมษายน')
+        ->assertDontSee('รอบ2 ตุลาคม');
+});
+
+test('user promotion history shows months outside April and October as a special round without a count', function () {
+    insertPromotion(['evaluation_date' => '2024-05-01']);
+    insertPromotion(['evaluation_date' => '2024-04-01']);
+
+    Livewire::actingAs(promotionUser(false))
+        ->test(SalaryPromotion::class)
+        ->call('selectYear', 2567)
+        ->assertSet('promotions.0.round', 'รอบพิเศษ')
+        ->assertSet('promotions.1.round', 'เมษายน 2567')
+        ->assertSee('รอบพิเศษ')
+        ->assertSee('ครั้งที่ 1')
+        ->assertDontSee('ครั้งที่ 2')
+        ->assertDontSeeHtml('<span class="badge badge-warning">พิเศษ</span>')
+        ->assertDontSee('พฤษภาคม 2567');
+});

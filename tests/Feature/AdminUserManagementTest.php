@@ -14,6 +14,7 @@ beforeEach(function () {
         $table->id();
         $table->string('name');
         $table->string('email');
+        $table->string('hname')->nullable();
         $table->string('pid')->nullable();
         $table->string('thaid_pid')->nullable();
         $table->string('role')->nullable();
@@ -40,8 +41,8 @@ beforeEach(function () {
         $table->timestamp('created_at');
     });
     DB::table('users')->insert([
-        ['id' => 1, 'name' => 'ผู้ดูแล', 'email' => 'admin@example.test', 'pid' => null, 'role' => 'ADMIN', 'office' => null],
-        ['id' => 2, 'name' => 'บุคลากร', 'email' => 'person@example.test', 'pid' => '1234567890123', 'role' => null, 'office' => null],
+        ['id' => 1, 'name' => 'ผู้ดูแล', 'email' => 'admin@example.test', 'hname' => 'สำนักงานสาธารณสุขจังหวัด', 'pid' => null, 'role' => 'ADMIN', 'office' => null],
+        ['id' => 2, 'name' => 'บุคลากร', 'email' => 'person@example.test', 'hname' => 'โรงพยาบาลทดสอบ', 'pid' => '1234567890123', 'role' => null, 'office' => null],
     ]);
     DB::table('person')->insert([
         'cid' => '1234567890123', 'office_id' => '01', 'office_name' => 'สำนักงานหนึ่ง',
@@ -61,7 +62,7 @@ test('only ADMIN may open user management and identity fields are not editable',
     Livewire::actingAs(User::find(1))->test(UserManagement::class)
         ->assertDontSeeHtml('wire:model="pid"')
         ->assertDontSeeHtml('wire:model="email"')
-        ->assertSee('ยังไม่จำกัดสิทธิ์ตามหน่วยงาน');
+        ->assertDontSee('ยังไม่จำกัดสิทธิ์ตามต้นสังกัด');
 });
 
 test('role and office changes are audited without altering OAuth identifiers', function () {
@@ -172,7 +173,25 @@ test('the user list filters by role and office', function () {
         ->set('roleFilter', 'LEAVE')
         ->set('officeFilter', '01')
         ->assertSee('บุคลากร')
-        ->assertDontSee('admin@example.test');
+        ->assertSee('โรงพยาบาลทดสอบ')
+        ->assertDontSee('สำนักงานสาธารณสุขจังหวัด');
+});
+
+test('the account register shows the provider unit name instead of the email', function () {
+    DB::table('users')->insert([
+        'id' => 3, 'name' => 'ไม่มีหน่วยบริการ', 'email' => 'nohname@example.test', 'hname' => null,
+        'pid' => null, 'role' => null, 'office' => null,
+    ]);
+
+    Livewire::actingAs(User::find(1))
+        ->test(UserManagement::class)
+        ->assertSee('โรงพยาบาลทดสอบ')
+        ->assertSee('ไม่ระบุหน่วยบริการ')
+        ->assertDontSee('person@example.test')
+        ->assertDontSee('nohname@example.test')
+        ->set('search', 'โรงพยาบาลทดสอบ')
+        ->assertSee('บุคลากร')
+        ->assertDontSee('สำนักงานสาธารณสุขจังหวัด');
 });
 
 test('the user list paginates beyond twenty accounts', function () {

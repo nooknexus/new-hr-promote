@@ -59,7 +59,7 @@ beforeEach(function () {
 function roleLivewireUser(?string $role, string $staffType = 'STAFF'): User
 {
     $user = new User;
-    $user->forceFill(['id' => 42, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'staff_type' => $staffType]);
+    $user->forceFill(['id' => 42, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'staff_type' => $staffType, 'office' => '00']);
     $user->exists = true;
 
     return $user;
@@ -87,7 +87,7 @@ test('role revocation denies a signatory action even after the component opened'
 
 test('role revocation also denies write upload and streamed sync actions', function () {
     foreach ([
-        [PersonnelManagement::class, 'ADMIN', 'PROMOTE', 'importExcel'],
+        [PersonnelManagement::class, 'ADMIN', null, 'importExcel'],
         [LeaveManagement::class, 'LEAVE', 'PROMOTE', 'save'],
         [LeaveSheetSync::class, 'LEAVE', 'PROMOTE', 'syncFromGoogleSheet'],
         [SalaryPromotionManagement::class, 'PROMOTE', 'FINANCE', 'save'],

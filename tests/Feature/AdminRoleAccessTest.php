@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 function accessUser(?string $role, string $staffType = 'STAFF'): User
 {
     $user = new User;
-    $user->forceFill(['id' => 99, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'staff_type' => $staffType]);
+    $user->forceFill(['id' => 99, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'staff_type' => $staffType, 'office' => '00']);
     $user->exists = true;
 
     return $user;
@@ -30,7 +30,8 @@ test('role permissions are explicit and provider staff type never grants access'
         ->and(AdminAccess::allows(accessUser('LEAVE'), 'leave-sync'))->toBeTrue()
         ->and(AdminAccess::allows(accessUser('LEAVE'), 'promotions'))->toBeFalse()
         ->and(AdminAccess::allows(accessUser('PROMOTE'), 'promotions'))->toBeTrue()
-        ->and(AdminAccess::allows(accessUser('PROMOTE'), 'personnel'))->toBeFalse()
+        ->and(AdminAccess::allows(accessUser('PROMOTE'), 'personnel'))->toBeTrue()
+        ->and(AdminAccess::allows(accessUser('FINANCE'), 'personnel'))->toBeTrue()
         ->and(AdminAccess::allows(accessUser('FINANCE'), 'signatories'))->toBeTrue()
         ->and(AdminAccess::allows(accessUser('FINANCE'), 'users'))->toBeFalse();
 });
@@ -59,7 +60,7 @@ test('sidebar contains only admin links allowed by the active role', function ()
 
     expect($html)->toContain('data-navigation-group="admin"')
         ->toContain(route('admin.leaves.index'))
-        ->not->toContain(route('admin.personnel.index'))
+        ->toContain(route('admin.personnel.index'))
         ->not->toContain(route('admin.salary-promotions.index'))
         ->not->toContain(route('admin.signatories'));
 });
@@ -155,3 +156,16 @@ test('MyMOPH does not create a user when its CID is absent from personnel', func
 
     expect(DB::table('users')->count())->toBe(0);
 });
+
+test('a regular user without a role sees no admin menu even with office 00 or a provider ADMIN staff type', function (string $staffType) {
+    $user = accessUser(null, $staffType);
+    $this->actingAs($user);
+    $html = Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>');
+
+    expect($html)->not->toContain('data-navigation-group="admin"');
+    foreach (['admin.personnel.index', 'admin.users.index', 'admin.payslips.index', 'admin.leaves.index',
+        'admin.salary-promotions.index', 'admin.signatories', 'admin.tax-certificates.index'] as $route) {
+        expect($html)->not->toContain(route($route));
+        $this->get(route($route))->assertForbidden();
+    }
+})->with(['STAFF', 'ADMIN']);

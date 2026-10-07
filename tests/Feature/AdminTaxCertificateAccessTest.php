@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
 function taxCertificateAccessUser(string $role): User
 {
     $user = new User;
-    $user->forceFill(['id' => 128, 'name' => 'ผู้ทดสอบ', 'role' => $role]);
+    $user->forceFill(['id' => 128, 'name' => 'ผู้ทดสอบ', 'role' => $role, 'office' => '00']);
     $user->exists = true;
 
     return $user;
