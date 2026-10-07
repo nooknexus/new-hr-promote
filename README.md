@@ -181,6 +181,10 @@ key ซ้ำในไฟล์จะถูกข้ามพร้อมสร�
 
 การทดสอบ layout อยู่ที่ `tests/Unit/PayslipPdfLayoutTest.php` ครอบคลุมจำนวนหน้า A4, Bootstrap-free print view, สัดส่วนลายเซ็น, ชื่อผู้ใช้ใน PDF และตำแหน่ง signature block
 
+## การนำขึ้น production
+
+ขั้นตอนติดตั้งบนเซิร์ฟเวอร์ที่ใช้ aaPanel ดูที่ [`docs/DEPLOYMENT_AAPANEL.md`](docs/DEPLOYMENT_AAPANEL.md)
+
 ## Scheduler และคำสั่งดูแลไฟล์ PDF
 
 ระบบมีคำสั่งลบไฟล์ PDF ชั่วคราวใน `public/temp` ที่เก่ากว่าจำนวนวันที่กำหนด:

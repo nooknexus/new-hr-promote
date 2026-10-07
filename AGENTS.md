@@ -55,7 +55,7 @@ npm run build
 - Every SSO callback must authorize the identity against the exact `person.cid`
   value before creating or logging in a local `users` record.
 - ProviderID/HealthID obtains the 13-digit CID from the decoded
-  `access_token` JWT claim `scopes_detail.id_card` described in `PROVIDER.md`.
+  `access_token` JWT claim `scopes_detail.id_card` described in `docs/PROVIDER.md`.
   ThaiD uses the verified ID-token `pid`, and MyMOPH uses the user-info `cid`.
 - Use `App\Services\SsoUserProvisioner` for the personnel lookup and account
   linking. A missing personnel record or ambiguous identity link must not
@@ -131,7 +131,7 @@ If configuration, database, queue, or OAuth behavior is involved, verify the rel
 
 ## Deployment Notes
 
-For a real web-server deployment, the web server document root must point to the project's `public/` directory. The full project directory should remain outside the public document root.
+For a real web-server deployment, follow `docs/DEPLOYMENT_AAPANEL.md`. The web server document root must point to the project's `public/` directory. The full project directory should remain outside the public document root.
 
 The repository contains `Dockerfile.txt`, but its build commands are not the authoritative local workflow. Check the current `composer.json`, `package.json`, and deployment environment before using that image definition; in particular, confirm the package manager and frontend build script match the current project.
 
