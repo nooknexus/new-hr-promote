@@ -68,11 +68,53 @@ test('leave history is stored and read from the application database', function 
     ]);
 
     $this->actingAs($user);
+    Carbon::setTestNow('2026-03-15');
 
-    Livewire::test(LeaveHistory::class)
-        ->assertSet('years', [2569])
-        ->call('selectYear', 2569)
-        ->assertSet('leaveHistory.0.leave_type', 'ลาป่วย');
+    try {
+        Livewire::test(LeaveHistory::class)
+            ->assertSet('years', [2569])
+            ->call('selectYear', 2569)
+            ->assertSet('leaveHistory.0.leave_type', 'ลาป่วย');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the current fiscal year is offered even without leave recorded in it', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'pid' => '1234567890123']);
+    $user->exists = true;
+    $leaveTypeId = DB::table('leave_types')->insertGetId(['name' => 'ลาป่วย', 'code' => 'SICK']);
+    DB::table('leave_requests')->insert([
+        'user_id' => $user->id,
+        'cid' => '1234567890123',
+        'leave_type_id' => $leaveTypeId,
+        'start_date' => '2024-11-01',
+        'end_date' => '2024-11-01',
+        'total_days' => 1,
+        'status' => 'approved',
+        'step1_status' => 'approved',
+        'step2_status' => 'approved',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    $this->actingAs($user);
+    Carbon::setTestNow('2026-10-07');
+
+    try {
+        Livewire::test(LeaveHistory::class)
+            ->assertSet('years', [2570, 2568])
+            ->assertSee('ปี2570')
+            ->call('selectYear', 2570)
+            ->assertSet('selectedYear', 2570)
+            ->assertSet('leaveHistory', [])
+            ->assertSee('ไม่พบรายการลาในปีงบประมาณ 2570');
+
+        DB::table('leave_requests')->delete();
+        Livewire::test(LeaveHistory::class)->assertSet('years', [2570]);
+    } finally {
+        Carbon::setTestNow();
+    }
 });
 
 test('fiscal year selector displays only the Buddhist calendar year', function () {

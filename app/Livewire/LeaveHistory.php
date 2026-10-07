@@ -35,24 +35,16 @@ class LeaveHistory extends Component
             return;
         }
 
+        // The current fiscal year is always offered, even before any leave is recorded in it.
         $this->years = DB::table('leave_requests')
             ->where('cid', $pid)
             ->pluck('start_date')
-            ->map(static function ($startDate): int {
-                $date = Carbon::parse($startDate);
-
-                return $date->year + ($date->month >= 10 ? 544 : 543);
-            })
+            ->map(fn ($startDate): int => $this->fiscalYearForDate((string) $startDate))
+            ->push($this->fiscalYearForDate(Carbon::now()->toDateString()))
             ->unique()
             ->sortDesc()
             ->values()
             ->all();
-
-        if ($this->years === []) {
-            $today = Carbon::now();
-            $calendarYear = $today->year + 543;
-            $this->years = [$today->month >= 10 ? $calendarYear + 1 : $calendarYear];
-        }
     }
 
     public function selectYear(int $year): void
