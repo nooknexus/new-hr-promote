@@ -301,31 +301,7 @@
                                         <table class="table table-borderless">
                                             <tr>
                                                 <td width="40%"><strong>รอบการเลื่อนขั้น:</strong></td>
-                                                <td>@php
-                                                        // Extract month and year from the round string
-                                                        $roundText = $selectedPromotion['round'] ?? '';
-                                                        $parts = explode(' ', $roundText);
-                                                        
-                                                        // If format is "รอบX เดือน ปี" or "เดือน ปี", get the month and year
-                                                        $month = '';
-                                                        $year = '';
-                                                        
-                                                        if (count($parts) >= 2) {
-                                                            // For "รอบ1 เมษายน 2568" format
-                                                            if (strpos($parts[0], 'รอบ') !== false && isset($parts[1]) && isset($parts[2])) {
-                                                                $month = $parts[1];
-                                                                $year = $parts[2];
-                                                            }
-                                                            // For "เมษายน 2568" format
-                                                            else if (isset($parts[0]) && isset($parts[1])) {
-                                                                $month = $parts[0];
-                                                                $year = $parts[1];
-                                                            }
-                                                        }
-                                                        
-                                                        $formattedRound = !empty($month) && !empty($year) ? "{$month} {$year}" : $roundText;
-                                                    @endphp
-                                                    {{ $formattedRound }}</td>
+                                                <td>{{ $selectedPromotion['round'] ?? '-' }}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>ชื่อ-สกุล:</strong></td>
@@ -333,11 +309,11 @@
                                             </tr>
                                            <tr>
                                                 <td><strong>ตำแหน่ง:</strong></td>
-                                                <td>นักวิชาการคอมพิวเตอร์</td>
+                                                <td>{{ $selectedPromotion['position'] ?? '-' }}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>ระดับ:</strong></td>
-                                                <td>ปฏิบัติการ</td>
+                                                <td>{{ $selectedPromotion['level'] ?? '-' }}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>ส่วนราชการ:</strong></td>
@@ -456,7 +432,7 @@
                                                  }
                                              @endphp
                                          @else
-                                             ไม่พบข้อมูลวันที่อัพเดต (DEBUG: {{ var_export($selectedPromotion, true) }})
+                                             -
                                          @endif
                                      </p>
                                      <div class="d-flex justify-content-between">
@@ -474,9 +450,11 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-modal-close>ปิด</button>
-                    <button type="button" class="btn btn-success" wire:click="generatePDF" id="download-pdf-btn">
-                        <i class="fas fa-file-pdf mr-1"></i> ดาวน์โหลด PDF
-                    </button>
+                    @if($selectedPromotion)
+                        <a href="{{ route('profile.salary-promotion.download', ['promotion' => $selectedPromotion['id']]) }}" class="btn btn-success" id="download-pdf-btn">
+                            <i class="fas fa-file-pdf mr-1"></i> ดาวน์โหลด PDF
+                        </a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -490,7 +468,6 @@
     });
 
     $wire.on('show-pdf-preview', () => {
-        console.log('Opening PDF preview modal');
         window.portalModal.show('pdfPreviewModal');
         
         // Delay the timestamp update to ensure the modal is visible
@@ -531,10 +508,5 @@
             console.error('Error updating timestamp:', e);
         }
     }
-
-    // Add event listener for when modal is fully shown
-    $('#pdfPreviewModal').on('shown.bs.modal', function () {
-        updatePrintTimestamp();
-    });
 </script>
 @endscript

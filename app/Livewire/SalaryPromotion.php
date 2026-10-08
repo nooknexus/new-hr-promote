@@ -5,6 +5,7 @@ namespace App\Livewire;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use App\Services\SalaryPromotionPdfService;
 use Carbon\Carbon;
 
 class SalaryPromotion extends Component
@@ -110,17 +111,20 @@ class SalaryPromotion extends Component
             };
         }
         
+        $person = DB::table('person')->where('cid', $pid)->first();
+        $position = trim((string) ($person->position ?? '')) ?: '-';
+        $level = trim((string) ($person->position_level ?? '')) ?: '-';
+
         // Process the data to format it properly for the view
-        $this->promotions = $promotionData->reverse()->values()->map(function($item) {
+        $this->promotions = $promotionData->reverse()->values()->map(function($item) use ($position, $level) {
             $evaluationDate = Carbon::parse($item->evaluation_date);
             $calendarYearBE = $evaluationDate->year + 543; // Convert to Buddhist Era
             
             return [
                 'id' => (int) $item->id,
-                // Only April and October are regular rounds; any other month is a special round.
-                'round' => in_array($evaluationDate->month, [4, 10], true)
-                    ? $this->getThaiMonth($evaluationDate->month) . " {$calendarYearBE}"
-                    : 'รอบพิเศษ',
+                'round' => SalaryPromotionPdfService::roundLabel($evaluationDate),
+                'position' => $position,
+                'level' => $level,
                 'round_number' => $item->round_number,
                 'round_type' => $item->round_month,
                 'old_salary' => $item->old_salary,
@@ -241,12 +245,6 @@ class SalaryPromotion extends Component
         
         // Show preview modal first
         $this->dispatch('show-pdf-preview');
-    }
-
-    public function generatePDF()
-    {
-        // This would be implemented to generate the actual PDF
-        // Usually using a package like dompdf, barryvdh/laravel-dompdf, etc.
     }
 
     public function render()

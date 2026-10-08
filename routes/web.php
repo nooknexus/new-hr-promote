@@ -28,6 +28,9 @@ Route::group(['middleware' => 'auth'], function () {
     
     // New route for salary promotion
     Route::get('/profile/salary-promotion', App\Livewire\SalaryPromotion::class)->name('profile.salary-promotion');
+    Route::get('/profile/salary-promotion/{promotion}/download', [\App\Http\Controllers\SalaryPromotionController::class, 'download'])
+        ->whereNumber('promotion')
+        ->name('profile.salary-promotion.download');
     
     Route::get('/leave-history', App\Livewire\LeaveHistory::class)->name('leave.history');
 
