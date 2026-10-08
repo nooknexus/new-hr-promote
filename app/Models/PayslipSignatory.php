@@ -76,10 +76,28 @@ class PayslipSignatory extends Model
             ?? static::orderByDesc('fiscal_year')->first();
     }
 
-    /** Tax certificates must use only the signatory for their exact income year. */
-    public static function forTaxIncomeYear(int $incomeYear): ?self
+    /**
+     * A tax certificate is signed by whoever held office when it was issued:
+     * the signatory for the fiscal year of its issue date (date_report,
+     * DDMMYYYY in the Buddhist Era). Certificates are issued in the year after
+     * the income year, so a missing or invalid issue date falls back to
+     * income year + 1. Only an exact fiscal-year match is used.
+     */
+    public static function forTaxCertificate(?string $dateReport, int $incomeYear): ?self
     {
-        return static::where('fiscal_year', $incomeYear)->first();
+        return static::where('fiscal_year', self::taxCertificateFiscalYear($dateReport, $incomeYear))->first();
+    }
+
+    public static function taxCertificateFiscalYear(?string $dateReport, int $incomeYear): int
+    {
+        $date = trim((string) $dateReport);
+
+        if (preg_match('/^(\d{2})(\d{2})(\d{4})$/', $date, $parts)
+            && checkdate((int) $parts[2], (int) $parts[1], (int) $parts[3] - 543)) {
+            return self::fiscalYearFor((int) $parts[3] - 543, (int) $parts[2]);
+        }
+
+        return $incomeYear + 1;
     }
 
     /**

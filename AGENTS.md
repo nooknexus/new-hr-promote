@@ -102,7 +102,7 @@ npm run build
   amounts. Import diagnostics must mask CIDs.
 - A user-facing certificate query must always constrain `data_tax.CID` to the
   authenticated user's `users.pid`, including preview and PDF endpoints.
-- Preserve the existing A4 geometry and the income-year signatory lookup when
+- Preserve the existing A4 geometry and the issue-date signatory lookup (the signatory for the fiscal year of `date_report`, falling back to income year + 1) when
   changing certificate mapping or PDF rendering. Run the focused tax-certificate
   tests and `npm run build` for such changes.
 

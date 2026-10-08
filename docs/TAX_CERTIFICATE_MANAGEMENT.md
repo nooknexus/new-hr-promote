@@ -25,8 +25,10 @@ preview และ PDF โดย key ของข้อมูลคือ `(CID, 
 - `TaxCertificatePdfService::fromTaxRecord()` แปลงข้อมูลจาก record ไปยัง payload
   เอกสาร เช่น ผู้จ่ายเงิน/เลขภาษี/ที่อยู่, ผู้ถูกหักภาษี/เลขบัตร/ที่อยู่,
   ประเภท ภ.ง.ด., กองทุน, วิธีจ่าย, ยอดเงิน, ภาษี, ข้อความภาษี และวันออกเอกสาร
-- `PayslipSignatory::forTaxIncomeYear($incomeYear)` เลือกลายเซ็นตามปีภาษี
-  ของ record เท่านั้น
+- `PayslipSignatory::forTaxCertificate($dateReport, $incomeYear)` เลือกลายเซ็น
+  ของผู้ลงนามในปีงบประมาณของวันที่ออกหนังสือรับรอง (`date_report`) เช่น ปีภาษี
+  2567 ออก 29 ม.ค. 2568 ใช้ผู้ลงนามปีงบประมาณ 2568 ถ้าไม่มีวันที่ออกเอกสารใช้
+  ปีภาษี + 1 และใช้เฉพาะปีที่ตรงกันเท่านั้น
 - รักษา geometry A4, เส้นตาราง และตำแหน่งที่ `TaxCertificatePdfService`
   กำหนดไว้ การปรับ mapping ต้องไม่เปลี่ยน layout โดยไม่มีการทดสอบ PDF จริง
 

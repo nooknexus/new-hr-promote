@@ -144,7 +144,7 @@ test('the authenticated user preview and download render imported certificate de
     }
 });
 
-test('the preview signs only with the signatory for the tax income year', function () {
+test('the preview signs with the signatory for the fiscal year of its issue date', function () {
     $user = new User;
     $user->forceFill(['id' => 1, 'name' => 'ทดสอบ เอกสาร', 'pid' => '1571200051606']);
     $user->exists = true;
@@ -161,8 +161,8 @@ test('the preview signs only with the signatory for the tax income year', functi
 
     $signature = file_get_contents(public_path('img/sign.png'));
     DB::table('payslip_signatories')->insert([
-        'fiscal_year' => 2568,
-        'name' => 'ผู้ลงนามปีอื่น',
+        'fiscal_year' => 2567,
+        'name' => 'ผู้ลงนามปีภาษีเดิม',
         'position_line1' => 'ผู้จ่ายเงิน',
         'signature_image' => $signature,
         'signature_mime' => 'image/png',
@@ -174,8 +174,8 @@ test('the preview signs only with the signatory for the tax income year', functi
         ->html())->not->toContain('tax-certificate-signature-image');
 
     DB::table('payslip_signatories')->insert([
-        'fiscal_year' => 2567,
-        'name' => 'ผู้ลงนามปีภาษี',
+        'fiscal_year' => 2568,
+        'name' => 'ผู้ลงนามปีงบที่ออกเอกสาร',
         'position_line1' => 'ผู้จ่ายเงิน',
         'signature_image' => $signature,
         'signature_mime' => 'image/png',
@@ -222,7 +222,7 @@ test('a tampered preview year cannot expose a signatory for a different tax reco
         ->assertSet('previewCertificate', null);
 });
 
-test('the downloaded PDF signs only with the signatory for the tax income year', function () {
+test('the downloaded PDF signs with the signatory for the fiscal year of its issue date', function () {
     $user = new User;
     $user->forceFill(['id' => 1, 'name' => 'ทดสอบ เอกสาร', 'pid' => '1571200051606']);
     $user->exists = true;
@@ -238,8 +238,8 @@ test('the downloaded PDF signs only with the signatory for the tax income year',
 
     $signature = file_get_contents(public_path('img/sign.png'));
     DB::table('payslip_signatories')->insert([
-        'fiscal_year' => 2568,
-        'name' => 'ผู้ลงนามปีอื่น',
+        'fiscal_year' => 2567,
+        'name' => 'ผู้ลงนามปีภาษีเดิม',
         'position_line1' => 'ผู้จ่ายเงิน',
         'signature_image' => $signature,
         'signature_mime' => 'image/png',
@@ -264,8 +264,8 @@ test('the downloaded PDF signs only with the signatory for the tax income year',
     expect($imageCount($withoutMatch->getContent()))->toBe(0);
 
     DB::table('payslip_signatories')->insert([
-        'fiscal_year' => 2567,
-        'name' => 'ผู้ลงนามปีภาษี',
+        'fiscal_year' => 2568,
+        'name' => 'ผู้ลงนามปีงบที่ออกเอกสาร',
         'position_line1' => 'ผู้จ่ายเงิน',
         'signature_image' => $signature,
         'signature_mime' => 'image/png',
@@ -322,4 +322,13 @@ test('a user cannot download another users tax certificate', function () {
     $this->actingAs($user)
         ->get(route('tax.certificate.download', ['taxYear' => 2567, 'certificateNo' => '151302']))
         ->assertNotFound();
+});
+
+test('the tax certificate signatory follows the fiscal year of the issue date', function () {
+    expect(\App\Models\PayslipSignatory::taxCertificateFiscalYear('29012568', 2567))->toBe(2568)
+        ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('15102568', 2567))->toBe(2569)
+        ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('30092568', 2567))->toBe(2568)
+        ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear(null, 2567))->toBe(2568)
+        ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('', 2567))->toBe(2568)
+        ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('31022568', 2567))->toBe(2568);
 });

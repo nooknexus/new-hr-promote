@@ -197,7 +197,7 @@ class TaxCertificate extends Component
                 return;
             }
 
-            $signatory = PayslipSignatory::forTaxIncomeYear((int) $record->income_year);
+            $signatory = PayslipSignatory::forTaxCertificate($record->date_report ?? null, (int) $record->income_year);
             $this->previewCertificate = TaxCertificatePdfService::fromTaxRecord($record);
             $this->previewCertificate['signatureDataUri'] = $signatory?->signature_data_uri;
             $this->previewIndex = $index;

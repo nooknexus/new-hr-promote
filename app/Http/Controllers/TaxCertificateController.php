@@ -25,7 +25,7 @@ class TaxCertificateController extends Controller
 
         abort_unless($record, 404);
 
-        $signatory = PayslipSignatory::forTaxIncomeYear((int) $record->income_year);
+        $signatory = PayslipSignatory::forTaxCertificate($record->date_report ?? null, (int) $record->income_year);
         $certificate = TaxCertificatePdfService::fromTaxRecord($record);
         $certificate['signatureImage'] = $signatory?->signature_image;
         $pdf = TaxCertificatePdfService::generatePdf($certificate);
