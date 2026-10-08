@@ -26,20 +26,16 @@ class LeaveEntitlementService
         $referenceDate = $this->referenceDateForFiscalYear($fiscalYear, $asOf);
 
         if (empty($person->employment_started_at)) {
-            // Civil servants without a recorded start date are treated as having
-            // served more than one but fewer than ten years: 10 current-year days
-            // plus up to 10 carried-over days (20 in total).
-            if (! str_contains($typeName, 'ข้าราชการ')) {
+            // Without a recorded start date, assume service past the first year:
+            // civil servants and permanent employees under ten years (10 + up to
+            // 10 carried over = 20); government and Ministry of Public Health
+            // employees (10 + up to 5 carried over = 15).
+            $startedAt = null;
+            $policy = $this->policyWithoutStartDate($typeName);
+
+            if ($policy === null) {
                 return $this->unavailable('ไม่พบวันเริ่มงาน กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
             }
-
-            $startedAt = null;
-            $policy = [
-                'personnel_type' => 'ข้าราชการ',
-                'completed_six_months' => true,
-                'current_year_days' => 10.0,
-                'carryover_cap_days' => 10.0,
-            ];
         } else {
             if ($typeName === '') {
                 return $this->unavailable('ไม่พบประเภทเจ้าหน้าที่ กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
@@ -103,19 +99,41 @@ class LeaveEntitlementService
     }
 
     /** @return array{personnel_type: string, completed_six_months: bool, current_year_days: float, carryover_cap_days: float}|null */
+    private function policyWithoutStartDate(string $typeName): ?array
+    {
+        $carryoverCap = match (true) {
+            str_contains($typeName, 'ข้าราชการ') => ['ข้าราชการ', 10.0],
+            str_contains($typeName, 'ลูกจ้างประจำ') => ['ลูกจ้างประจำ', 10.0],
+            str_contains($typeName, 'พนักงานราชการ') => ['พนักงานราชการ', 5.0],
+            str_contains($typeName, 'พนักงานกระทรวง') => ['พนักงานกระทรวง', 5.0],
+            default => null,
+        };
+
+        return $carryoverCap === null ? null : [
+            'personnel_type' => $carryoverCap[0],
+            'completed_six_months' => true,
+            'current_year_days' => 10.0,
+            'carryover_cap_days' => $carryoverCap[1],
+        ];
+    }
+
+    /** @return array{personnel_type: string, completed_six_months: bool, current_year_days: float, carryover_cap_days: float}|null */
     private function policyFor(string $typeName, Carbon $startedAt, Carbon $referenceDate): ?array
     {
         $completedSixMonths = $startedAt->copy()->addMonthsNoOverflow(6)->lte($referenceDate);
         $completedOneYear = $startedAt->copy()->addYear()->lte($referenceDate);
         $moreThanTenYears = $startedAt->copy()->addYears(10)->lt($referenceDate);
 
-        if (str_contains($typeName, 'ข้าราชการ')) {
-            return [
-                'personnel_type' => 'ข้าราชการ',
-                'completed_six_months' => $completedSixMonths,
-                'current_year_days' => 10.0,
-                'carryover_cap_days' => $moreThanTenYears ? 20.0 : 10.0,
-            ];
+        // Permanent employees (ลูกจ้างประจำ) follow the civil-servant rule.
+        foreach (['ข้าราชการ', 'ลูกจ้างประจำ'] as $civilServiceType) {
+            if (str_contains($typeName, $civilServiceType)) {
+                return [
+                    'personnel_type' => $civilServiceType,
+                    'completed_six_months' => $completedSixMonths,
+                    'current_year_days' => 10.0,
+                    'carryover_cap_days' => $moreThanTenYears ? 20.0 : 10.0,
+                ];
+            }
         }
 
         if (str_contains($typeName, 'พนักงานราชการ')) {
