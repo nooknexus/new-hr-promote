@@ -97,7 +97,7 @@
                     <button type="button" x-ref="userMenuButton" @click="open = !open" :aria-expanded="open.toString()" aria-expanded="false" aria-controls="user-account-menu" class="flex max-w-full items-center gap-3 rounded-xl px-3 py-2 text-slate-600 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-emerald-600">
                         <span class="min-w-0 text-end">
                             <span class="block max-w-48 truncate text-sm font-semibold text-slate-800 sm:max-w-72">{{ auth()->user()->name }}</span>
-                            <span class="hidden text-xs text-slate-500 sm:block">ผู้ใช้งานระบบ</span>
+                            <span class="hidden text-xs text-slate-500 sm:block">{{ \App\Support\AdminAccess::roleLabel(auth()->user()) }}</span>
                         </span>
                         <i class="fas fa-chevron-down text-xs" aria-hidden="true"></i>
                     </button>

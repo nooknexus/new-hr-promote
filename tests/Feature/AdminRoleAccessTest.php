@@ -169,3 +169,16 @@ test('a regular user without a role sees no admin menu even with office 00 or a 
         $this->get(route($route))->assertForbidden();
     }
 })->with(['STAFF', 'ADMIN']);
+
+test('the navigation bar shows the Thai label of the signed-in user role', function (?string $role, string $label) {
+    $this->actingAs(accessUser($role));
+    $html = Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>');
+
+    expect($html)->toContain($label)->not->toContain('ผู้ใช้งานระบบ');
+})->with([
+    'admin' => ['ADMIN', 'ผู้ดูแลระบบ'],
+    'leave' => ['LEAVE', 'เจ้าหน้าที่งานลา'],
+    'promote' => ['PROMOTE', 'เจ้าหน้าที่งานเลื่อนขั้นเงินเดือน'],
+    'finance' => ['FINANCE', 'เจ้าหน้าที่การเงิน'],
+    'no role' => [null, 'ผู้ใช้งานทั่วไป'],
+]);

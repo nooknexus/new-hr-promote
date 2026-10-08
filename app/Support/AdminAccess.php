@@ -15,6 +15,19 @@ final class AdminAccess
 
     private const ABILITIES = ['users', 'personnel', 'leave', 'leave-sync', 'promotions', 'signatories', 'tax-certificates', 'payslip'];
 
+    private const ROLE_LABELS = [
+        'ADMIN' => 'ผู้ดูแลระบบ',
+        'LEAVE' => 'เจ้าหน้าที่งานลา',
+        'PROMOTE' => 'เจ้าหน้าที่งานเลื่อนขั้นเงินเดือน',
+        'FINANCE' => 'เจ้าหน้าที่การเงิน',
+    ];
+
+    /** Thai label for the user's local role; users without a role are regular users. */
+    public static function roleLabel(?User $user): string
+    {
+        return self::ROLE_LABELS[$user?->role ?? ''] ?? 'ผู้ใช้งานทั่วไป';
+    }
+
     public static function allows(?User $user, string $ability): bool
     {
         if ($user === null || $user->is_active === false || ! in_array($ability, self::ABILITIES, true)) {
