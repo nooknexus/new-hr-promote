@@ -370,3 +370,32 @@ test('additional summary cards depend on the users records in the selected fisca
         ->assertSet('leaveTypeTotals', ['ลาพักผ่อน' => 0.0, 'ลาป่วย' => 0.0, 'ลากิจ' => 0.0])
         ->assertDontSee($name);
 })->with(['ลาคลอดบุตร', 'ลาไปช่วยเหลือภริยาที่คลอดบุตร', 'ลาอุปสมบท', 'ลาศึกษา']);
+
+test('a civil servant without a start date gets twenty days even before any leave is recorded', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'pid' => '1234567890123']);
+    $user->exists = true;
+    DB::table('person')->insert([
+        'cid' => '1234567890123',
+        'fname' => 'ทดสอบ',
+        'type_name' => 'ข้าราชการ',
+        'employment_started_at' => null,
+    ]);
+    DB::table('leave_types')->insert(['name' => 'ลาพักผ่อน', 'code' => 'VACATION', 'is_active' => true, 'sort_order' => 0]);
+    $this->actingAs($user);
+    Carbon::setTestNow('2026-10-08');
+
+    try {
+        Livewire::test(LeaveHistory::class)
+            ->call('selectYear', 2570)
+            ->assertSet('annualLeaveEntitlement.available', true)
+            ->assertSet('annualLeaveEntitlement.carryover_actual_days', 10.0)
+            ->assertSet('annualLeaveEntitlement.current_year_days', 10.0)
+            ->assertSet('annualLeaveEntitlement.total_entitled_days', 20.0)
+            ->assertSet('annualLeaveEntitlement.remaining_days', 20.0)
+            ->assertDontSee('ยังไม่มีวันเริ่มงานในระบบ')
+            ->assertDontSee('ไม่พบวันเริ่มงาน กรุณาให้ผู้ดูแลระบบ');
+    } finally {
+        Carbon::setTestNow();
+    }
+});

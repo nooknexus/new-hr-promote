@@ -18,24 +18,41 @@ class LeaveEntitlementService
         float $carryoverDays = 0,
     ): array
     {
-        if ($person === null || empty($person->employment_started_at)) {
+        if ($person === null) {
             return $this->unavailable('ไม่พบวันเริ่มงาน กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
         }
 
         $typeName = trim((string) ($person->type_name ?? ''));
-
-        if ($typeName === '') {
-            return $this->unavailable('ไม่พบประเภทเจ้าหน้าที่ กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
-        }
-
-        try {
-            $startedAt = Carbon::parse($person->employment_started_at)->startOfDay();
-        } catch (Throwable) {
-            return $this->unavailable('วันเริ่มงานไม่ถูกต้อง กรุณาให้ผู้ดูแลระบบตรวจสอบข้อมูลบุคลากร');
-        }
-
         $referenceDate = $this->referenceDateForFiscalYear($fiscalYear, $asOf);
-        $policy = $this->policyFor($typeName, $startedAt, $referenceDate);
+
+        if (empty($person->employment_started_at)) {
+            // Civil servants without a recorded start date are treated as having
+            // served more than one but fewer than ten years: 10 current-year days
+            // plus up to 10 carried-over days (20 in total).
+            if (! str_contains($typeName, 'ข้าราชการ')) {
+                return $this->unavailable('ไม่พบวันเริ่มงาน กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
+            }
+
+            $startedAt = null;
+            $policy = [
+                'personnel_type' => 'ข้าราชการ',
+                'completed_six_months' => true,
+                'current_year_days' => 10.0,
+                'carryover_cap_days' => 10.0,
+            ];
+        } else {
+            if ($typeName === '') {
+                return $this->unavailable('ไม่พบประเภทเจ้าหน้าที่ กรุณาให้ผู้ดูแลระบบบันทึกข้อมูลบุคลากร');
+            }
+
+            try {
+                $startedAt = Carbon::parse($person->employment_started_at)->startOfDay();
+            } catch (Throwable) {
+                return $this->unavailable('วันเริ่มงานไม่ถูกต้อง กรุณาให้ผู้ดูแลระบบตรวจสอบข้อมูลบุคลากร');
+            }
+
+            $policy = $this->policyFor($typeName, $startedAt, $referenceDate);
+        }
         if ($policy === null) {
             return $this->unavailable('ยังไม่มีเงื่อนไขสิทธิวันลาพักผ่อนสำหรับประเภท “'.$typeName.'”');
         }
@@ -47,7 +64,8 @@ class LeaveEntitlementService
         return [
             'available' => true,
             'personnel_type' => $policy['personnel_type'],
-            'employment_started_at' => $startedAt->toDateString(),
+            'employment_started_at' => $startedAt?->toDateString(),
+            'start_date_assumed' => $startedAt === null,
             'reference_date' => $referenceDate->toDateString(),
             'completed_six_months' => $policy['completed_six_months'],
             'current_year_days' => $policy['current_year_days'],
@@ -69,6 +87,7 @@ class LeaveEntitlementService
             'available' => false,
             'personnel_type' => null,
             'employment_started_at' => null,
+            'start_date_assumed' => false,
             'reference_date' => null,
             'completed_six_months' => false,
             'current_year_days' => 0.0,

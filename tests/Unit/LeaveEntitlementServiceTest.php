@@ -66,3 +66,37 @@ test('a civil servant with more than ten years of service receives thirty days o
         'remaining_days' => 28.0,
     ]);
 });
+
+test('a civil servant without a start date is treated as under ten years of service', function () {
+    $entitlement = (new LeaveEntitlementService)->forPersonnel(
+        (object) ['type_name' => 'ข้าราชการ', 'employment_started_at' => null],
+        2570,
+        3,
+        Carbon::create(2026, 12, 1),
+        carryoverDays: 15,
+    );
+
+    expect($entitlement)->toMatchArray([
+        'available' => true,
+        'personnel_type' => 'ข้าราชการ',
+        'start_date_assumed' => true,
+        'employment_started_at' => null,
+        'completed_six_months' => true,
+        'current_year_days' => 10.0,
+        'carryover_cap_days' => 10.0,
+        'maximum_days' => 20.0,
+        'carryover_actual_days' => 10.0,
+        'total_entitled_days' => 20.0,
+        'remaining_days' => 17.0,
+    ]);
+});
+
+test('other personnel types without a start date still ask for the start date', function (string $type) {
+    $entitlement = (new LeaveEntitlementService)->forPersonnel(
+        (object) ['type_name' => $type, 'employment_started_at' => null],
+        2570,
+    );
+
+    expect($entitlement['available'])->toBeFalse()
+        ->and($entitlement['message'])->toContain('ไม่พบวันเริ่มงาน');
+})->with(['พนักงานราชการ', 'พนักงานกระทรวง', 'ลูกจ้างประจำ']);

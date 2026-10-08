@@ -124,6 +124,11 @@ class LeaveHistory extends Component
         $annualLeaveUsedByFiscalYear = $this->annualLeaveUsedByFiscalYear($pid, $endDate);
         $usedAnnualLeaveDays = $annualLeaveUsedByFiscalYear[$year] ?? 0.0;
         $firstRecordedFiscalYear = $this->firstRecordedFiscalYear($pid, $endDate);
+        if ($person !== null && empty($person->employment_started_at)) {
+            // Without a start date there is no opening balance to derive, so the
+            // selected year starts with the full carryover allowance.
+            $firstRecordedFiscalYear = min($firstRecordedFiscalYear ?? $year, $year);
+        }
         $carryoverDays = $this->carryoverFromPreviousFiscalYears(
             $person,
             $year,
