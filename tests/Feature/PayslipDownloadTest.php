@@ -124,3 +124,37 @@ test('the payslip page starts with the shared page header', function () {
     Livewire::test(Payslip::class)
         ->assertSeeHtml('<h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">สลิปเงินเดือน</h1>');
 });
+
+test('payslips stored with single-digit months are listed, ordered and downloadable', function () {
+    foreach (['9', '12', '1'] as $month) {
+        DB::table('data_salary')->insert([
+            'yearNO' => '2569',
+            'monthNO' => $month,
+            'cid' => '1111111111111',
+            'incomeSalaryAmount' => '31350',
+            'summaryIncomeAmount' => '31350',
+            'summaryOutcomeAmount' => '1000',
+            'summaryTotalAmount' => '30350',
+        ]);
+    }
+
+    Livewire::test(Payslip::class)
+        ->call('selectYear', 2026)
+        ->assertSet('payslips.0.id', '256912')
+        ->assertSet('payslips.0.month', 'ธันวาคม 2569')
+        ->assertSet('payslips.1.id', '256909')
+        ->assertSet('payslips.1.month', 'กันยายน 2569')
+        ->assertSet('payslips.2.id', '256901');
+
+    $this->get(route('payslip.download', ['id' => '256909']))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+});
+
+test('TXT and Excel payslip months normalise to two digits', function () {
+    expect(\App\Models\DataSalary::normalizeMonth('9'))->toBe('09')
+        ->and(\App\Models\DataSalary::normalizeMonth(' 9 '))->toBe('09')
+        ->and(\App\Models\DataSalary::normalizeMonth('12'))->toBe('12')
+        ->and(\App\Models\DataSalary::monthVariants('09'))->toBe(['09', '9'])
+        ->and(\App\Models\DataSalary::periodBindings('256909'))->toBe(['2569', '09', '9']);
+});

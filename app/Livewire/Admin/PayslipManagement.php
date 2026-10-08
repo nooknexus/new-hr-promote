@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Models\DataSalary;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use Illuminate\Database\Query\Builder;
@@ -105,7 +106,7 @@ class PayslipManagement extends Component
             $query->where('data_salary.yearNO', $this->searchYear);
         }
         if ($this->searchMonth) {
-            $query->where('data_salary.monthNO', str_pad($this->searchMonth, 2, '0', STR_PAD_LEFT));
+            $query->whereIn('data_salary.monthNO', DataSalary::monthVariants($this->searchMonth));
         }
         if (trim((string) $this->officeFilter) !== '') {
             $query->where('person.office_id', trim((string) $this->officeFilter));
@@ -439,7 +440,7 @@ class PayslipManagement extends Component
                     ];
 
                     DB::table('data_salary')->updateOrInsert(
-                        ['yearNO' => $yearData, 'monthNO' => $monthData, 'cid' => $cidData],
+                        ['yearNO' => trim($yearData), 'monthNO' => DataSalary::normalizeMonth($monthData), 'cid' => $cidData],
                         $record
                     );
 

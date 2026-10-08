@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Profile;
 
+use App\Models\DataSalary;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
@@ -122,11 +123,15 @@ class Payslip extends Component
             
             Log::info('Query results', ['count' => count($salaryData)]);
             
+            // Normalise months ("9" -> "09") so ids, labels and ordering are consistent.
+            usort($salaryData, fn ($a, $b) => strcmp(DataSalary::normalizeMonth($b->monthNO), DataSalary::normalizeMonth($a->monthNO)));
+
             // Process the data
             foreach ($salaryData as $salary) {
+                $month = DataSalary::normalizeMonth($salary->monthNO);
                 $this->payslips[] = [
-                    'id' => $salary->yearNO . $salary->monthNO,
-                    'month' => $thaiMonths[$salary->monthNO] . ' ' . $salary->yearNO, // Already BE year
+                    'id' => $salary->yearNO . $month,
+                    'month' => ($thaiMonths[$month] ?? $month) . ' ' . $salary->yearNO, // Already BE year
                     'salary' => floatval($salary->incomeSalaryAmount ?? 0),
                     'total_income' => floatval($salary->summaryIncomeAmount ?? 0),
                     'total_outcome' => floatval($salary->summaryOutcomeAmount ?? 0),
@@ -187,8 +192,8 @@ class Payslip extends Component
                 FROM
                     data_salary
                 WHERE
-                    cid = ? AND CONCAT(yearNO, monthNO) = ?
-            ", [$cid, $id]);
+                    cid = ? AND yearNO = ? AND monthNO IN (?, ?)
+            ", [$cid, ...DataSalary::periodBindings((string) $id)]);
             
             // Check if data was found
             if (empty($detailedData)) {
@@ -375,8 +380,8 @@ class Payslip extends Component
                 LEFT JOIN person p ON p.cid = s.cid
                 LEFT JOIN users u ON u.pid = s.cid
                 WHERE
-                    s.cid = ? AND CONCAT(s.yearNO, s.monthNO) = ?
-            ", [$cid, $id]);
+                    s.cid = ? AND s.yearNO = ? AND s.monthNO IN (?, ?)
+            ", [$cid, ...DataSalary::periodBindings((string) $id)]);
             
             // Check if data was found
             if (empty($detailedData)) {
@@ -397,7 +402,8 @@ class Payslip extends Component
             ];
             
             // Create month display text
-            $monthDisplay = $thaiMonths[$result->monthNO] . ' ' . $result->yearNO;
+            $month = DataSalary::normalizeMonth($result->monthNO);
+            $monthDisplay = ($thaiMonths[$month] ?? $month) . ' ' . $result->yearNO;
             
             // Add person info to the payslip data
             $personInfo = [

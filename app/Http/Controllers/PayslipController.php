@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DataSalary;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -99,8 +100,8 @@ class PayslipController extends Controller
                 LEFT JOIN person p ON p.cid = s.cid
                 LEFT JOIN users u ON u.pid = s.cid
                 WHERE
-                    s.cid = ? AND CONCAT(s.yearNO, s.monthNO) = ?
-            ", [$cid, $id]);
+                    s.cid = ? AND s.yearNO = ? AND s.monthNO IN (?, ?)
+            ", [$cid, ...DataSalary::periodBindings((string) $id)]);
             
             // Check if data was found
             if (empty($detailedData)) {
@@ -120,7 +121,8 @@ class PayslipController extends Controller
             ];
             
             // Create month display text
-            $monthDisplay = $thaiMonths[$result->monthNO] . ' ' . $result->yearNO;
+            $month = DataSalary::normalizeMonth($result->monthNO);
+            $monthDisplay = ($thaiMonths[$month] ?? $month) . ' ' . $result->yearNO;
             
             // Add person info to the payslip data
             $personInfo = [
