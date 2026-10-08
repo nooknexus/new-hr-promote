@@ -93,12 +93,14 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" wire:click="viewPromotionDetail('{{ $promotion['id'] }}')">
-                                            <i class="fas fa-eye"></i> ดูรายละเอียด
-                                        </button>
-                                        <button class="btn btn-sm btn-success" wire:click="downloadPromotion('{{ $promotion['id'] }}')">
-                                            <i class="fas fa-download"></i> ดาวน์โหลด
-                                        </button>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="viewPromotionDetail('{{ $promotion['id'] }}')">
+                                                <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-primary" wire:click="downloadPromotion('{{ $promotion['id'] }}')">
+                                                <i class="fas fa-download" aria-hidden="true"></i> ดาวน์โหลด
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach

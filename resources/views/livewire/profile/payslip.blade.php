@@ -50,12 +50,14 @@
                                     <td class="text-right">{{ number_format($payslip['total_outcome'], 2) }}</td> -->
                                     <td class="text-right">{{ number_format($payslip['net'], 2) }}</td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" wire:click="viewPayslipDetail('{{ $payslip['id'] }}')">
-                                            <i class="fas fa-eye"></i> ดูรายละเอียด
-                                        </button>
-                                        <button class="btn btn-sm btn-success" wire:click="downloadPayslip('{{ $payslip['id'] }}')">
-                                            <i class="fas fa-download"></i> ดาวน์โหลด
-                                        </button>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" wire:click="viewPayslipDetail('{{ $payslip['id'] }}')">
+                                                <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-primary" wire:click="downloadPayslip('{{ $payslip['id'] }}')">
+                                                <i class="fas fa-download" aria-hidden="true"></i> ดาวน์โหลด
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 @endforeach

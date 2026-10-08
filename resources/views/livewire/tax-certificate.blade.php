@@ -83,7 +83,7 @@
                                         <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ number_format((float)$certificate['taxWithheld'], 2) }} บาท</td>
                                         <td class="px-4 py-3">
                                             <div class="flex flex-wrap gap-2">
-                                                <button type="button" wire:click="viewCertificate({{ $index }})" class="btn btn-secondary btn-sm">
+                                                <button type="button" wire:click="viewCertificate({{ $index }})" class="btn btn-outline-primary btn-sm">
                                                     <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
                                                 </button>
                                                 <button type="button" wire:click="previewDocument({{ $index }})" class="btn btn-primary btn-sm">

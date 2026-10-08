@@ -76,6 +76,7 @@
     .btn-warning { @apply bg-amber-400 text-slate-900 hover:bg-amber-500; }
     .btn-secondary { @apply bg-slate-100 text-slate-700 hover:bg-slate-200; }
     .btn-light { @apply bg-white text-slate-600 hover:bg-slate-100; }
+    .btn-outline-primary { @apply border border-brand-500/40 bg-white text-brand-700 shadow-none hover:border-brand-500 hover:bg-brand-50; }
     .form-control, .custom-select { @apply block w-full rounded-xl border-slate-300 bg-white px-3 py-2.5 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:ring-brand-500; }
     .alert { @apply rounded-xl border px-4 py-3 text-sm; }
     .alert-danger { @apply border-rose-200 bg-rose-50 text-rose-800; }
