@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use App\Services\PersonnelImportService;
@@ -206,6 +207,7 @@ class PersonnelManagement extends Component
         }
     }
 
+    #[Title('จัดการข้อมูลบุคลากร')]
     public function render()
     {
         $this->ensureAdministrator();

@@ -4,7 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#056b3e">
-    <title>{{ $title ?? 'MyPPH' }}</title>
+    <title>{{ filled($title ?? null) ? $title.' | ' : '' }}MyPPH ระบบข้อมูลบุคลากร</title>
+    <link rel="icon" type="image/png" href="{{ asset('img/logoMOPH.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('img/logoMOPH.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:ital,wght@0,200;0,300;0,400;0,500;0,600;0,700;1,200;1,300;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
@@ -17,8 +19,11 @@
         <aside class="app-sidebar" aria-label="เมนูหลัก">
             <div class="mb-8 flex items-center justify-between px-2">
                 <a href="{{ route('home') }}" wire:navigate class="flex items-center gap-3 text-white">
-                    <img src="{{ asset('img/logoMOPH.png') }}" alt="ตรากระทรวงสาธารณสุข" class="size-11 rounded-xl bg-white p-1">
-                    <span class="text-lg font-bold tracking-tight">MyPPH</span>
+                    <img src="{{ asset('img/head_logo.png') }}" alt="ตรากระทรวงสาธารณสุข สำนักงานสาธารณสุขจังหวัดพิษณุโลก" class="size-14 shrink-0 rounded-xl bg-white object-contain p-1">
+                    <span class="leading-tight">
+                        <span class="block text-lg font-bold tracking-tight">MyPPH</span>
+                        <span class="block text-xs font-medium text-emerald-100/80">ระบบข้อมูลบุคลากร</span>
+                    </span>
                 </a>
                 <button type="button" class="rounded-lg p-2 text-white hover:bg-white/15 lg:hidden" data-mobile-menu-close aria-label="ปิดเมนู">
                     <i class="fas fa-times"></i>

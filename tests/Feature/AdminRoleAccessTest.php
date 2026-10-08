@@ -182,3 +182,25 @@ test('the navigation bar shows the Thai label of the signed-in user role', funct
     'finance' => ['FINANCE', 'เจ้าหน้าที่การเงิน'],
     'no role' => [null, 'ผู้ใช้งานทั่วไป'],
 ]);
+
+test('the browser title shows the page name followed by the system name', function () {
+    $this->actingAs(accessUser('ADMIN'));
+
+    expect(Blade::render('<x-layouts.app :title="$title"><p>เนื้อหา</p></x-layouts.app>', ['title' => 'สลิปเงินเดือน']))
+        ->toContain('<title>สลิปเงินเดือน | MyPPH ระบบข้อมูลบุคลากร</title>')
+        ->toContain('ระบบข้อมูลบุคลากร</span>');
+
+    expect(Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>'))
+        ->toContain('<title>MyPPH ระบบข้อมูลบุคลากร</title>');
+});
+
+test('the layouts use the provincial logo in the sidebar and the ministry logo as favicon', function () {
+    $this->actingAs(accessUser('ADMIN'));
+    $html = Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>');
+
+    expect($html)->toContain('src="'.asset('img/head_logo.png').'"')
+        ->toContain('<link rel="icon" type="image/png" href="'.asset('img/logoMOPH.png').'">');
+
+    expect(Blade::render('<x-layouts.guest><p>เนื้อหา</p></x-layouts.guest>'))
+        ->toContain('<link rel="icon" type="image/png" href="'.asset('img/logoMOPH.png').'">');
+});

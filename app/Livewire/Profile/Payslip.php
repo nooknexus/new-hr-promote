@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Profile;
 
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -537,7 +538,9 @@ class Payslip extends Component
             $this->dispatch('pdf-generation-error', 'ไม่สามารถดึงข้อมูลสำหรับดาวน์โหลดได้: ' . $e->getMessage());
         }
     }
+
     
+    #[Title('สลิปเงินเดือน')]
     public function render()
     {
         return view('livewire.profile.payslip');

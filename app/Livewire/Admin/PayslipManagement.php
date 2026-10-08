@@ -477,6 +477,6 @@ class PayslipManagement extends Component
     public function render()
     {
         return view('livewire.admin.payslip-management')
-            ->title('จัดการใบสลิปเงินเดือน');
+            ->title('จัดการข้อมูลเงินเดือน');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Title;
 use App\Services\LeaveEntitlementService;
 use App\Support\LeaveTypeCatalog;
 use Carbon\Carbon;
@@ -45,6 +46,8 @@ class LeaveHistory extends Component
             ->sortDesc()
             ->values()
             ->all();
+
+        $this->selectYear($this->years[0]);
     }
 
     public function selectYear(int $year): void
@@ -253,6 +256,7 @@ class LeaveHistory extends Component
         };
     }
 
+    #[Title('ประวัติการลา')]
     public function render()
     {
         return view('livewire.leave-history');

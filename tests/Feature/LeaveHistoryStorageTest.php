@@ -399,3 +399,30 @@ test('a civil servant without a start date gets twenty days even before any leav
         Carbon::setTestNow();
     }
 });
+
+test('leave history opens with the current fiscal year selected', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'pid' => '1234567890123']);
+    $user->exists = true;
+    $this->actingAs($user);
+    Carbon::setTestNow('2026-10-08');
+
+    try {
+        Livewire::test(LeaveHistory::class)
+            ->assertSet('years', [2570])
+            ->assertSet('selectedYear', 2570)
+            ->assertSee('ไม่พบรายการลาในปีงบประมาณ 2570');
+    } finally {
+        Carbon::setTestNow();
+    }
+});
+
+test('the leave history page sets its browser title', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'pid' => '1234567890123']);
+    $user->exists = true;
+
+    $this->actingAs($user)->get(route('leave.history'))
+        ->assertOk()
+        ->assertSee('<title>ประวัติการลา | MyPPH ระบบข้อมูลบุคลากร</title>', false);
+});

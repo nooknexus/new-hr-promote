@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Services\TaxCertificateTxtImportService;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
@@ -449,6 +450,7 @@ class TaxCertificateManagement extends Component
         $this->dispatch('tax-certificate-import-confirm-closed');
     }
 
+    #[Title('จัดการใบรับรองภาษี')]
     public function render()
     {
         $this->ensureAuthorized();

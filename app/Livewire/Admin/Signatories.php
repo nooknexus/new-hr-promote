@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Models\PayslipSignatory;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
@@ -150,6 +151,7 @@ class Signatories extends Component
         $this->resetErrorBag();
     }
 
+    #[Title('ผู้ลงนามใบรับรอง')]
     public function render()
     {
         return view('livewire.admin.signatories', [

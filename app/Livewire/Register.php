@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Title;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -30,6 +31,7 @@ class Register extends Component
 
     public $password_confirmation;
 
+    #[Title('ลงทะเบียน')]
 
     public function render()
     {

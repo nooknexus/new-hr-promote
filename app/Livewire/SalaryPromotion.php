@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -247,6 +248,7 @@ class SalaryPromotion extends Component
         $this->dispatch('show-pdf-preview');
     }
 
+    #[Title('การเลื่อนขั้นเงินเดือน')]
     public function render()
     {
         return view('livewire.salary-promotion');

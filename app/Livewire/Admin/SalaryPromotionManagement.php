@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use Illuminate\Database\Query\Builder;
@@ -253,6 +254,7 @@ class SalaryPromotionManagement extends Component
         $this->dispatch('promotion-confirm-closed');
     }
 
+    #[Title('จัดการเลื่อนขั้นเงินเดือน')]
     public function render()
     {
         $this->ensureAdministrator();

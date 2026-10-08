@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\LeaveTypeCatalog;
 use App\Support\OfficeScope;
@@ -240,6 +241,7 @@ class LeaveManagement extends Component
         return $days;
     }
 
+    #[Title('จัดการข้อมูลการลา')]
     public function render()
     {
         $this->ensureAdministrator();

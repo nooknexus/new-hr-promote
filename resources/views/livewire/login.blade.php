@@ -8,7 +8,7 @@
                 <div aria-hidden="true" class="absolute -right-24 -top-20 size-80 rounded-full border border-white/10 bg-white/[0.04]"></div>
                 <div aria-hidden="true" class="absolute -bottom-40 -left-20 size-96 rounded-full border border-white/10 bg-emerald-300/[0.07]"></div>
                 <div class="relative z-10 flex items-center gap-3">
-                    <img src="{{ asset('img/logoMOPH.png') }}" alt="ตรากระทรวงสาธารณสุข" class="size-14 rounded-2xl bg-white p-1.5 shadow-lg shadow-emerald-950/20">
+                    <img src="{{ asset('img/head_logo.png') }}" alt="ตรากระทรวงสาธารณสุข สำนักงานสาธารณสุขจังหวัดพิษณุโลก" class="size-16 shrink-0 rounded-2xl bg-white object-contain p-1.5 shadow-lg shadow-emerald-950/20">
                     <div>
                         <span class="block text-xl font-bold tracking-wide">MyPPH</span>
                         <span class="block text-xs font-medium tracking-[0.16em] text-emerald-100/80">PERSONNEL PORTAL</span>
@@ -36,7 +36,7 @@
             <section class="flex flex-col justify-center px-6 py-8 sm:px-12 sm:py-12 lg:px-14 xl:px-20">
                 <div class="mx-auto w-full max-w-lg">
                     <div class="mb-8 flex items-center gap-3 lg:hidden">
-                        <img src="{{ asset('img/logoMOPH.png') }}" alt="ตรากระทรวงสาธารณสุข" class="size-12 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+                        <img src="{{ asset('img/head_logo.png') }}" alt="ตรากระทรวงสาธารณสุข สำนักงานสาธารณสุขจังหวัดพิษณุโลก" class="size-16 shrink-0 rounded-xl border border-slate-200 bg-white object-contain p-1 shadow-sm">
                         <div>
                             <span class="block text-lg font-bold text-brand-700">MyPPH</span>
                             <span class="block text-xs text-slate-500">ระบบข้อมูลบุคลากร</span>

@@ -41,6 +41,10 @@ class TaxCertificate extends Component
             ->map(static fn ($year): int => (int) $year)
             ->values()
             ->all();
+
+        if ($this->years !== []) {
+            $this->selectYear($this->years[0]);
+        }
     }
     
     // Helper function to format Thai dates from "ddmmyyyy" to "dd month yyyy"

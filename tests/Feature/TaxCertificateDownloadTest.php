@@ -332,3 +332,21 @@ test('the tax certificate signatory follows the fiscal year of the issue date', 
         ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('', 2567))->toBe(2568)
         ->and(\App\Models\PayslipSignatory::taxCertificateFiscalYear('31022568', 2567))->toBe(2568);
 });
+
+test('the tax certificate page opens with the latest income year selected', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'name' => 'ทดสอบ เอกสาร', 'pid' => '1571200051606']);
+    $user->exists = true;
+    $this->actingAs($user);
+
+    DB::table('data_tax')->insert([
+        ['CID' => $user->pid, 'income_year' => 2566, 'running_code1' => 'TC-2566'],
+        ['CID' => $user->pid, 'income_year' => 2567, 'running_code1' => 'TC-2567'],
+    ]);
+
+    Livewire::test(\App\Livewire\TaxCertificate::class)
+        ->assertSet('years', [2567, 2566])
+        ->assertSet('selectedYear', 2567)
+        ->assertSee('TC-2567')
+        ->assertDontSee('TC-2566');
+});

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Services\UserAccessService;
 use App\Support\AdminAccess;
 use Illuminate\Support\Facades\Auth;
@@ -87,6 +88,7 @@ class UserManagement extends Component
         $this->dispatch('user-status-form-closed');
     }
 
+    #[Title('จัดการผู้ใช้')]
     public function render()
     {
         $search = trim($this->search);

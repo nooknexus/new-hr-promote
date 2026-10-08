@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -303,6 +304,7 @@ class Home extends Component
         ];
     }
 
+    #[Title('หน้าแรก')]
     public function render()
     {
         return view('livewire.home');

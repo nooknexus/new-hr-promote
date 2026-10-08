@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use Livewire\Attributes\Title;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Log;
@@ -23,6 +24,7 @@ class Login extends Component
     public $pid = '';  // For Provider ID registration
     public $remember = false;
 
+    #[Title('เข้าสู่ระบบ')]
     public function render()
     {
         return view('livewire.login');

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Profile;
 
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\Attributes\Layout;
 use Illuminate\Support\Facades\Auth;
@@ -88,7 +89,7 @@ class Index extends Component
     }
 
     #[Layout('components.layouts.app')]
-
+    #[Title('ข้อมูลส่วนตัว')]
     public function render()
     {
         return view('livewire.profile.index');

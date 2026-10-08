@@ -34,3 +34,11 @@ test('SSO callbacks are never redirected out of the browser that started the log
 
     expect((string) $response->headers->get('Location'))->not->toContain('openExternalBrowser');
 });
+
+test('the login page shows the provincial head logo instead of the ministry logo', function () {
+    $this->withHeader('User-Agent', SAFARI_USER_AGENT)
+        ->get(route('login'))
+        ->assertOk()
+        ->assertSee('src="'.asset('img/head_logo.png').'" alt="ตรากระทรวงสาธารณสุข สำนักงานสาธารณสุขจังหวัดพิษณุโลก"', false)
+        ->assertDontSee('<img src="'.asset('img/logoMOPH.png').'"', false);
+});

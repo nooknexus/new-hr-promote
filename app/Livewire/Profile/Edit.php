@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Profile;
 
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,6 +14,7 @@ class Edit extends Component
         $this->redirectRoute('profile.index');
     }
 
+    #[Title('แก้ไขข้อมูลส่วนตัว')]
     public function render()
     {
         return view('livewire.profile.edit');

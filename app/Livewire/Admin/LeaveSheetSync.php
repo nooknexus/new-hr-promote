@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Models\LeaveSyncRun;
 use App\Services\LeaveSheetSyncService;
@@ -73,6 +74,7 @@ class LeaveSheetSync extends Component
         };
     }
 
+    #[Title('ดึงประวัติการลา')]
     public function render()
     {
         $this->ensureAllowed();
