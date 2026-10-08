@@ -174,6 +174,6 @@ Never log the ID token, access token, client secret, nonce, PID, or complete per
 For more detailed information on the underlying implementation, refer to the following files:
 
 *   **Routing:** [routes/web.php](routes/web.php)
-*   **Controller Logic:** [app/Http/Controllers/ThaID/AuthController.php](app/Http/Controllers/ThaID/AuthController.php)
+*   **Controller Logic:** [app/Http/Controllers/Thaid/AuthController.php](app/Http/Controllers/Thaid/AuthController.php)
 *   **Livewire Component:** [app/Livewire/Thaid/Login.php](app/Livewire/Thaid/Login.php)
 *   **User Model:** [app/Models/User.php](app/Models/User.php)
