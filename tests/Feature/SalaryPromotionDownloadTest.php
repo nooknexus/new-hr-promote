@@ -138,3 +138,21 @@ test('the salary promotion page starts with the shared page header', function ()
         ->test(SalaryPromotion::class)
         ->assertSeeHtml('<h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">การเลื่อนขั้นเงินเดือน</h1>');
 });
+
+test('the promotion history table lists only the round, count, percent and actions', function () {
+    insertOwnPromotion();
+    Carbon::setTestNow('2025-06-01');
+
+    try {
+        Livewire::actingAs(promotionOwner())
+            ->test(SalaryPromotion::class)
+            ->assertSeeHtmlInOrder(['<th>รอบการเลื่อนขั้น</th>', '<th>ครั้งที่</th>', '<th>ร้อยละ</th>', '<th>การดำเนินการ</th>'])
+            ->assertDontSeeHtml('<th>เงินเดือนเดิม</th>')
+            ->assertDontSeeHtml('<th>เงินเดือนใหม่</th>')
+            ->assertDontSeeHtml('<th>เพิ่มขึ้น</th>')
+            ->assertSee('5.00%')
+            ->assertDontSee('31,500.00');
+    } finally {
+        Carbon::setTestNow();
+    }
+});

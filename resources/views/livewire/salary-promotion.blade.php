@@ -45,9 +45,6 @@
                                 <tr>
                                     <th>รอบการเลื่อนขั้น</th>
                                     <th>ครั้งที่</th>
-                                    <th>เงินเดือนเดิม</th>
-                                    <th>เงินเดือนใหม่</th>
-                                    <th>เพิ่มขึ้น</th>
                                     <th>ร้อยละ</th>
                                     <th>การดำเนินการ</th>
                                 </tr>
@@ -68,27 +65,6 @@
                                                 @endif">
                                                 ครั้งที่ {{ $promotion['round_number'] }}
                                             </span>
-                                        @endif
-                                    </td>
-                                    <td class="text-right">
-                                        @if(is_numeric($promotion['old_salary']))
-                                            {{ number_format($promotion['old_salary'], 2) }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-right">
-                                        @if(is_numeric($promotion['new_salary']))
-                                            {{ number_format($promotion['new_salary'], 2) }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-right">
-                                        @if(is_numeric($promotion['increase_amount']))
-                                            {{ number_format($promotion['increase_amount'], 2) }}
-                                        @else
-                                            <span class="text-muted">-</span>
                                         @endif
                                     </td>
                                     <td class="text-center">
