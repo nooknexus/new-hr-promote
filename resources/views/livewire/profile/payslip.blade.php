@@ -1,4 +1,10 @@
-<div>
+<div class="space-y-6">
+    <header>
+        <p class="text-sm font-semibold text-brand-700">ข้อมูลส่วนบุคคล</p>
+        <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">สลิปเงินเดือน</h1>
+        <p class="mt-2 text-sm text-slate-500">เลือกปีเพื่อดูรายละเอียดและดาวน์โหลดสลิปเงินเดือนของคุณ</p>
+    </header>
+
     <div class="row">
         <!-- Fiscal Year Selection Column -->
         <div class="col-lg-3 mb-4">

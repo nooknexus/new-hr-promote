@@ -132,3 +132,9 @@ test('the preview shows a download link and the person position instead of place
         Carbon::setTestNow();
     }
 });
+
+test('the salary promotion page starts with the shared page header', function () {
+    Livewire::actingAs(promotionOwner())
+        ->test(SalaryPromotion::class)
+        ->assertSeeHtml('<h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">การเลื่อนขั้นเงินเดือน</h1>');
+});

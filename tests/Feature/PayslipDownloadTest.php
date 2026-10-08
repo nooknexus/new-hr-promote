@@ -104,3 +104,8 @@ test('the PDF download route does not expose another employees pay period', func
 
     $this->get(route('payslip.download', ['id' => '256808']))->assertNotFound();
 });
+
+test('the payslip page starts with the shared page header', function () {
+    Livewire::test(Payslip::class)
+        ->assertSeeHtml('<h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">สลิปเงินเดือน</h1>');
+});
