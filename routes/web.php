@@ -6,16 +6,17 @@ use App\Http\Controllers\Thaid\AuthController;
 
 //
 Route::group(['middleware' => 'guest'], function () {
-    Route::get('/login', App\Livewire\Login::class)->name('login');
-    Route::get('/register', App\Livewire\Register::class)->name('register');
+    Route::get('/login', App\Livewire\Login::class)->middleware('external-browser')->name('login');
+    Route::get('/register', App\Livewire\Register::class)->middleware('external-browser')->name('register');
     
     // ThaID Authentication Routes
     Route::prefix('thaid')->name('thaid.')->group(function () {
-        Route::get('/redirect', [AuthController::class, 'redirect'])->name('redirect');
+        Route::get('/redirect', [AuthController::class, 'redirect'])->middleware('external-browser')->name('redirect');
         Route::get('/callback', [AuthController::class, 'callback'])->name('callback');
     });
 
     Route::get('/provider/redirect', App\Livewire\Provider\Redirect::class)
+        ->middleware('external-browser')
         ->name('provider.redirect');
 });
 
