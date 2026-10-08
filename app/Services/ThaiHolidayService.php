@@ -3,12 +3,34 @@
 namespace App\Services;
 
 use Carbon\CarbonImmutable;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class ThaiHolidayService
 {
+    /** Inclusive working days, using the same calendar for manual and Excel leave. */
+    public function workingDaysBetween(string $startDate, string $endDate): int
+    {
+        try {
+            $start = CarbonImmutable::createFromFormat('!Y-m-d', $startDate);
+            $end = CarbonImmutable::createFromFormat('!Y-m-d', $endDate);
+        } catch (Throwable) {
+            return 0;
+        }
+        if (! $start || ! $end || $start->gt($end) || $start->diffInDays($end) > 366) {
+            return 0;
+        }
+        $holidays = $this->dateKeysBetween($start, $end);
+        $days = 0;
+        foreach (CarbonPeriod::create($start, $end) as $date) {
+            $days += $date->isWeekend() || isset($holidays[$date->toDateString()]) ? 0 : 1;
+        }
+
+        return $days;
+    }
+
     private const ICS_URL = 'https://calendar.google.com/calendar/ical/en.th%23holiday%40group.v.calendar.google.com/public/basic.ics';
 
     private const CACHE_KEY = 'thai-public-holidays.ics.v1';
@@ -59,7 +81,7 @@ class ThaiHolidayService
                     ->timeout(10)
                     ->get(self::ICS_URL);
 
-                if (!$response->successful()) {
+                if (! $response->successful()) {
                     return self::FALLBACK_DATES;
                 }
 

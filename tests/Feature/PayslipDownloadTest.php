@@ -54,6 +54,21 @@ beforeEach(function () {
     ]);
 });
 
+test('payslip year buttons expose the selected Buddhist year after switching years', function () {
+    DB::table('data_salary')->insert(['yearNO' => '2567', 'monthNO' => '07', 'cid' => '1111111111111']);
+    $component = Livewire::test(Payslip::class);
+    $selectedYear = function () use ($component): string {
+        $document = new DOMDocument;
+        @$document->loadHTML(mb_convert_encoding($component->html(), 'HTML-ENTITIES', 'UTF-8'));
+        $buttons = (new DOMXPath($document))->query('//button[@aria-pressed="true"]');
+        expect($buttons->length)->toBe(1);
+        return trim($buttons->item(0)->textContent);
+    };
+    expect($selectedYear())->toBe('ปี2568');
+    $component->call('selectYear', 2024)->assertSet('selectedYear', 2024);
+    expect($selectedYear())->toBe('ปี2567');
+});
+
 test('the preview download control directly requests the authenticated PDF route', function () {
     $url = route('payslip.download', ['id' => '256807']);
 

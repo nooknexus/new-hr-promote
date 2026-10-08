@@ -2,20 +2,21 @@
 
 namespace App\Livewire\Admin;
 
-use Livewire\Attributes\Title;
+use App\Services\LeaveExcelImportService;
+use App\Services\ThaiHolidayService;
 use App\Support\AdminAccess;
 use App\Support\LeaveTypeCatalog;
 use App\Support\OfficeScope;
-use App\Services\ThaiHolidayService;
 use Carbon\CarbonImmutable;
-use Carbon\CarbonPeriod;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Exists;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class LeaveManagement extends Component
@@ -24,7 +25,48 @@ class LeaveManagement extends Component
     {
         $this->ensureAdministrator();
     }
+
+    use WithFileUploads;
     use WithPagination;
+
+    public mixed $importFile = null;
+
+    public function openImport(): void
+    {
+        $this->ensureAdministrator();
+        abort_if(OfficeScope::officeFor(Auth::user()) === '', 403);
+        $this->reset('importFile');
+        $this->resetErrorBag('importFile');
+        $this->dispatch('leave-import-opened');
+    }
+
+    public function closeImport(): void
+    {
+        $this->reset('importFile');
+        $this->resetErrorBag('importFile');
+        $this->dispatch('leave-import-closed');
+    }
+
+    public function importExcel(LeaveExcelImportService $service): void
+    {
+        $this->ensureAdministrator();
+        abort_if(OfficeScope::officeFor(Auth::user()) === '', 403);
+        $this->validate(['importFile' => ['required', 'file', 'mimes:xlsx', 'max:5120']], [
+            'importFile.required' => 'กรุณาเลือกไฟล์ Excel ก่อนนำเข้า',
+            'importFile.mimes' => 'รองรับเฉพาะไฟล์ .xlsx',
+            'importFile.max' => 'ไฟล์ต้องมีขนาดไม่เกิน 5MB',
+        ]);
+        try {
+            $result = $service->import($this->importFile->getRealPath(), Auth::user());
+        } catch (\RuntimeException $error) {
+            $this->addError('importFile', $error->getMessage());
+
+            return;
+        }
+        $this->closeImport();
+        $this->resetPage();
+        $this->dispatch('leave-saved', message: "นำเข้าแล้ว {$result['created']} รายการ ข้าม {$result['skipped']} รายการ (นอกต้นสังกัด {$result['out_of_office']} รายการ)");
+    }
 
     public const STATUSES = [
         'pending' => 'รออนุมัติ',
@@ -43,10 +85,15 @@ class LeaveManagement extends Component
     ];
 
     public string $search = '';
+
     public string $statusFilter = '';
+
     public string $leaveTypeFilter = '';
+
     public string $officeFilter = '';
+
     public string $yearFilter = '';
+
     public string $monthFilter = '';
 
     #[Locked]
@@ -56,12 +103,19 @@ class LeaveManagement extends Component
     public ?int $pendingCancellationId = null;
 
     public string $personSearch = '';
+
     public string $cid = '';
+
     public string $personName = '';
+
     public ?int $leave_type_id = null;
+
     public string $start_date = '';
+
     public string $end_date = '';
+
     public string $duration = 'full';
+
     public string $reason = '';
 
     public function mount(): void
@@ -136,40 +190,58 @@ class LeaveManagement extends Component
 
             return;
         }
-        if ($this->hasOverlappingLeave()) {
-            $this->addError('start_date', 'บุคลากรนี้มีรายการลาที่ทับช่วงวันที่นี้อยู่แล้ว');
-
-            return;
-        }
-
-        $data = [
-            'leave_type_id' => $this->leave_type_id,
-            'start_date' => $this->start_date,
-            'end_date' => $this->end_date,
-            'total_days' => $days === 1 && $this->duration === 'half' ? '0.5' : number_format($days, 1, '.', ''),
-            'reason' => trim($this->reason) !== '' ? trim($this->reason) : null,
-            'updated_at' => now(),
-        ];
-
+        // The stored owner determines both overlap checks and lock order when editing.
         if ($this->editingId !== null) {
-            abort_unless($this->scopedLeaves()->where('requests.id', $this->editingId)->exists(), 404);
-            $updated = DB::table('leave_requests')
-                ->where('id', $this->editingId)
-                ->where('status', '!=', 'cancelled')
-                ->update($data);
-            abort_if($updated === 0, 404);
-            $message = 'ปรับปรุงรายการลาแล้ว';
-        } else {
-            DB::table('leave_requests')->insert([
-                ...$data,
-                'cid' => $this->cid,
-                'external_name' => $this->personName,
-                'status' => 'approved',
-                'step1_status' => 'approved',
-                'step2_status' => 'approved',
-                'created_at' => now(),
-            ]);
-            $message = 'เพิ่มรายการลาแล้ว';
+            $existing = $this->scopedLeaves()->where('requests.id', $this->editingId)->first(['requests.cid']);
+            abort_unless($existing, 404);
+            $this->cid = (string) $existing->cid;
+        }
+        $message = $this->editingId !== null ? 'ปรับปรุงรายการลาแล้ว' : 'เพิ่มรายการลาแล้ว';
+        $saved = DB::transaction(function () use ($days): bool {
+            $person = $this->scopedPersonnel()->where('cid', $this->cid)->lockForUpdate()->first();
+            abort_if($person === null && ($this->editingId === null || OfficeScope::officeFor(Auth::user()) !== null), 404);
+            if ($this->editingId !== null) {
+                $current = DB::table('leave_requests')->where('id', $this->editingId)->lockForUpdate()->first(['cid', 'status']);
+                abort_if(! $current || (string) $current->cid !== $this->cid || $current->status === 'cancelled', 404);
+            }
+            if ($this->hasOverlappingLeave()) {
+                $this->addError('start_date', 'บุคลากรนี้มีรายการลาที่ทับช่วงวันที่นี้อยู่แล้ว');
+
+                return false;
+            }
+
+            $data = [
+                'leave_type_id' => $this->leave_type_id,
+                'start_date' => $this->start_date,
+                'end_date' => $this->end_date,
+                'total_days' => $days === 1 && $this->duration === 'half' ? '0.5' : number_format($days, 1, '.', ''),
+                'reason' => trim($this->reason) !== '' ? trim($this->reason) : null,
+                'updated_at' => now(),
+            ];
+
+            if ($this->editingId !== null) {
+                abort_unless($this->scopedLeaves()->where('requests.id', $this->editingId)->exists(), 404);
+                $updated = DB::table('leave_requests')
+                    ->where('id', $this->editingId)
+                    ->where('status', '!=', 'cancelled')
+                    ->update($data);
+                abort_if($updated === 0, 404);
+            } else {
+                DB::table('leave_requests')->insert([
+                    ...$data,
+                    'cid' => $this->cid,
+                    'external_name' => $this->personName,
+                    'status' => 'approved',
+                    'step1_status' => 'approved',
+                    'step2_status' => 'approved',
+                    'created_at' => now(),
+                ]);
+            }
+
+            return true;
+        });
+        if (! $saved) {
+            return;
         }
 
         $this->resetForm();
@@ -221,24 +293,7 @@ class LeaveManagement extends Component
     /** Working days excluding weekends and Thai public holidays, inclusive. */
     public function workingDays(): int
     {
-        try {
-            $start = CarbonImmutable::createFromFormat('!Y-m-d', $this->start_date);
-            $end = CarbonImmutable::createFromFormat('!Y-m-d', $this->end_date);
-        } catch (\Throwable) {
-            return 0;
-        }
-
-        if (!$start || !$end || $start->gt($end) || $start->diffInDays($end) > 366) {
-            return 0;
-        }
-
-        $holidays = app(ThaiHolidayService::class)->dateKeysBetween($start, $end);
-        $days = 0;
-        foreach (CarbonPeriod::create($start, $end) as $date) {
-            $days += $date->isWeekend() || isset($holidays[$date->toDateString()]) ? 0 : 1;
-        }
-
-        return $days;
+        return app(ThaiHolidayService::class)->workingDaysBetween($this->start_date, $this->end_date);
     }
 
     #[Title('จัดการข้อมูลการลา')]

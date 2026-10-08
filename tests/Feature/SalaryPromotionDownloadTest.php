@@ -66,6 +66,22 @@ function insertOwnPromotion(array $overrides = []): int
     ]);
 }
 
+test('promotion year buttons expose the selected fiscal year after switching years', function () {
+    insertOwnPromotion();
+    insertOwnPromotion(['evaluation_date' => '2024-04-01']);
+    $component = Livewire::actingAs(promotionOwner())->test(SalaryPromotion::class);
+    $selectedYear = function () use ($component): string {
+        $document = new DOMDocument;
+        @$document->loadHTML(mb_convert_encoding($component->html(), 'HTML-ENTITIES', 'UTF-8'));
+        $buttons = (new DOMXPath($document))->query('//button[@aria-pressed="true"]');
+        expect($buttons->length)->toBe(1);
+        return trim($buttons->item(0)->textContent);
+    };
+    expect($selectedYear())->toBe('ปี2568');
+    $component->call('selectYear', 2567)->assertSet('selectedYear', 2567);
+    expect($selectedYear())->toBe('ปี2567');
+});
+
 test('a user downloads their own salary promotion notice as a PDF', function () {
     $id = insertOwnPromotion();
 

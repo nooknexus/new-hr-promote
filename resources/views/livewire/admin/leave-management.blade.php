@@ -18,16 +18,46 @@
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">ทะเบียนรายการลาทั้งหมดในระบบ เพิ่มรายการลา แก้ไข หรือยกเลิกวันลาได้ รายการที่ยกเลิกจะยังคงอยู่ในทะเบียนแต่ไม่นับเป็นวันลา</p>
         </div>
         <div class="flex flex-col gap-2 sm:flex-row">
-            @if(\App\Support\AdminAccess::allows(auth()->user(), 'leave-sync'))
-                <a href="{{ route('admin.leave-sheet-sync') }}" wire:navigate class="btn btn-info">
-                    <i class="fas fa-cloud-download-alt" aria-hidden="true"></i><span>ดึงประวัติการลา</span>
-                </a>
-            @endif
             <button type="button" wire:click="openCreate" onclick="window.portalModal.show('leaveFormModal')" class="btn btn-primary">
                 <i class="fas fa-calendar-plus" aria-hidden="true"></i><span>เพิ่มข้อมูลลา</span>
             </button>
         </div>
     </header>
+
+    @if(\App\Support\OfficeScope::officeFor(auth()->user()) !== '')
+        <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="leave-import-heading">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h2 id="leave-import-heading" class="font-bold text-slate-900">นำเข้าข้อมูลจาก Excel</h2>
+                    <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">วันที่ใช้ ค.ศ. YYYY-MM-DD หรือวันที่ Excel ระบบคำนวณวันทำการหักวันหยุดและบันทึกเป็นอนุมัติแล้ว ข้ามรายการซ้ำและนอกต้นสังกัด หากข้อมูลผิดหรือวันลาทับกันจะไม่บันทึกทั้งไฟล์</p>
+                    <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A เลขบัตร 13 หลัก · B ประเภทการลา · C วันที่เริ่ม · D วันที่สิ้นสุด · E เต็มวัน/ครึ่งวัน · F หมายเหตุ — รองรับ .xlsx ไม่เกิน 5MB และ 5,000 รายการ</p>
+                </div>
+                <div class="flex shrink-0 flex-col gap-2">
+                    <a href="{{ route('admin.leaves.template') }}" class="btn btn-secondary">
+                        <i class="fas fa-file-download" aria-hidden="true"></i><span>ดาวน์โหลดเทมเพลท</span>
+                    </a>
+                    @if(\App\Support\AdminAccess::allows(auth()->user(), 'leave-sync'))
+                        <a href="{{ route('admin.leave-sheet-sync') }}" wire:navigate class="btn btn-info">
+                            <i class="fas fa-cloud-download-alt" aria-hidden="true"></i><span>ดึงประวัติการลา</span>
+                        </a>
+                    @endif
+                </div>
+            </div>
+            <form wire:submit="importExcel" class="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-start">
+                <div class="min-w-0 flex-1">
+                    <label for="leave-import-file" class="sr-only">ไฟล์ Excel ข้อมูลการลา</label>
+                    <input id="leave-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" wire:model="importFile" class="block w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-semibold file:text-brand-700 hover:file:bg-brand-100">
+                    @error('importFile') <p class="mt-2 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
+                    <p wire:loading wire:target="importFile" class="mt-2 text-sm text-slate-500">กำลังเตรียมไฟล์...</p>
+                </div>
+                <button type="submit" wire:loading.attr="disabled" wire:target="importExcel,importFile" class="btn btn-primary shrink-0">
+                    <i wire:loading.remove wire:target="importExcel" class="fas fa-file-import" aria-hidden="true"></i>
+                    <i wire:loading wire:target="importExcel" class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                    <span>นำเข้าข้อมูล</span>
+                </button>
+            </form>
+        </section>
+    @endif
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="leave-list-heading">
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">

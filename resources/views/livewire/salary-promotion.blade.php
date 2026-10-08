@@ -5,31 +5,43 @@
         <p class="mt-2 text-sm text-slate-500">เลือกปีงบประมาณเพื่อดูผลการเลื่อนขั้นเงินเดือนและดาวน์โหลดหนังสือแจ้งผล</p>
     </header>
 
-    <div class="row">
+    <div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <!-- Fiscal Year Selection Column -->
-        <div class="col-lg-3 mb-4">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        เลือกปีงบประมาณ
-                    </h6>
+        <div class="lg:col-span-3">
+            <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="promotion-year-heading">
+                <div class="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
+                    <h2 id="promotion-year-heading" class="text-sm font-bold text-brand-700">เลือกปีงบประมาณ</h2>
                 </div>
-                <div class="card-body">
-                    <div class="list-group">
-                        @foreach($years as $year)
-                        <button type="button"
-                            class="list-group-item list-group-item-action {{ $selectedYear == $year ? 'active' : '' }}"
-                            wire:click="selectYear({{ $year }})">
-                            ปี{{ $year }}
-                        </button>
-                        @endforeach
-                    </div>
+                <div class="p-4">
+                    @if($years !== [])
+                        <div class="space-y-2">
+                            @foreach($years as $year)
+                                <button
+                                    type="button"
+                                    wire:click="selectYear({{ $year }})"
+                                    wire:loading.attr="disabled"
+                                    wire:target="selectYear"
+                                    @class([
+                                        'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-semibold transition',
+                                        'border-brand-600 bg-brand-600 text-white shadow-sm' => $selectedYear == $year,
+                                        'border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50' => $selectedYear != $year,
+                                    ])
+                                    aria-pressed="{{ $selectedYear == $year ? 'true' : 'false' }}"
+                                >
+                                    <span>ปี{{ $year }}</span>
+                                    <i class="fas fa-chevron-right text-xs opacity-70" aria-hidden="true"></i>
+                                </button>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">ไม่พบข้อมูลการเลื่อนขั้นเงินเดือนที่เชื่อมโยงกับบัญชีนี้</p>
+                    @endif
                 </div>
-            </div>
+            </section>
         </div>
 
         <!-- Promotion History Display Column -->
-        <div class="col-lg-9 mb-4">
+        <div class="min-w-0 lg:col-span-9">
             <!-- Promotion Card -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">

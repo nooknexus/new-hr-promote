@@ -54,6 +54,13 @@ Route::group(['middleware' => 'auth'], function () {
 });
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/leaves/template', function () {
+        $path = resource_path('templates/leave-import-template.xlsx');
+        abort_unless(is_file($path), 404);
+        abort_if(\App\Support\OfficeScope::officeFor(auth()->user()) === '', 403);
+
+        return response()->download($path, 'leave-import-template.xlsx');
+    })->middleware('admin:leave')->name('leaves.template');
     Route::get('/users', App\Livewire\Admin\UserManagement::class)->middleware('admin:users')->name('users.index');
     Route::get('/payslips', App\Livewire\Admin\PayslipManagement::class)->middleware('admin:payslip')->name('payslips.index');
     Route::get('/salary-promotions', App\Livewire\Admin\SalaryPromotionManagement::class)->middleware('admin:promotions')->name('salary-promotions.index');
