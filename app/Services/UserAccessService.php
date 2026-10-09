@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -28,6 +29,44 @@ class UserAccessService
     public function setActive(int $actorId, int $targetUserId, bool $active): void
     {
         $this->change($actorId, $targetUserId, ['is_active' => $active]);
+    }
+
+    /**
+     * Replace the personnel types a user is responsible for on salary promotions.
+     *
+     * @param  list<int|string>  $typeIds
+     */
+    public function updatePersonnelTypes(int $actorId, int $targetUserId, array $typeIds): void
+    {
+        $types = array_values(array_unique(array_map('intval', $typeIds)));
+        sort($types);
+        if (array_diff($types, array_keys(PersonnelTypeScope::TYPES)) !== [] || array_filter($typeIds, fn ($id) => ! is_numeric($id)) !== []) {
+            throw ValidationException::withMessages(['personnelTypes' => 'ประเภทการจ้างไม่ถูกต้อง']);
+        }
+
+        DB::transaction(function () use ($actorId, $targetUserId, $types): void {
+            // Same lock order as change().
+            $admins = DB::table('users')->where('role', 'ADMIN')->orderBy('id')->lockForUpdate()->get(['id', 'is_active']);
+            abort_unless($admins->filter(fn ($user): bool => (bool) $user->is_active)->contains('id', $actorId), 403);
+            $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);
+            abort_unless($target, 404);
+
+            $before = PersonnelTypeScope::assignedTo($targetUserId);
+            if ($before === $types) {
+                return;
+            }
+
+            DB::table('user_personnel_types')->where('user_id', $targetUserId)->delete();
+            DB::table('user_personnel_types')->insert(array_map(fn (int $type) => ['user_id' => $targetUserId, 'type_id' => $type], $types));
+            DB::table('user_access_audits')->insert([
+                'actor_id' => $actorId, 'target_user_id' => $targetUserId,
+                'before_role' => $target->role, 'after_role' => $target->role,
+                'before_office' => $target->office, 'after_office' => $target->office,
+                'before_active' => (bool) $target->is_active, 'after_active' => (bool) $target->is_active,
+                'before_personnel_types' => implode(',', $before), 'after_personnel_types' => implode(',', $types),
+                'created_at' => now(),
+            ]);
+        });
     }
 
     private function change(int $actorId, int $targetUserId, array $changes): void

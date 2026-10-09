@@ -14,6 +14,7 @@ beforeEach(function () {
         $table->string('pname')->nullable();
         $table->string('fname')->nullable();
         $table->string('lname')->nullable();
+        $table->unsignedTinyInteger('type_id')->nullable()->default(1);
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
     });
@@ -382,6 +383,27 @@ test('admin year and office filters use fiscal year and registered office identi
         ->assertDontSee('33,333.00');
 });
 
+test('admin employment type filter narrows promotions by the registered person type', function () {
+    DB::table('person')->where('cid', '1234567890123')->update(['type_id' => 1]);
+    DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'สมชาย', 'lname' => 'ทดสอบ', 'type_id' => 3, 'office_id' => '01']);
+    insertPromotion(['evaluation_date' => '2025-10-01', 'new_salary' => '11111.00']);
+    insertPromotion(['CID' => '2222222222222', 'evaluation_date' => '2025-10-01', 'new_salary' => '22222.00']);
+
+    Livewire::actingAs(promotionUser())
+        ->test(SalaryPromotionManagement::class)
+        ->assertSeeHtml('id="promotion-type-filter"')
+        ->assertSee('พนักงานราชการ')
+        ->set('typeFilter', '3')
+        ->assertSee('22,222.00')
+        ->assertDontSee('11,111.00')
+        ->set('typeFilter', '1')
+        ->assertSee('11,111.00')
+        ->assertDontSee('22,222.00')
+        ->set('typeFilter', '99')
+        ->assertSee('11,111.00')
+        ->assertSee('22,222.00');
+});
+
 test('legacy nonnumeric percent can be left untouched while updating a note', function () {
     $id = insertPromotion(['percent' => 'ตามเกณฑ์']);
 
@@ -495,6 +517,7 @@ function seedPromotionsInTwoOffices(): array
     DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02', 'office_name' => 'รพ.สอง']);
 
     syncOfficesFromPerson();
+    assignPersonnelTypes(11, [1]);
 
     return [insertPromotion(), insertPromotion(['CID' => '2222222222222'])];
 }
@@ -618,4 +641,92 @@ test('user promotion history shows months outside April and October as a special
         ->assertDontSee('ครั้งที่ 2')
         ->assertDontSeeHtml('<span class="badge badge-warning">พิเศษ</span>')
         ->assertDontSee('พฤษภาคม 2567');
+});
+
+/** @return array{int, int} Promotion IDs for a ข้าราชการ (type 1) and a พนักงานราชการ (type 3) of office 01. */
+function seedPromotionsOfTwoTypes(): array
+{
+    DB::table('person')->insert(['cid' => '3333333333333', 'fname' => 'พนักงานราชการ', 'lname' => 'ทดสอบ', 'type_id' => 3, 'office_id' => '01', 'office_name' => 'สสจ.']);
+    syncOfficesFromPerson();
+
+    return [insertPromotion(['new_salary' => '11111.00']), insertPromotion(['CID' => '3333333333333', 'new_salary' => '33333.00'])];
+}
+
+test('PROMOTE sees only promotions of the personnel types they are responsible for', function (?string $office) {
+    seedPromotionsOfTwoTypes();
+    insertPromotion(['CID' => '9999999999999', 'evaluation_date' => '2025-04-01', 'new_salary' => '99999.00']);
+    assignPersonnelTypes(11, [3]);
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', $office))
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('33,333.00')
+        ->assertDontSee('11,111.00')
+        ->assertDontSee('99,999.00')
+        ->assertSeeHtml('<option value="3">พนักงานราชการ</option>')
+        ->assertDontSeeHtml('<option value="1">ข้าราชการ</option>')
+        ->assertDontSeeHtml('value="unmatched"')
+        ->set('personSearch', 'ทดสอบ')
+        ->assertSee('พนักงานราชการ ทดสอบ')
+        ->assertDontSee('สมศรี');
+})->with([
+    'office 00 still limited by type' => ['00'],
+    'own office and type' => ['01'],
+]);
+
+test('PROMOTE must match both office and personnel type', function () {
+    seedPromotionsOfTwoTypes();
+    assignPersonnelTypes(11, [3]);
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '02'))
+        ->test(SalaryPromotionManagement::class)
+        ->assertDontSee('33,333.00')
+        ->assertDontSee('11,111.00');
+});
+
+test('PROMOTE cannot edit, archive, select or create promotions outside their types', function () {
+    [$civilServant] = seedPromotionsOfTwoTypes();
+    assignPersonnelTypes(11, [3]);
+    $user = promotionOfficeUser('PROMOTE', '00');
+
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('edit', $civilServant)->assertNotFound();
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('prepareArchive', $civilServant)->assertNotFound();
+    Livewire::actingAs($user)->test(SalaryPromotionManagement::class)->call('selectPerson', '1234567890123')->assertNotFound();
+    Livewire::actingAs($user)
+        ->test(SalaryPromotionManagement::class)
+        ->set('cid', '1234567890123')
+        ->set('evaluation_date', '2026-04-01')
+        ->set('before_salary', '30000')
+        ->set('base', '30000')
+        ->set('percent', '3')
+        ->set('new_salary', '30900')
+        ->call('save')
+        ->assertHasErrors(['cid' => 'exists']);
+
+    expect(DB::table('data_promote')->where('CID', '1234567890123')->count())->toBe(1);
+});
+
+test('PROMOTE without assigned personnel types sees nothing and cannot add or import', function () {
+    seedPromotionsOfTwoTypes();
+
+    Livewire::actingAs(promotionOfficeUser('PROMOTE', '00'))
+        ->test(SalaryPromotionManagement::class)
+        ->assertOk()
+        ->assertSee('ยังไม่ได้กำหนดประเภทการจ้างที่รับผิดชอบ')
+        ->assertDontSee('11,111.00')
+        ->assertDontSee('33,333.00')
+        ->assertDontSeeHtml('wire:click="openCreate"')
+        ->assertDontSee('นำเข้า Excel');
+});
+
+test('ADMIN sees every personnel type and unmatched promotions', function () {
+    seedPromotionsOfTwoTypes();
+    insertPromotion(['CID' => '9999999999999', 'evaluation_date' => '2025-04-01', 'new_salary' => '99999.00']);
+
+    Livewire::actingAs(promotionUser())
+        ->test(SalaryPromotionManagement::class)
+        ->assertSee('11,111.00')
+        ->assertSee('33,333.00')
+        ->assertSee('99,999.00')
+        ->assertSeeHtml('value="unmatched"')
+        ->assertSeeHtml('<option value="1">ข้าราชการ</option>');
 });

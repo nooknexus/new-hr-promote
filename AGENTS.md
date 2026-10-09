@@ -90,6 +90,14 @@ npm run build
   `/admin/tax-certificates` (`ADMIN`, `FINANCE`): list, person search, edit,
   save, cancel/archive/delete, and imports. Records are scoped by joining their
   CID to `person.office_id`; imports skip out-of-office rows and report them.
+- `/admin/salary-promotions` and its import are also limited by personnel type
+  through `App\Support\PersonnelTypeScope` (`person.type_id`, types listed in
+  `PersonnelTypeScope::TYPES`). A user must match both the office scope and one
+  of their types in `user_personnel_types`; office `00` does not lift the type
+  limit. `ADMIN` is unrestricted, and a `PROMOTE` user without assigned types
+  sees nothing and cannot add or import. Only `ADMIN` assigns types on
+  `/admin/users` (`UserAccessService::updatePersonnelTypes`, audited). Other
+  screens, including `/admin/personnel`, are not limited by type.
 - The leave Google Sheet sync (`/admin/leave-sheet-sync`, ability `leave-sync`)
   writes leave for every office, so only unrestricted users (`ADMIN` or `LEAVE`
   with office `00`) may open it or see its button on `/admin/leaves`.

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +35,7 @@ class SalaryPromotionManagement extends Component
     public string $search = '';
     public string $yearFilter = '';
     public string $officeFilter = '';
+    public string $typeFilter = '';
     public string $promoteFilter = '';
     public string $statusFilter = 'active';
     public string $personSearch = '';
@@ -69,7 +71,7 @@ class SalaryPromotionManagement extends Component
 
     public function updated(string $property): void
     {
-        if (in_array($property, ['search', 'yearFilter', 'officeFilter', 'promoteFilter', 'statusFilter'], true)) {
+        if (in_array($property, ['search', 'yearFilter', 'officeFilter', 'typeFilter', 'promoteFilter', 'statusFilter'], true)) {
             $this->resetPage();
         }
 
@@ -281,6 +283,7 @@ class SalaryPromotionManagement extends Component
                     $query->where('people.office_id', $this->officeFilter);
                 }
             })
+            ->when(isset(PersonnelTypeScope::TYPES[(int) $this->typeFilter]), fn (Builder $query) => $query->where('people.type_id', (int) $this->typeFilter))
             ->when($this->promoteFilter !== '', fn (Builder $query) => $query->where('promotions.promote', $this->promoteFilter))
             ->when($this->statusFilter === 'active', fn (Builder $query) => $query->whereNull('promotions.deleted_at'))
             ->when($this->statusFilter === 'archived', fn (Builder $query) => $query->whereNotNull('promotions.deleted_at'));
@@ -297,6 +300,9 @@ class SalaryPromotionManagement extends Component
                     + ((int) substr($yearMonth, 5, 2) >= 10 ? 544 : 543))
                 ->unique()->sortDesc()->values(),
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
+            'personnelTypes' => PersonnelTypeScope::options(Auth::user()),
+            'typeRestricted' => PersonnelTypeScope::typesFor(Auth::user()) !== null,
+            'hasTypes' => PersonnelTypeScope::typesFor(Auth::user()) !== [],
             'personResults' => $this->cid === '' && mb_strlen($personSearch) >= 2
                 ? $this->scopedPersonnel()->where(function (Builder $query) use ($personSearch): void {
                     foreach (preg_split('/\s+/u', $personSearch) as $term) {
@@ -513,7 +519,7 @@ class SalaryPromotionManagement extends Component
 
     private function scopedPersonnel(): Builder
     {
-        return OfficeScope::apply(DB::table('person'), Auth::user());
+        return PersonnelTypeScope::apply(OfficeScope::apply(DB::table('person'), Auth::user()), Auth::user());
     }
 
     /** Promotions of personnel the current user may manage, aliased as promotions/people. */
@@ -522,13 +528,13 @@ class SalaryPromotionManagement extends Component
         $query = DB::table('data_promote as promotions')
             ->leftJoin('person as people', 'people.cid', '=', 'promotions.CID');
 
-        return OfficeScope::apply($query, Auth::user(), 'people.office_id');
+        return PersonnelTypeScope::apply(OfficeScope::apply($query, Auth::user(), 'people.office_id'), Auth::user(), 'people.type_id');
     }
 
     private function scopedPersonExistsRule(): Exists
     {
         return Rule::exists('person', 'cid')
-            ->where(fn ($query) => OfficeScope::apply($query, Auth::user()));
+            ->where(fn ($query) => PersonnelTypeScope::apply(OfficeScope::apply($query, Auth::user()), Auth::user()));
     }
 
     private function ensureAdministrator(): void

@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Services\SalaryPromotionImportService;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
@@ -40,7 +41,8 @@ class SalaryPromotionImport extends Component
 
     public function boot(): void
     {
-        abort_unless(AdminAccess::allows(Auth::user(), 'promotions'), 403);
+        // A PROMOTE user without assigned personnel types has nothing to import.
+        abort_unless(AdminAccess::allows(Auth::user(), 'promotions') && PersonnelTypeScope::typesFor(Auth::user()) !== [], 403);
     }
 
     public function updatedImportFile(): void
@@ -55,7 +57,7 @@ class SalaryPromotionImport extends Component
         $this->validateFile();
 
         try {
-            $preview = $importService->preview($this->importFile->getRealPath(), OfficeScope::officeFor(Auth::user()));
+            $preview = $importService->preview($this->importFile->getRealPath(), OfficeScope::officeFor(Auth::user()), PersonnelTypeScope::typesFor(Auth::user()));
         } catch (ValidationException $exception) {
             $this->addError('importFile', $exception->validator->errors()->first('file') ?: 'ไม่สามารถอ่านไฟล์ Excel ได้');
 
@@ -95,7 +97,7 @@ class SalaryPromotionImport extends Component
         }
 
         try {
-            $result = $importService->commit($path, (int) Auth::id(), $this->baselineHash, OfficeScope::officeFor(Auth::user()));
+            $result = $importService->commit($path, (int) Auth::id(), $this->baselineHash, OfficeScope::officeFor(Auth::user()), PersonnelTypeScope::typesFor(Auth::user()));
         } catch (ValidationException $exception) {
             $this->clearPreview();
             $this->addError('importFile', $exception->validator->errors()->first('file') ?: 'ไม่สามารถนำเข้าไฟล์ Excel ได้');
@@ -109,7 +111,7 @@ class SalaryPromotionImport extends Component
         $this->dispatch('salary-import-completed');
         $message = "นำเข้าเลื่อนขั้นเงินเดือนแล้ว เพิ่มใหม่ {$result['insert_count']} ปรับปรุง {$result['update_count']} รายการ";
         if ($result['skipped_count'] > 0) {
-            $message .= " ข้ามบุคลากรนอกหน่วยงาน {$result['skipped_count']} รายการ";
+            $message .= " ข้ามบุคลากรนอกต้นสังกัดหรือประเภทการจ้างที่รับผิดชอบ {$result['skipped_count']} รายการ";
         }
         $this->dispatch('salary-import-saved', message: $message);
     }

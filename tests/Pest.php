@@ -25,6 +25,13 @@ pest()->extend(Tests\TestCase::class)
                 $table->timestamps();
             });
         }
+        if (! \Illuminate\Support\Facades\Schema::hasTable('user_personnel_types')) {
+            \Illuminate\Support\Facades\Schema::create('user_personnel_types', function ($table) {
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedTinyInteger('type_id');
+                $table->primary(['user_id', 'type_id']);
+            });
+        }
     })
     ->in('Feature');
 
@@ -78,5 +85,13 @@ function seedOffices(array $offices, bool $active = true): void
 {
     foreach ($offices as $code => $name) {
         \Illuminate\Support\Facades\DB::table('offices')->insertOrIgnore(['code' => (string) $code, 'name' => $name, 'is_active' => $active]);
+    }
+}
+
+/** @param list<int> $types person.type_id values the user is responsible for on salary promotions */
+function assignPersonnelTypes(int $userId, array $types): void
+{
+    foreach ($types as $type) {
+        \Illuminate\Support\Facades\DB::table('user_personnel_types')->insertOrIgnore(['user_id' => $userId, 'type_id' => $type]);
     }
 }

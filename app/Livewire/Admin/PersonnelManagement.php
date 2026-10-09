@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
 use App\Services\PersonnelImportService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -24,13 +25,6 @@ class PersonnelManagement extends Component
     }
     use WithFileUploads;
     use WithPagination;
-
-    private const PERSONNEL_TYPES = [
-        1 => 'ข้าราชการ',
-        2 => 'ลูกจ้างประจำ',
-        3 => 'พนักงานราชการ',
-        4 => 'พนักงานกระทรวง',
-    ];
 
     public string $search = '';
     public string $officeFilter = '';
@@ -70,7 +64,7 @@ class PersonnelManagement extends Component
             'pname' => ['nullable', 'string', 'max:255'],
             'fname' => ['required', 'string', 'max:255'],
             'lname' => ['required', 'string', 'max:255'],
-            'type_id' => ['nullable', 'integer', Rule::in(array_keys(self::PERSONNEL_TYPES))],
+            'type_id' => ['nullable', 'integer', Rule::in(array_keys(PersonnelTypeScope::TYPES))],
             'type_name' => ['nullable', 'string', 'max:255'],
             'office_id' => $scope === null
                 ? ['nullable', 'string', Rule::in($this->formOffices()->pluck('office_id')->all())]
@@ -219,7 +213,7 @@ class PersonnelManagement extends Component
         return view('livewire.admin.personnel-management', [
             'personnel' => $this->scopedPersonnel()
                 ->when($officeFilter !== '', fn ($query) => $query->where('office_id', $officeFilter))
-                ->when(isset(self::PERSONNEL_TYPES[(int) $typeFilter]), fn ($query) => $query->where('type_id', (int) $typeFilter))
+                ->when(isset(PersonnelTypeScope::TYPES[(int) $typeFilter]), fn ($query) => $query->where('type_id', (int) $typeFilter))
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('cid', 'like', "%{$search}%")
@@ -234,7 +228,7 @@ class PersonnelManagement extends Component
                 ->paginate(20),
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'formOffices' => $this->formOffices(),
-            'personnelTypes' => self::PERSONNEL_TYPES,
+            'personnelTypes' => PersonnelTypeScope::TYPES,
         ]);
     }
 
@@ -248,7 +242,7 @@ class PersonnelManagement extends Component
         $data['type_id'] = $data['type_id'] === null ? null : (int) $data['type_id'];
         $data['type_name'] = $data['type_id'] === null
             ? null
-            : self::PERSONNEL_TYPES[$data['type_id']];
+            : PersonnelTypeScope::TYPES[$data['type_id']];
 
         if ($data['office_id'] === null || $data['office_id'] === '') {
             $data['office_id'] = null;

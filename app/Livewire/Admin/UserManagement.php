@@ -6,6 +6,7 @@ use Livewire\Attributes\Title;
 use App\Services\UserAccessService;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
@@ -26,6 +27,14 @@ class UserManagement extends Component
 
     #[Locked]
     public bool $pendingActive = false;
+
+    #[Locked]
+    public ?int $typesUserId = null;
+
+    public string $typesUserName = '';
+
+    /** @var list<string> */
+    public array $selectedTypes = [];
 
     public function boot(): void
     {
@@ -62,6 +71,32 @@ class UserManagement extends Component
         $this->dispatch('user-access-saved', message: 'บันทึกต้นสังกัดผู้ใช้แล้ว');
     }
 
+    public function openPersonnelTypes(int $userId): void
+    {
+        $user = DB::table('users')->where('id', $userId)->first(['id', 'name']);
+        abort_unless($user, 404);
+        $this->typesUserId = (int) $user->id;
+        $this->typesUserName = (string) $user->name;
+        $this->selectedTypes = array_map('strval', PersonnelTypeScope::assignedTo((int) $user->id));
+        $this->resetErrorBag();
+        $this->dispatch('user-types-form-opened');
+    }
+
+    public function savePersonnelTypes(UserAccessService $service): void
+    {
+        abort_unless($this->typesUserId !== null, 404);
+        $service->updatePersonnelTypes((int) Auth::id(), $this->typesUserId, $this->selectedTypes);
+        $this->cancelPersonnelTypes();
+        $this->dispatch('user-access-saved', message: 'บันทึกประเภทการจ้างที่รับผิดชอบแล้ว');
+    }
+
+    public function cancelPersonnelTypes(): void
+    {
+        $this->reset(['typesUserId', 'typesUserName', 'selectedTypes']);
+        $this->resetErrorBag();
+        $this->dispatch('user-types-form-closed');
+    }
+
     public function requestStatusChange(int $userId, bool $active): void
     {
         $user = DB::table('users')->where('id', $userId)->first(['id', 'name']);
@@ -93,9 +128,7 @@ class UserManagement extends Component
     public function render()
     {
         $search = trim($this->search);
-
-        return view('livewire.admin.user-management', [
-            'users' => DB::table('users')
+        $users = DB::table('users')
                 ->select(['id', 'name', 'hname', 'role', 'office', 'is_active'])
                 ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -106,7 +139,15 @@ class UserManagement extends Component
                 ->when($this->roleFilter !== '' && $this->roleFilter !== 'none', fn ($query) => $query->where('role', $this->roleFilter))
                 ->when($this->officeFilter === 'none', fn ($query) => $query->whereNull('office'))
                 ->when($this->officeFilter !== '' && $this->officeFilter !== 'none', fn ($query) => $query->where('office', $this->officeFilter))
-                ->orderBy('name')->orderBy('id')->paginate(20),
+                ->orderBy('name')->orderBy('id')->paginate(20);
+
+        return view('livewire.admin.user-management', [
+            'users' => $users,
+            'personnelTypes' => PersonnelTypeScope::TYPES,
+            'assignedTypes' => DB::table('user_personnel_types')
+                ->whereIn('user_id', collect($users->items())->where('role', 'PROMOTE')->pluck('id'))
+                ->orderBy('type_id')->get()->groupBy('user_id')
+                ->map(fn ($rows) => $rows->pluck('type_id')->map(fn ($id) => (int) $id)->all()),
             // Inactive offices stay listed so existing assignments still display.
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
         ]);

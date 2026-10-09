@@ -34,6 +34,7 @@ beforeEach(function () {
         $table->string('pname')->nullable();
         $table->string('fname')->nullable();
         $table->string('lname')->nullable();
+        $table->unsignedTinyInteger('type_id')->nullable()->default(1);
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
         $table->string('no_position')->nullable();
@@ -55,6 +56,7 @@ beforeEach(function () {
         $table->json('after_data')->nullable();
         $table->timestamp('created_at');
     });
+    assignPersonnelTypes(9, [1]);
 });
 
 function salaryImportActor(string $role, ?string $office = '00'): User
@@ -176,6 +178,7 @@ test('preview reveals the total count when more than ten salary warnings exist',
 });
 
 test('authorization is rechecked on the confirmation request', function () {
+    DB::table('person')->insert(['cid' => '3650200600388']);
     $actor = salaryImportActor('PROMOTE');
     $book = new SalaryPromotionWorkbook;
     $component = Livewire::actingAs($actor)
@@ -221,12 +224,43 @@ test('an office-scoped PROMOTE import skips personnel outside their office', fun
         ->assertSet('previewReady', true)
         ->assertSet('previewCounts.insert_count', 1)
         ->assertSet('previewCounts.skipped_count', 2)
-        ->assertSee('ข้าม (ไม่ใช่บุคลากรในหน่วยงาน) 2')
+        ->assertSee('ข้าม (นอกต้นสังกัดหรือประเภทการจ้างที่รับผิดชอบ) 2')
         ->call('confirmImport')
         ->assertHasNoErrors()
-        ->assertDispatched('salary-import-saved', message: 'นำเข้าเลื่อนขั้นเงินเดือนแล้ว เพิ่มใหม่ 1 ปรับปรุง 0 รายการ ข้ามบุคลากรนอกหน่วยงาน 2 รายการ');
+        ->assertDispatched('salary-import-saved', message: 'นำเข้าเลื่อนขั้นเงินเดือนแล้ว เพิ่มใหม่ 1 ปรับปรุง 0 รายการ ข้ามบุคลากรนอกต้นสังกัดหรือประเภทการจ้างที่รับผิดชอบ 2 รายการ');
 
     expect(DB::table('data_promote')->pluck('CID')->all())->toBe(['3650200600388']);
+});
+
+test('a PROMOTE import skips personnel outside their assigned types', function () {
+    DB::table('person')->insert([
+        ['cid' => '3650200600388', 'type_id' => 3],
+        ['cid' => '1111111111111', 'type_id' => 1],
+    ]);
+    DB::table('user_personnel_types')->where('user_id', 9)->delete();
+    assignPersonnelTypes(9, [3]);
+    $otherType = SalaryPromotionWorkbook::ROW;
+    $otherType[0] = '1111111111111';
+    $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $otherType]);
+
+    Livewire::actingAs(salaryImportActor('PROMOTE', '00'))
+        ->test(SalaryPromotionImport::class)
+        ->set('importFile', salaryImportUpload($book))
+        ->call('previewUpload')
+        ->assertSet('previewCounts.insert_count', 1)
+        ->assertSet('previewCounts.skipped_count', 1)
+        ->call('confirmImport')
+        ->assertHasNoErrors();
+
+    expect(DB::table('data_promote')->pluck('CID')->all())->toBe(['3650200600388']);
+});
+
+test('a PROMOTE user without assigned types cannot import', function () {
+    DB::table('user_personnel_types')->delete();
+
+    Livewire::actingAs(salaryImportActor('PROMOTE', '00'))
+        ->test(SalaryPromotionImport::class)
+        ->assertForbidden();
 });
 
 test('ADMIN imports every row regardless of their office', function () {

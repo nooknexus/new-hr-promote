@@ -38,6 +38,8 @@ beforeEach(function () {
         $table->string('after_office')->nullable();
         $table->boolean('before_active')->nullable();
         $table->boolean('after_active')->nullable();
+        $table->string('before_personnel_types')->nullable();
+        $table->string('after_personnel_types')->nullable();
         $table->timestamp('created_at');
     });
     DB::table('users')->insert([
@@ -209,4 +211,51 @@ test('the user list paginates beyond twenty accounts', function () {
         ->assertDontSee('A23')
         ->call('nextPage')
         ->assertSee('A23');
+});
+
+test('ADMIN assigns the personnel types a PROMOTE user is responsible for, with an audit', function () {
+    DB::table('users')->where('id', 2)->update(['role' => 'PROMOTE', 'office' => '01']);
+
+    Livewire::actingAs(User::find(1))
+        ->test(UserManagement::class)
+        ->assertSee('ประเภทการจ้าง: ยังไม่กำหนด')
+        ->call('openPersonnelTypes', 2)
+        ->assertSet('typesUserName', 'บุคลากร')
+        ->assertDispatched('user-types-form-opened')
+        ->set('selectedTypes', ['3', '1'])
+        ->call('savePersonnelTypes')
+        ->assertHasNoErrors()
+        ->assertDispatched('user-types-form-closed')
+        ->assertDispatched('user-access-saved', message: 'บันทึกประเภทการจ้างที่รับผิดชอบแล้ว')
+        ->assertSee('ประเภทการจ้าง: ข้าราชการ, พนักงานราชการ');
+
+    expect(DB::table('user_personnel_types')->where('user_id', 2)->orderBy('type_id')->pluck('type_id')->all())->toBe([1, 3]);
+    $audit = DB::table('user_access_audits')->first();
+    expect($audit->before_personnel_types)->toBe('')
+        ->and($audit->after_personnel_types)->toBe('1,3')
+        ->and($audit->after_role)->toBe('PROMOTE');
+
+    app(UserAccessService::class)->updatePersonnelTypes(1, 2, [3, 1]);
+    expect(DB::table('user_access_audits')->count())->toBe(1);
+
+    app(UserAccessService::class)->updatePersonnelTypes(1, 2, []);
+    expect(DB::table('user_personnel_types')->where('user_id', 2)->count())->toBe(0);
+});
+
+test('only PROMOTE rows offer personnel type assignment', function () {
+    Livewire::actingAs(User::find(1))
+        ->test(UserManagement::class)
+        ->assertDontSee('ประเภทการจ้าง:')
+        ->assertDontSeeHtml('openPersonnelTypes(2)');
+});
+
+test('invalid personnel types are rejected and only an active ADMIN may assign them', function () {
+    $service = app(UserAccessService::class);
+
+    expect(fn () => $service->updatePersonnelTypes(1, 2, [5]))->toThrow(ValidationException::class)
+        ->and(fn () => $service->updatePersonnelTypes(1, 2, ['x']))->toThrow(ValidationException::class);
+    expect(fn () => $service->updatePersonnelTypes(2, 2, [1]))->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class);
+    expect(DB::table('user_personnel_types')->count())->toBe(0);
+
+    Livewire::actingAs(User::find(2))->test(UserManagement::class)->assertForbidden();
 });

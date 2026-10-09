@@ -22,7 +22,7 @@
                 <span>ไม่พบบุคลากร {{ $previewCounts['unmatched_person_count'] }}</span>
                 <span>ไม่พบผู้ใช้ {{ $previewCounts['unmatched_user_count'] }}</span>
                 @if(($previewCounts['skipped_count'] ?? 0) > 0)
-                    <span>ข้าม (ไม่ใช่บุคลากรในหน่วยงาน) {{ $previewCounts['skipped_count'] }}</span>
+                    <span>ข้าม (นอกต้นสังกัดหรือประเภทการจ้างที่รับผิดชอบ) {{ $previewCounts['skipped_count'] }}</span>
                 @endif
             </div>
         </div>

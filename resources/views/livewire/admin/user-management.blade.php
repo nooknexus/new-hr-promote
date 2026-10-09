@@ -58,6 +58,13 @@
                                         <option value="{{ $option }}" @selected($user->role === $option)>{{ $option }}</option>
                                     @endforeach
                                 </select>
+                                @if($user->role === 'PROMOTE')
+                                    @php($userTypes = $assignedTypes[$user->id] ?? [])
+                                    <div class="mt-2 flex items-center gap-2 text-xs">
+                                        <span @class(['text-slate-600', 'font-semibold text-amber-700' => $userTypes === []])>ประเภทการจ้าง: {{ $userTypes === [] ? 'ยังไม่กำหนด' : \App\Support\PersonnelTypeScope::labels($userTypes) }}</span>
+                                        <button type="button" wire:click="openPersonnelTypes({{ $user->id }})" onclick="window.portalModal.show('userTypesModal')" class="btn btn-sm btn-outline-primary">กำหนด</button>
+                                    </div>
+                                @endif
                             </td>
                             <td class="px-4 py-3">
                                 <label class="sr-only" for="user-office-{{ $user->id }}">ต้นสังกัดของ {{ $user->name }}</label>
@@ -82,6 +89,36 @@
         </div>
         @if($users->hasPages())<div class="border-t border-slate-100 px-5 py-4">{{ $users->links() }}</div>@endif
     </section>
+
+    <div class="modal" id="userTypesModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-types-title" aria-hidden="true" wire:ignore.self>
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="user-types-title" class="text-lg font-bold text-slate-900">ประเภทการจ้างที่รับผิดชอบ</h2>
+                    <button type="button" wire:click="cancelPersonnelTypes" data-modal-close aria-label="ปิดหน้าต่าง"><i class="fas fa-times" aria-hidden="true"></i></button>
+                </div>
+                <form wire:submit="savePersonnelTypes">
+                    <div class="modal-body space-y-3">
+                        <p class="text-sm text-slate-600"><strong>{{ $typesUserName }}</strong> จะเห็นและนำเข้าข้อมูลเลื่อนขั้นเงินเดือนได้เฉพาะประเภทที่เลือก ภายในต้นสังกัดของตน หากไม่เลือกเลยจะไม่เห็นข้อมูล</p>
+                        <fieldset class="grid gap-2 sm:grid-cols-2">
+                            <legend class="sr-only">ประเภทการจ้าง</legend>
+                            @foreach($personnelTypes as $typeId => $typeName)
+                                <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm">
+                                    <input type="checkbox" wire:model="selectedTypes" value="{{ $typeId }}" class="h-4 w-4 rounded border-slate-300 text-brand-600">
+                                    <span>{{ $typeName }}</span>
+                                </label>
+                            @endforeach
+                        </fieldset>
+                        @error('personnelTypes')<p role="alert" class="text-sm text-rose-700">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" wire:click="cancelPersonnelTypes" data-modal-close class="btn btn-secondary">ยกเลิก</button>
+                        <button type="submit" wire:loading.attr="disabled" wire:target="savePersonnelTypes" class="btn btn-primary">บันทึก</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <div class="modal" id="userStatusModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="user-status-title" aria-hidden="true" wire:ignore.self>
         <div class="modal-dialog" role="document">
@@ -111,6 +148,8 @@
 <script>
     $wire.on('user-status-form-opened', () => window.portalModal.show('userStatusModal'));
     $wire.on('user-status-form-closed', () => window.portalModal.hide(document.getElementById('userStatusModal')));
+    $wire.on('user-types-form-opened', () => window.portalModal.show('userTypesModal'));
+    $wire.on('user-types-form-closed', () => window.portalModal.hide(document.getElementById('userTypesModal')));
     $wire.on('user-access-saved', ({ message }) => window.portalToast.show(message));
 </script>
 @endscript

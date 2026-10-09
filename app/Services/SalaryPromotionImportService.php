@@ -49,9 +49,10 @@ class SalaryPromotionImportService
 
     /**
      * @param  string|null  $officeScope  When set, rows for personnel outside this office are skipped; null keeps every row.
+     * @param  list<int>|null  $typeScope  When set, rows for personnel outside these types are skipped; null keeps every row.
      * @return array{rows: array<int, array<string, mixed>>, insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, skipped_count: int, warnings: array<int, string>, errors: array<int, string>, baseline_hash: string}
      */
-    public function preview(string $path, ?string $officeScope = null): array
+    public function preview(string $path, ?string $officeScope = null, ?array $typeScope = null): array
     {
         if (! is_file($path) || filesize($path) > 10 * 1024 * 1024) {
             throw ValidationException::withMessages(['file' => 'ไฟล์ไม่ถูกต้องหรือมีขนาดเกิน 10 MB']);
@@ -102,8 +103,7 @@ class SalaryPromotionImportService
                     continue;
                 }
 
-                if ($officeScope !== null && ($officeScope === ''
-                    || DB::table('person')->where('cid', $row['cid'])->value('office_id') !== $officeScope)) {
+                if (! $this->withinScope($row['cid'], $officeScope, $typeScope)) {
                     $result['skipped_count']++;
                     continue;
                 }
@@ -163,10 +163,10 @@ class SalaryPromotionImportService
     }
 
     /** @return array{insert_count: int, update_count: int, unmatched_person_count: int, unmatched_user_count: int, skipped_count: int} */
-    public function commit(string $path, int $actorId, string $expectedBaselineHash, ?string $officeScope = null): array
+    public function commit(string $path, int $actorId, string $expectedBaselineHash, ?string $officeScope = null, ?array $typeScope = null): array
     {
-        return DB::transaction(function () use ($path, $actorId, $expectedBaselineHash, $officeScope): array {
-            $preview = $this->preview($path, $officeScope);
+        return DB::transaction(function () use ($path, $actorId, $expectedBaselineHash, $officeScope, $typeScope): array {
+            $preview = $this->preview($path, $officeScope, $typeScope);
             if ($preview['errors'] !== []) {
                 throw ValidationException::withMessages([
                     'file' => implode(' | ', array_slice($preview['errors'], 0, 10)),
@@ -297,6 +297,23 @@ class SalaryPromotionImportService
     }
 
     /** @return array<string, string> person columns to update from this row's non-blank cells */
+    /** Whether the row's person is inside the importer's office and personnel type scope. */
+    private function withinScope(string $cid, ?string $officeScope, ?array $typeScope): bool
+    {
+        if ($officeScope === null && $typeScope === null) {
+            return true;
+        }
+        if ($officeScope === '' || $typeScope === []) {
+            return false;
+        }
+
+        $person = DB::table('person')->where('cid', $cid)->first(['office_id', 'type_id']);
+
+        return $person !== null
+            && ($officeScope === null || (string) $person->office_id === $officeScope)
+            && ($typeScope === null || in_array((int) $person->type_id, $typeScope, true));
+    }
+
     private function personUpdates(array $row): array
     {
         $updates = [];

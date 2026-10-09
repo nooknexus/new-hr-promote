@@ -10,24 +10,36 @@
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">จัดการข้อมูลการเลื่อนขั้นเงินเดือน</h1>
             <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">เพิ่มและแก้ไขรายการเลื่อนขั้นเงินเดือน รายการที่ยกเลิกจะเก็บไว้ในทะเบียนและสามารถกู้คืนได้</p>
         </div>
-        <button type="button" wire:click="openCreate" onclick="window.portalModal.show('promotionFormModal')" class="btn btn-primary">
-            <i class="fas fa-plus" aria-hidden="true"></i><span>เพิ่มรายการ</span>
-        </button>
+        @if($hasTypes)
+            <button type="button" wire:click="openCreate" onclick="window.portalModal.show('promotionFormModal')" class="btn btn-primary">
+                <i class="fas fa-plus" aria-hidden="true"></i><span>เพิ่มรายการ</span>
+            </button>
+        @endif
     </header>
 
-    <livewire:admin.salary-promotion-import />
+    @if($hasTypes)
+        <livewire:admin.salary-promotion-import />
+    @else
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+            ยังไม่ได้กำหนดประเภทการจ้างที่รับผิดชอบ กรุณาติดต่อผู้ดูแลระบบ
+        </div>
+    @endif
 
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="promotion-list-heading">
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 id="promotion-list-heading" class="font-bold text-brand-700">ทะเบียนการเลื่อนขั้นเงินเดือน</h2>
-            <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
                 <div>
                     <label for="promotion-year-filter" class="sr-only">ปีงบประมาณ</label>
                     <select id="promotion-year-filter" wire:model.live="yearFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกปีงบประมาณ</option>@foreach($years as $year)<option value="{{ $year }}">ปี {{ $year }}</option>@endforeach</select>
                 </div>
                 <div>
                     <label for="promotion-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
-                    <select id="promotion-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกต้นสังกัด</option>@foreach($offices as $officeOption)<option value="{{ $officeOption->office_id }}">{{ $officeOption->office_id }} — {{ $officeOption->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>@endforeach<option value="unmatched">ไม่พบบุคลากร</option></select>
+                    <select id="promotion-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกต้นสังกัด</option>@foreach($offices as $officeOption)<option value="{{ $officeOption->office_id }}">{{ $officeOption->office_id }} — {{ $officeOption->office_name ?: 'ไม่ระบุชื่อต้นสังกัด' }}</option>@endforeach @unless($typeRestricted)<option value="unmatched">ไม่พบบุคลากร</option>@endunless</select>
+                </div>
+                <div>
+                    <label for="promotion-type-filter" class="sr-only">กรองตามประเภทการจ้าง</label>
+                    <select id="promotion-type-filter" wire:model.live="typeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"><option value="">ทุกประเภทการจ้าง</option>@foreach($personnelTypes as $typeId => $typeName)<option value="{{ $typeId }}">{{ $typeName }}</option>@endforeach</select>
                 </div>
                 <div>
                     <label for="promotion-result-filter" class="sr-only">ผลการเลื่อนขั้น</label>
