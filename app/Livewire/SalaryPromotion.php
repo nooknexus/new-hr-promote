@@ -36,17 +36,8 @@ class SalaryPromotion extends Component
             if ($this->selectedYear) {
                 $this->loadPromotions();
             }
-        } else {
-            // If no data is found, show current fiscal year
-            $currentMonth = Carbon::now()->month;
-            $currentYear = Carbon::now()->year + 543; // Convert to Buddhist Era
-            
-            // If current month is October or later, we're in the next fiscal year
-            $currentFiscalYear = ($currentMonth >= 10) ? $currentYear + 1 : $currentYear;
-            
-            $this->years = [$currentFiscalYear];
-            $this->selectedYear = $currentFiscalYear;
         }
+        // Without any promotion the page explains why instead of offering an empty year.
     }
 
     /** Get fiscal years with active promotion data for the user. */

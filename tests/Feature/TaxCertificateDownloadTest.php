@@ -350,3 +350,17 @@ test('the tax certificate page opens with the latest income year selected', func
         ->assertSee('TC-2567')
         ->assertDontSee('TC-2566');
 });
+
+test('a user without any tax certificate is told to contact finance staff', function () {
+    $user = new User;
+    $user->forceFill(['id' => 3, 'name' => 'ไม่มี ใบรับรอง', 'pid' => '3333333333333']);
+    $user->exists = true;
+    $this->actingAs($user);
+
+    Livewire::test(\App\Livewire\TaxCertificate::class)
+        ->assertSet('years', [])
+        ->assertSee('ยังไม่มีข้อมูลใบรับรองการหักภาษีของท่านในระบบ')
+        ->assertSee('กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน')
+        ->assertDontSee('ฝ่ายบุคคล')
+        ->assertDontSee('เลือกรายการทางด้านซ้ายเพื่อแสดงใบรับรอง');
+});

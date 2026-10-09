@@ -172,3 +172,13 @@ test('the promotion history table lists only the round, count, percent and actio
         Carbon::setTestNow();
     }
 });
+
+test('a user without any salary promotion is told to contact personnel staff', function () {
+    Livewire::actingAs(promotionOwner())
+        ->test(SalaryPromotion::class)
+        ->assertSet('years', [])
+        ->assertSet('selectedYear', null)
+        ->assertSee('ยังไม่มีข้อมูลการเลื่อนขั้นเงินเดือนของท่านในระบบ')
+        ->assertSee('กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคลของหน่วยงาน')
+        ->assertDontSeeHtml('<th>รอบการเลื่อนขั้น</th>');
+});

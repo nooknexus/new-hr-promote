@@ -50,17 +50,16 @@ class Payslip extends Component
                 Log::info('Years with records', ['years' => $this->years]);
             } catch (\Exception $e) {
                 Log::error('Error fetching years', ['error' => $e->getMessage()]);
-                
-                // Fallback to current year if query fails
-                $this->years = [date('Y')];
             }
         }
-        
-        // If no years found (or no cid), default to current year
+
+        // Without any payslip the page explains why instead of offering an empty year.
         if (empty($this->years)) {
-            $this->years = [date('Y')];
+            $this->selectedYear = null;
+
+            return;
         }
-        
+
         // Set default selected year to the most recent year
         $this->selectedYear = $this->years[0];
         

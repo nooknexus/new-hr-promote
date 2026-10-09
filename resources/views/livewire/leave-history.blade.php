@@ -33,7 +33,7 @@
                     </div>
                 @else
                     <p class="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-                        ไม่พบบัญชีเลขประจำตัวประชาชนที่เชื่อมโยงกับผู้ใช้นี้ จึงไม่สามารถค้นหาประวัติการลาได้
+                        ไม่พบบัญชีเลขประจำตัวประชาชนที่เชื่อมโยงกับผู้ใช้นี้ จึงไม่สามารถค้นหาประวัติการลาได้ กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคล
                     </p>
                 @endif
             </div>
@@ -110,6 +110,7 @@
                             <span class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl text-slate-400" aria-hidden="true"><i class="fas fa-calendar-times"></i></span>
                             <p class="mt-4 font-semibold text-slate-700">ไม่พบประวัติการลา</p>
                             <p class="mt-1 text-sm text-slate-500">ไม่พบรายการลาในปีงบประมาณ {{ $selectedYear }}</p>
+                            <p class="mt-1 text-sm text-slate-500">หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคล</p>
                         </div>
                     @else
                         <div class="overflow-x-auto rounded-xl border border-slate-200">

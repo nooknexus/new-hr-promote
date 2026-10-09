@@ -34,7 +34,7 @@
                             @endforeach
                         </div>
                     @else
-                        <p class="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">ไม่พบข้อมูลสลิปเงินเดือนที่เชื่อมโยงกับบัญชีนี้</p>
+                        <p class="text-sm text-slate-500">ไม่มีปีให้เลือก</p>
                     @endif
                 </div>
             </section>
@@ -42,6 +42,12 @@
 
         <!-- Payslip Display Column -->
         <div class="min-w-0 lg:col-span-9">
+            @if($years === [])
+                <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-900" role="status">
+                    <p class="font-semibold"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i> ยังไม่มีข้อมูลสลิปเงินเดือนของท่านในระบบ</p>
+                    <p class="mt-1">หากเป็นพนักงานกระทรวงหรือได้รับเงินเดือนจากหน่วยบริการ กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน</p>
+                </div>
+            @else
             <!-- Payslip Card -->
             <div class="card shadow mb-4">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -91,6 +97,7 @@
                     @endif
                 </div>
             </div>
+            @endif
         </div>
     </div>
 

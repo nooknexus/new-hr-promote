@@ -158,3 +158,18 @@ test('TXT and Excel payslip months normalise to two digits', function () {
         ->and(\App\Models\DataSalary::monthVariants('09'))->toBe(['09', '9'])
         ->and(\App\Models\DataSalary::periodBindings('256909'))->toBe(['2569', '09', '9']);
 });
+
+test('a user without any payslip sees guidance instead of an empty year', function () {
+    $user = new User;
+    $user->forceFill(['id' => 2, 'pid' => '2222222222222', 'name' => 'ไม่มี สลิป']);
+    $user->exists = true;
+    $this->actingAs($user);
+
+    Livewire::test(Payslip::class)
+        ->assertSet('years', [])
+        ->assertSet('selectedYear', null)
+        ->assertSee('ยังไม่มีข้อมูลสลิปเงินเดือนของท่านในระบบ')
+        ->assertSee('กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน')
+        ->assertDontSee('ปี2569')
+        ->assertDontSee('ใบรับรองการจ่ายค่าตอบแทน (ปี');
+});

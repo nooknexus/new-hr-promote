@@ -32,9 +32,7 @@
                         @endforeach
                     </div>
                 @else
-                    <p class="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-                        ไม่พบข้อมูลใบรับรองการหักภาษีที่เชื่อมโยงกับบัญชีนี้
-                    </p>
+                    <p class="text-sm text-slate-500">ไม่มีปีให้เลือก</p>
                 @endif
             </div>
         </section>
@@ -52,7 +50,12 @@
             </div>
 
             <div class="p-5">
-                @if(!$selectedYear)
+                @if($years === [])
+                    <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-900" role="status">
+                        <p class="font-semibold"><i class="fas fa-info-circle mr-1" aria-hidden="true"></i> ยังไม่มีข้อมูลใบรับรองการหักภาษีของท่านในระบบ</p>
+                        <p class="mt-1">กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน</p>
+                    </div>
+                @elseif(!$selectedYear)
                     <div class="flex min-h-56 flex-col items-center justify-center text-center">
                         <span class="flex size-14 items-center justify-center rounded-2xl bg-brand-50 text-2xl text-brand-600" aria-hidden="true"><i class="fas fa-calendar-alt"></i></span>
                         <p class="mt-4 font-semibold text-slate-700">เลือกปีภาษี</p>
@@ -62,7 +65,7 @@
                     <div class="flex min-h-56 flex-col items-center justify-center text-center">
                         <span class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-2xl text-slate-400" aria-hidden="true"><i class="fas fa-file-invoice"></i></span>
                         <p class="mt-4 font-semibold text-slate-700">ไม่พบใบรับรองการหักภาษี</p>
-                        <p class="mt-1 text-sm text-slate-500">ไม่พบรายการในปี{{ $selectedYear }}</p>
+                        <p class="mt-1 text-sm text-slate-500">ไม่พบรายการในปี{{ $selectedYear }} หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่การเงิน</p>
                     </div>
                 @else
                     <div class="overflow-x-auto rounded-xl border border-slate-200">

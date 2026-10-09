@@ -411,7 +411,8 @@ test('leave history opens with the current fiscal year selected', function () {
         Livewire::test(LeaveHistory::class)
             ->assertSet('years', [2570])
             ->assertSet('selectedYear', 2570)
-            ->assertSee('ไม่พบรายการลาในปีงบประมาณ 2570');
+            ->assertSee('ไม่พบรายการลาในปีงบประมาณ 2570')
+            ->assertSee('หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคล');
     } finally {
         Carbon::setTestNow();
     }
