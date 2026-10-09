@@ -13,7 +13,7 @@ final class AdminAccess
         'FINANCE' => ['signatories', 'tax-certificates', 'payslip', 'personnel'],
     ];
 
-    private const ABILITIES = ['users', 'personnel', 'leave', 'leave-sync', 'promotions', 'signatories', 'tax-certificates', 'payslip'];
+    private const ABILITIES = ['users', 'personnel', 'leave', 'leave-sync', 'promotions', 'signatories', 'tax-certificates', 'payslip', 'offices'];
 
     private const ROLE_LABELS = [
         'ADMIN' => 'ผู้ดูแลระบบ',
@@ -47,6 +47,11 @@ final class AdminAccess
         // users (ADMIN or office 00) may run it.
         if ($ability === 'leave-sync' && OfficeScope::officeFor($user) !== null) {
             return false;
+        }
+
+        // The office registry affects every office, so any staff role in office 00 may manage it.
+        if ($ability === 'offices') {
+            return isset(self::ROLE_ABILITIES[$user->role ?? '']) && OfficeScope::officeFor($user) === null;
         }
 
         return in_array($ability, self::ROLE_ABILITIES[$user->role ?? ''] ?? [], true);

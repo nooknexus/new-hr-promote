@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\OfficeScope;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -90,15 +91,34 @@ class PersonnelImportService
 
             $record = $validator->validated();
 
+            $existing = DB::table('person')->where('cid', $record['cid'])->first(['office_id']);
+
             if ($officeScope !== null) {
                 $record['office_id'] ??= $officeScope;
-                $existing = DB::table('person')->where('cid', $record['cid'])->first(['office_id']);
 
                 if ($record['office_id'] !== $officeScope || ($existing !== null && $existing->office_id !== $officeScope)) {
                     $errors[] = 'แถว '.$row.': นำเข้าได้เฉพาะบุคลากรของหน่วยงานตนเอง';
 
                     continue;
                 }
+            }
+
+            // Office codes come from the offices registry: a new assignment must
+            // be an active office, keeping a person's current office is allowed,
+            // and the office name is always taken from the registry (column H is
+            // informational only).
+            if ($record['office_id'] !== null) {
+                $keepsCurrentOffice = $existing !== null && (string) $existing->office_id === (string) $record['office_id'];
+
+                if (! OfficeScope::exists($record['office_id'], activeOnly: ! $keepsCurrentOffice)) {
+                    $errors[] = 'แถว '.$row.': ไม่พบรหัสต้นสังกัด '.$record['office_id'].' ในทะเบียนต้นสังกัด หรือต้นสังกัดถูกปิดใช้งาน';
+
+                    continue;
+                }
+
+                $record['office_name'] = OfficeScope::nameFor($record['office_id']);
+            } else {
+                $record['office_name'] = null;
             }
 
             $records[] = $record;
@@ -164,6 +184,10 @@ class PersonnelImportService
 
         $record['cid'] = $record['cid'] === null ? null : preg_replace('/\s+/', '', (string) $record['cid']);
         $record['type_id'] = $record['type_id'] === null ? null : (int) $record['type_id'];
+        // Excel turns typed office codes such as 05 into the number 5.
+        if (is_int($record['office_id']) || is_float($record['office_id']) || (is_string($record['office_id']) && ctype_digit($record['office_id']))) {
+            $record['office_id'] = str_pad((string) (int) $record['office_id'], 2, '0', STR_PAD_LEFT);
+        }
 
         return $record;
     }

@@ -62,6 +62,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
         return response()->download($path, 'leave-import-template.xlsx');
     })->middleware('admin:leave')->name('leaves.template');
     Route::get('/users', App\Livewire\Admin\UserManagement::class)->middleware('admin:users')->name('users.index');
+    Route::get('/offices', App\Livewire\Admin\OfficeManagement::class)->middleware('admin:offices')->name('offices.index');
     Route::get('/payslips', App\Livewire\Admin\PayslipManagement::class)->middleware('admin:payslip')->name('payslips.index');
     Route::get('/salary-promotions', App\Livewire\Admin\SalaryPromotionManagement::class)->middleware('admin:promotions')->name('salary-promotions.index');
     Route::get('/signatories', App\Livewire\Admin\Signatories::class)->middleware('admin:signatories')->name('signatories');

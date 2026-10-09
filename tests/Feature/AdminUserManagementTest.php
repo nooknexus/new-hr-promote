@@ -47,6 +47,7 @@ beforeEach(function () {
     DB::table('person')->insert([
         'cid' => '1234567890123', 'office_id' => '01', 'office_name' => 'สำนักงานหนึ่ง',
     ]);
+    syncOfficesFromPerson();
 });
 
 test('only ADMIN may open user management and identity fields are not editable', function () {

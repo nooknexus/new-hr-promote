@@ -18,6 +18,7 @@ beforeEach(function () {
         $table->string('office_name')->nullable();
         $table->date('employment_started_at')->nullable();
     });
+    seedOffices(['01' => 'สำนักงานสาธารณสุข', '02' => 'โรงพยาบาล']);
 });
 
 test('it imports a personnel workbook by creating new personnel and updating an existing CID', function () {
@@ -118,9 +119,37 @@ test('it reads columns A to I by position regardless of the header text', functi
             'lname' => 'คอลัมน์',
             'type_name' => 'ข้าราชการ',
             'office_id' => '01',
-            'office_name' => 'สสจ.',
+            // The office name comes from the offices registry, not column H.
+            'office_name' => 'สำนักงานสาธารณสุข',
             'employment_started_at' => '2020-01-15',
         ]);
+
+    @unlink($path);
+});
+
+test('a personnel import rejects office codes missing from the registry or inactive', function () {
+    seedOffices(['09' => 'ต้นสังกัดปิด'], active: false);
+
+    foreach ([['1111111111111', 'ใหม่', 'ทดสอบ', '77', 'ไม่มีในทะเบียน', '2020-01-01'], ['1111111111111', 'ใหม่', 'ทดสอบ', '09', 'ปิด', '2020-01-01']] as $row) {
+        $path = personnelWorkbook([$row]);
+
+        expect(fn () => (new PersonnelImportService)->import($path))
+            ->toThrow(RuntimeException::class, 'ไม่พบรหัสต้นสังกัด');
+
+        @unlink($path);
+    }
+
+    expect(DB::table('person')->count())->toBe(0);
+});
+
+test('numeric office codes from Excel are read as two-digit codes', function () {
+    seedOffices(['05' => 'โรงพยาบาลห้า']);
+    $path = personnelWorkbook([['1111111111111', 'ใหม่', 'ทดสอบ', 5, null, '2020-01-01']]);
+
+    (new PersonnelImportService)->import($path);
+
+    expect(DB::table('person')->first(['office_id', 'office_name']))
+        ->toMatchObject(['office_id' => '05', 'office_name' => 'โรงพยาบาลห้า']);
 
     @unlink($path);
 });

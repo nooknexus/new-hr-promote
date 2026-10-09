@@ -132,6 +132,8 @@ test('saving selected personnel type and office keeps their codes and names in s
         'office_name' => 'โรงพยาบาลเดิม',
     ]);
 
+    syncOfficesFromPerson();
+
     Livewire::actingAs(personnelAdmin())
         ->test(PersonnelManagement::class)
         ->call('edit', '1234567890123')
@@ -244,6 +246,7 @@ function seedPersonnelInTwoOffices(): void
         ['cid' => '1111111111111', 'fname' => 'บุคลากรหน่วยหนึ่ง', 'lname' => 'ทดสอบ', 'office_id' => '01', 'office_name' => 'หน่วยบริการหนึ่ง'],
         ['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02', 'office_name' => 'หน่วยบริการสอง'],
     ]);
+    syncOfficesFromPerson();
 }
 
 test('an ADMIN sees personnel of every office regardless of their assigned office', function () {

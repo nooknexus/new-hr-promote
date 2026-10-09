@@ -68,6 +68,7 @@ function seedPayslipsInTwoOffices(): void
     foreach (['1111111111111', '2222222222222'] as $cid) {
         DB::table('data_salary')->insert(['cid' => $cid, 'yearNO' => '2569', 'monthNO' => '09', 'summaryTotalAmount' => '1000.00']);
     }
+    syncOfficesFromPerson();
 }
 
 function payslipWorkbook(array $cids): UploadedFile
@@ -174,6 +175,7 @@ test('the payslip register can be filtered by office', function () {
     seedPayslipsInTwoOffices();
     DB::table('person')->where('office_id', '01')->update(['office_name' => 'หน่วยบริการหนึ่ง']);
     DB::table('person')->where('office_id', '02')->update(['office_name' => 'หน่วยบริการสอง']);
+    syncOfficesFromPerson();
 
     Livewire::actingAs(payslipUser('FINANCE', '00'))
         ->test(PayslipManagement::class)
@@ -190,8 +192,8 @@ test('an office-scoped user sees only their own office in the payslip office fil
 
     Livewire::actingAs(payslipUser('FINANCE', '01'))
         ->test(PayslipManagement::class)
-        ->assertSee('01 — ไม่ระบุชื่อต้นสังกัด')
-        ->assertDontSee('02 — ไม่ระบุชื่อต้นสังกัด')
+        ->assertSee('01 — 01')
+        ->assertDontSee('02 — 02')
         ->set('officeFilter', '02')
         ->assertDontSee('บุคลากรหน่วยสอง');
 });

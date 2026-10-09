@@ -25,7 +25,7 @@
                     <option value="">ทุกต้นสังกัด</option>
                     <option value="none">ยังไม่ระบุต้นสังกัด</option>
                     @foreach($offices as $option)
-                        <option value="{{ $option->office_id }}">{{ $option->office_name ?: $option->office_id }}</option>
+                        <option value="{{ $option->office_id }}">{{ $option->office_id }} — {{ $option->office_name }}{{ $option->is_active ? '' : ' (ปิดใช้งาน)' }}</option>
                     @endforeach
                 </select>
             </div>
@@ -64,7 +64,9 @@
                                 <select id="user-office-{{ $user->id }}" wire:change="updateOffice({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
                                     <option value="" @selected(!$user->office)>ยังไม่ระบุต้นสังกัด</option>
                                     @foreach($offices as $option)
-                                        <option value="{{ $option->office_id }}" @selected($user->office === (string) $option->office_id)>{{ $option->office_name ?: $option->office_id }}</option>
+                                        @if($option->is_active || $user->office === (string) $option->office_id)
+                                        <option value="{{ $option->office_id }}" @selected($user->office === (string) $option->office_id)>{{ $option->office_id }} — {{ $option->office_name }}{{ $option->is_active ? '' : ' (ปิดใช้งาน)' }}</option>
+                                        @endif
                                     @endforeach
                                 </select>
                             </td>

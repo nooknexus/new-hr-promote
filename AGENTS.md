@@ -65,6 +65,16 @@ npm run build
 
 ### Office scope
 
+- The `offices` table (`code` 2 digits, `name`, `is_active`, `sort_order`) is
+  the source of truth for office codes and names. `person.office_name` is a
+  synced copy written from `offices`; never build office lists or validate
+  office codes from `person`. Use `OfficeScope::options()` (pass
+  `includeInactive: true` for filters), `OfficeScope::exists()`, and
+  `OfficeScope::nameFor()`.
+- Offices are deactivated, never deleted, and office `00` cannot be
+  deactivated. Forms offer only active offices, except a record's current
+  office. `/admin/offices` (ability `offices`) is limited to `ADMIN` and users
+  of any role with office `00`; renaming an office updates `person.office_name`.
 - Use `App\Support\OfficeScope` for office-limited admin screens: `ADMIN` and
   users with `users.office = 00` see every office; other roles see only
   `person.office_id` equal to their `users.office`; a non-ADMIN user without an

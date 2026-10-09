@@ -296,9 +296,7 @@ class SalaryPromotionManagement extends Component
                 ->map(fn (string $yearMonth) => (int) substr($yearMonth, 0, 4)
                     + ((int) substr($yearMonth, 5, 2) >= 10 ? 544 : 543))
                 ->unique()->sortDesc()->values(),
-            'offices' => $this->scopedPersonnel()->whereNotNull('office_id')->where('office_id', '!=', '')
-                ->select('office_id', DB::raw('MAX(office_name) as office_name'))
-                ->groupBy('office_id')->orderBy('office_id')->get(),
+            'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'personResults' => $this->cid === '' && mb_strlen($personSearch) >= 2
                 ? $this->scopedPersonnel()->where(function (Builder $query) use ($personSearch): void {
                     foreach (preg_split('/\s+/u', $personSearch) as $term) {

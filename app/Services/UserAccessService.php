@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\OfficeScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -40,12 +41,15 @@ class UserAccessService
             if (array_key_exists('role', $changes) && $changes['role'] !== null && ! in_array($changes['role'], self::ROLES, true)) {
                 throw ValidationException::withMessages(['role' => 'บทบาทไม่ถูกต้อง']);
             }
-            if (isset($changes['office']) && (strlen($changes['office']) > 2 || ! DB::table('person')->where('office_id', $changes['office'])->exists())) {
-                throw ValidationException::withMessages(['office' => 'ไม่พบต้นสังกัดที่เลือก']);
-            }
-
             $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);
             abort_unless($target, 404);
+
+            // A new office must be active in the registry; keeping a user's
+            // current (possibly deactivated) office is always allowed.
+            if (isset($changes['office']) && $changes['office'] !== $target->office
+                && (strlen($changes['office']) > 2 || ! OfficeScope::exists($changes['office']))) {
+                throw ValidationException::withMessages(['office' => 'ไม่พบต้นสังกัดที่เลือก หรือต้นสังกัดถูกปิดใช้งาน']);
+            }
             // Null clears a field; omitted fields retain the locked current value.
             $role = array_key_exists('role', $changes) ? $changes['role'] : $target->role;
             $office = array_key_exists('office', $changes) ? $changes['office'] : $target->office;

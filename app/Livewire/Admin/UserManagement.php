@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use Livewire\Attributes\Title;
 use App\Services\UserAccessService;
 use App\Support\AdminAccess;
+use App\Support\OfficeScope;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Locked;
@@ -106,10 +107,8 @@ class UserManagement extends Component
                 ->when($this->officeFilter === 'none', fn ($query) => $query->whereNull('office'))
                 ->when($this->officeFilter !== '' && $this->officeFilter !== 'none', fn ($query) => $query->where('office', $this->officeFilter))
                 ->orderBy('name')->orderBy('id')->paginate(20),
-            'offices' => DB::table('person')
-                ->whereNotNull('office_id')->where('office_id', '!=', '')
-                ->select('office_id', DB::raw('MAX(office_name) as office_name'))
-                ->groupBy('office_id')->orderBy('office_id')->get(),
+            // Inactive offices stay listed so existing assignments still display.
+            'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
         ]);
     }
 }

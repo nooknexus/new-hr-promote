@@ -57,13 +57,7 @@ class PayslipManagement extends Component
     #[Computed]
     public function offices()
     {
-        return OfficeScope::apply(DB::table('person'), Auth::user())
-            ->whereNotNull('office_id')
-            ->where('office_id', '!=', '')
-            ->select('office_id', DB::raw('MAX(office_name) as office_name'))
-            ->groupBy('office_id')
-            ->orderBy('office_id')
-            ->get();
+        return OfficeScope::options(Auth::user(), includeInactive: true);
     }
 
     public function mount()

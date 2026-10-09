@@ -178,11 +178,11 @@
                             @error('type_id') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label for="person-office-name" class="block text-sm font-semibold text-slate-700">หน่วยงาน</label>
+                            <label for="person-office-name" class="block text-sm font-semibold text-slate-700">ต้นสังกัด</label>
                             <select id="person-office-name" wire:model="office_id" class="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
-                                <option value="">เลือกหน่วยงาน</option>
-                                @foreach($offices as $office)
-                                    <option value="{{ $office->office_id }}">{{ $office->office_name ?: 'ไม่ระบุชื่อหน่วยงาน' }}</option>
+                                <option value="">เลือกต้นสังกัด</option>
+                                @foreach($formOffices as $office)
+                                    <option value="{{ $office->office_id }}">{{ $office->office_id }} — {{ $office->office_name }}{{ $office->is_active ? '' : ' (ปิดใช้งาน)' }}</option>
                                 @endforeach
                             </select>
                             @error('office_id') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror

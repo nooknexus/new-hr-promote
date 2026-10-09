@@ -494,6 +494,8 @@ function seedPromotionsInTwoOffices(): array
 {
     DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02', 'office_name' => 'รพ.สอง']);
 
+    syncOfficesFromPerson();
+
     return [insertPromotion(), insertPromotion(['CID' => '2222222222222'])];
 }
 

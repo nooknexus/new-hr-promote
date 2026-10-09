@@ -317,6 +317,8 @@ function seedLeavesInTwoOffices(): array
     DB::table('person')->where('cid', '1234567890123')->update(['office_id' => '01']);
     DB::table('person')->insert(['cid' => '2222222222222', 'fname' => 'บุคลากรหน่วยสอง', 'lname' => 'ทดสอบ', 'office_id' => '02']);
 
+    syncOfficesFromPerson();
+
     return [
         insertLeave(['external_name' => 'ผู้ลาหน่วยหนึ่ง']),
         insertLeave(['cid' => '2222222222222', 'external_name' => 'ผู้ลาหน่วยสอง']),
@@ -404,6 +406,7 @@ test('the leave register can be filtered by office', function () {
     seedLeavesInTwoOffices();
     DB::table('person')->where('office_id', '01')->update(['office_name' => 'หน่วยบริการหนึ่ง']);
     DB::table('person')->where('office_id', '02')->update(['office_name' => 'หน่วยบริการสอง']);
+    syncOfficesFromPerson();
 
     Livewire::actingAs(leaveOfficeUser('LEAVE', '00'))
         ->test(LeaveManagement::class)

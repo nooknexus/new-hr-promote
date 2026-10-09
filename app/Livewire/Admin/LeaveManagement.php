@@ -347,13 +347,7 @@ class LeaveManagement extends Component
                     ->limit(10)
                     ->get(['cid', 'pname', 'fname', 'lname', 'office_name'])
                 : collect(),
-            'offices' => $this->scopedPersonnel()
-                ->whereNotNull('office_id')
-                ->where('office_id', '!=', '')
-                ->select('office_id', DB::raw('MAX(office_name) as office_name'))
-                ->groupBy('office_id')
-                ->orderBy('office_id')
-                ->get(),
+            'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'years' => $this->scopedLeaves()
                 ->selectRaw('DISTINCT SUBSTR(requests.start_date, 1, 4) AS leave_year')
                 ->pluck('leave_year')

@@ -478,6 +478,7 @@ function seedTaxCertificatesInTwoOffices(): void
         taxManagementRecord(['cid' => '1111111111111', 'running_code1' => 'TC-OFFICE-01']),
         taxManagementRecord(['cid' => '2222222222222', 'running_code1' => 'TC-OFFICE-02']),
     ]);
+    syncOfficesFromPerson();
 }
 
 test('ADMIN and FINANCE in office 00 see tax certificates of every office', function (string $role, ?string $office) {

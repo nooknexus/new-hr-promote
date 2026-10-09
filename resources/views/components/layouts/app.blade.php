@@ -45,13 +45,18 @@
                         </a>
                     @endforeach
                 </div>
-                @if(\App\Support\AdminAccess::allows(auth()->user(), 'personnel') || \App\Support\AdminAccess::allows(auth()->user(), 'leave') || \App\Support\AdminAccess::allows(auth()->user(), 'promotions') || \App\Support\AdminAccess::allows(auth()->user(), 'signatories') || \App\Support\AdminAccess::allows(auth()->user(), 'tax-certificates') || \App\Support\AdminAccess::allows(auth()->user(), 'payslip'))
+                @if(\App\Support\AdminAccess::allows(auth()->user(), 'offices') || \App\Support\AdminAccess::allows(auth()->user(), 'personnel') || \App\Support\AdminAccess::allows(auth()->user(), 'leave') || \App\Support\AdminAccess::allows(auth()->user(), 'promotions') || \App\Support\AdminAccess::allows(auth()->user(), 'signatories') || \App\Support\AdminAccess::allows(auth()->user(), 'tax-certificates') || \App\Support\AdminAccess::allows(auth()->user(), 'payslip'))
                     <section data-navigation-group="admin" aria-labelledby="admin-navigation-heading" class="border-t border-white/15 pt-5">
                         <h2 id="admin-navigation-heading" class="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100/70">เมนูผู้ดูแลระบบ</h2>
                         <div class="space-y-1">
                             @if(\App\Support\AdminAccess::allows(auth()->user(), 'personnel'))
                             <a href="{{ route('admin.personnel.index') }}" wire:navigate @class(['app-nav-link', 'is-active' => request()->routeIs('admin.personnel.*')])>
                                 <i class="fas fa-users-cog w-5 text-center"></i><span>จัดการข้อมูลบุคลากร</span>
+                            </a>
+                            @endif
+                            @if(\App\Support\AdminAccess::allows(auth()->user(), 'offices'))
+                            <a href="{{ route('admin.offices.index') }}" wire:navigate @class(['app-nav-link', 'is-active' => request()->routeIs('admin.offices.*')])>
+                                <i class="fas fa-sitemap w-5 text-center"></i><span>จัดการต้นสังกัด</span>
                             </a>
                             @endif
                             @if(\App\Support\AdminAccess::allows(auth()->user(), 'users'))

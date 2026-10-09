@@ -13,6 +13,19 @@
 
 pest()->extend(Tests\TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
+    ->beforeEach(function () {
+        // Feature tests build their own legacy tables; the office registry is
+        // shared, so every test starts with an empty offices table.
+        if (! \Illuminate\Support\Facades\Schema::hasTable('offices')) {
+            \Illuminate\Support\Facades\Schema::create('offices', function ($table) {
+                $table->string('code', 2)->primary();
+                $table->string('name');
+                $table->boolean('is_active')->default(true);
+                $table->unsignedSmallInteger('sort_order')->default(0);
+                $table->timestamps();
+            });
+        }
+    })
     ->in('Feature');
 
 /*
@@ -44,4 +57,26 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/** Register offices the way the create_offices_table migration does: from person.office_id/office_name. */
+function syncOfficesFromPerson(): void
+{
+    $name = \Illuminate\Support\Facades\Schema::hasColumn('person', 'office_name') ? 'MAX(office_name)' : 'NULL';
+
+    foreach (\Illuminate\Support\Facades\DB::table('person')->whereNotNull('office_id')->where('office_id', '!=', '')
+        ->groupBy('office_id')->selectRaw("office_id, {$name} AS office_name")->get() as $office) {
+        \Illuminate\Support\Facades\DB::table('offices')->updateOrInsert(
+            ['code' => (string) $office->office_id],
+            ['name' => trim((string) $office->office_name) ?: (string) $office->office_id],
+        );
+    }
+}
+
+/** @param array<string, string> $offices code => name */
+function seedOffices(array $offices, bool $active = true): void
+{
+    foreach ($offices as $code => $name) {
+        \Illuminate\Support\Facades\DB::table('offices')->insertOrIgnore(['code' => (string) $code, 'name' => $name, 'is_active' => $active]);
+    }
 }

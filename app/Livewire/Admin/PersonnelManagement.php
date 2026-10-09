@@ -7,6 +7,7 @@ use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use App\Services\PersonnelImportService;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -72,7 +73,7 @@ class PersonnelManagement extends Component
             'type_id' => ['nullable', 'integer', Rule::in(array_keys(self::PERSONNEL_TYPES))],
             'type_name' => ['nullable', 'string', 'max:255'],
             'office_id' => $scope === null
-                ? ['nullable', 'string', 'max:2', 'exists:person,office_id']
+                ? ['nullable', 'string', Rule::in($this->formOffices()->pluck('office_id')->all())]
                 : ['required', 'string', Rule::in([$scope])],
             'office_name' => ['nullable', 'string', 'max:255'],
             'employment_started_at' => ['nullable', 'date', 'before_or_equal:today'],
@@ -83,8 +84,8 @@ class PersonnelManagement extends Component
         'cid.required' => 'กรุณาระบุเลขประจำตัวประชาชน',
         'cid.digits' => 'เลขประจำตัวประชาชนต้องมี 13 หลัก',
         'cid.unique' => 'มีบุคลากรเลขประจำตัวประชาชนนี้ในระบบแล้ว',
-        'office_id.required' => 'กรุณาเลือกหน่วยงาน',
-        'office_id.in' => 'เลือกได้เฉพาะหน่วยงานของตนเอง',
+        'office_id.required' => 'กรุณาเลือกต้นสังกัด',
+        'office_id.in' => 'เลือกได้เฉพาะต้นสังกัดที่เปิดใช้งานและอยู่ในสิทธิ์ของท่าน',
         'fname.required' => 'กรุณาระบุชื่อ',
         'lname.required' => 'กรุณาระบุนามสกุล',
         'employment_started_at.date' => 'รูปแบบวันเริ่มงานไม่ถูกต้อง',
@@ -231,13 +232,8 @@ class PersonnelManagement extends Component
                 ->orderBy('fname')
                 ->orderBy('lname')
                 ->paginate(20),
-            'offices' => $this->scopedPersonnel()
-                ->select('office_id', DB::raw('MAX(office_name) as office_name'))
-                ->whereNotNull('office_id')
-                ->where('office_id', '!=', '')
-                ->groupBy('office_id')
-                ->orderBy('office_id')
-                ->get(),
+            'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
+            'formOffices' => $this->formOffices(),
             'personnelTypes' => self::PERSONNEL_TYPES,
         ]);
     }
@@ -261,11 +257,33 @@ class PersonnelManagement extends Component
             return $data;
         }
 
-        $data['office_name'] = DB::table('person')
-            ->where('office_id', $data['office_id'])
-            ->value('office_name');
+        // offices is the source of truth; person.office_name is a synced copy.
+        $data['office_name'] = OfficeScope::nameFor($data['office_id']);
 
         return $data;
+    }
+
+    /**
+     * Offices selectable in the add/edit modal: the active offices the user may
+     * manage, plus the current office of the person being edited even when it
+     * has since been deactivated, so editing other fields never forces a move.
+     */
+    private function formOffices(): Collection
+    {
+        $offices = OfficeScope::options(Auth::user());
+
+        if ($this->editingCid === null) {
+            return $offices;
+        }
+
+        $currentOffice = (string) $this->scopedPersonnel()->where('cid', $this->editingCid)->value('office_id');
+        if ($currentOffice === '' || $offices->contains('office_id', $currentOffice)) {
+            return $offices;
+        }
+
+        $inactive = OfficeScope::options(Auth::user(), includeInactive: true)->firstWhere('office_id', $currentOffice);
+
+        return $inactive === null ? $offices : $offices->push($inactive);
     }
 
     private function resetForm(): void
