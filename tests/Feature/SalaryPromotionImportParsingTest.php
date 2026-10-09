@@ -18,6 +18,7 @@ beforeEach(function () {
     });
     Schema::create('person', function (Blueprint $table) {
         $table->string('cid', 13)->primary();
+        $table->unsignedTinyInteger('type_id')->nullable();
         $table->string('no_position')->nullable();
         $table->string('position')->nullable();
         $table->string('position_level')->nullable();
@@ -45,7 +46,8 @@ test('preview accepts the supplied Thai workbook and preserves salary and leadin
         ->and($result['rows'][0]['base'])->toBe('13780.00')
         ->and($result['rows'][0]['sum'])->toBe('610.00')
         ->and($result['rows'][0]['new_salary'])->toBe('14390.00')
-        ->and($result['warnings'])->not->toBeEmpty()
+        // 13,780 × 4.4% = 606.32 rounds up to 610, so the file matches the formula.
+        ->and($result['warnings'])->toBe([])
         ->and($result['errors'])->toBe([])
         ->and(DB::table('data_promote')->count())->toBe(0);
 });

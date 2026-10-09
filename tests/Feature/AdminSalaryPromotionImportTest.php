@@ -164,6 +164,9 @@ test('preview reveals the total count when more than ten salary warnings exist',
     foreach (range(1, 12) as $number) {
         $row = SalaryPromotionWorkbook::ROW;
         $row[0] = sprintf('%013d', $number);
+        // The unrounded old formula: 13,780 + 606.32 instead of rounding up to 610.
+        $row[14] = '606.32';
+        $row[16] = '14,386.32';
         $rows[] = $row;
     }
     $book = new SalaryPromotionWorkbook($rows);
@@ -175,6 +178,35 @@ test('preview reveals the total count when more than ten salary warnings exist',
         ->assertSet('previewReady', true)
         ->assertSee('คำเตือนทั้งหมด 12 แถว')
         ->assertSee('แสดง 10 แถวแรก');
+});
+
+test('import checks figures with the rounded formula and the level ceiling from the file', function () {
+    DB::table('person')->insert([
+        ['cid' => '3650200600388', 'type_id' => 1],
+        ['cid' => '1111111111111', 'type_id' => 1],
+        ['cid' => '2222222222222', 'type_id' => 1],
+        ['cid' => '3333333333333', 'type_id' => 1],
+    ]);
+    // 23,930 × 4.1% = 981.13: below the ceiling it rounds up to 990.
+    $belowCeiling = SalaryPromotionWorkbook::ROW;
+    [$belowCeiling[0], $belowCeiling[6], $belowCeiling[11], $belowCeiling[12], $belowCeiling[13], $belowCeiling[14], $belowCeiling[15], $belowCeiling[16]]
+        = ['1111111111111', 'ชำนาญการ', '27,520', '23,930', '4.1', '990', '', '28,510'];
+    // Reaching the ชำนาญการ ceiling 58,390: the rest is special compensation.
+    $atCeiling = $belowCeiling;
+    [$atCeiling[0], $atCeiling[11], $atCeiling[14], $atCeiling[15], $atCeiling[16]]
+        = ['2222222222222', '58,000', '390', '591.13', '58,390'];
+    // The same row without the ceiling split is a real mismatch.
+    $wrong = $atCeiling;
+    [$wrong[0], $wrong[14], $wrong[15], $wrong[16]] = ['3333333333333', '990', '', '58,990'];
+    $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $belowCeiling, $atCeiling, $wrong]);
+
+    Livewire::actingAs(salaryImportActor('ADMIN'))
+        ->test(SalaryPromotionImport::class)
+        ->set('importFile', salaryImportUpload($book))
+        ->call('previewUpload')
+        ->assertSet('previewReady', true)
+        ->assertSet('warningCount', 1)
+        ->assertSee('แถว 5: ตัวเลขในไฟล์ไม่ตรงสูตร (คาดว่า เงินที่ได้เลื่อน 390.00 ค่าตอบแทนพิเศษ 591.13 เงินเดือนที่ได้รับ 58,390.00)');
 });
 
 test('authorization is rechecked on the confirmation request', function () {

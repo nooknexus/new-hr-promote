@@ -146,10 +146,8 @@ class SalaryPromotionImportService
                 }
                 $baselines[$key] = $this->rowBaseline($existing, $person, $user);
 
-                $expected = (float) $row['before_salary'] + ((float) $row['base'] * (float) $row['percent'] / 100);
-                if (abs($expected - (float) $row['new_salary']) > 0.01
-                    || abs(((float) $row['new_salary'] - (float) $row['before_salary']) - (float) $row['sum']) > 0.01) {
-                    $result['warnings'][] = "แถว {$number}: ตัวเลขเงินเดือนในไฟล์ไม่ตรงสูตร ระบบจะยึดค่าจากไฟล์";
+                if (($warning = $this->formulaWarning($row)) !== null) {
+                    $result['warnings'][] = "แถว {$number}: {$warning}";
                 }
 
                 $result['rows'][] = $row;
@@ -297,6 +295,40 @@ class SalaryPromotionImportService
     }
 
     /** @return array<string, string> person columns to update from this row's non-blank cells */
+    /**
+     * Compare the file's figures with SalaryPromotionCalculator: the increase is
+     * rounded up to ten baht and stops at the level ceiling (file level first,
+     * then person.position_level), with the rest paid as extra.
+     */
+    private function formulaWarning(array $row): ?string
+    {
+        $person = DB::table('person')->where('cid', $row['cid'])->first(['type_id', 'position_level']);
+        $type = $person?->type_id === null ? null : (int) $person->type_id;
+        $level = $row['level'] ?? null;
+        if (trim((string) $level) === '') {
+            $level = $person?->position_level;
+        }
+
+        $calculator = app(SalaryPromotionCalculator::class);
+        $expected = $calculator->calculate($row['before_salary'], $row['base'], $row['percent'], $calculator->ceilingFor($type, $level));
+        $matches = abs((float) $expected['sum'] - (float) $row['sum']) <= 0.01
+            && abs((float) $expected['extra'] - (float) ($row['extra'] ?? 0)) <= 0.01
+            && abs((float) $expected['new_salary'] - (float) $row['new_salary']) <= 0.01;
+        if ($matches) {
+            return null;
+        }
+
+        $note = $calculator->describe($type, $level);
+
+        return sprintf(
+            'ตัวเลขในไฟล์ไม่ตรงสูตร (คาดว่า เงินที่ได้เลื่อน %s ค่าตอบแทนพิเศษ %s เงินเดือนที่ได้รับ %s)%s ระบบจะยึดค่าจากไฟล์',
+            number_format((float) $expected['sum'], 2),
+            number_format((float) $expected['extra'], 2),
+            number_format((float) $expected['new_salary'], 2),
+            $note === null ? '' : " {$note}",
+        );
+    }
+
     /** Whether the row's person is inside the importer's office and personnel type scope. */
     private function withinScope(string $cid, ?string $officeScope, ?array $typeScope): bool
     {

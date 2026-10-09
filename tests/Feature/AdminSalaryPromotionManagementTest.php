@@ -15,6 +15,7 @@ beforeEach(function () {
         $table->string('fname')->nullable();
         $table->string('lname')->nullable();
         $table->unsignedTinyInteger('type_id')->nullable()->default(1);
+        $table->string('position_level')->nullable();
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
     });
@@ -176,7 +177,7 @@ test('an administrator can change the inherited base and the calculated salary u
         ->set('evaluation_date', '2026-04-01')
         ->call('selectPerson', '1234567890123')
         ->set('percent', '3.25')
-        ->assertSet('new_salary', '32475.00')
+        ->assertSet('new_salary', '32480.00')
         ->set('base', '32000.00')
         ->assertSet('new_salary', '32540.00')
         ->set('before_salary', '100000.00')
@@ -729,4 +730,67 @@ test('ADMIN sees every personnel type and unmatched promotions', function () {
         ->assertSee('99,999.00')
         ->assertSeeHtml('value="unmatched"')
         ->assertSeeHtml('<option value="1">ข้าราชการ</option>');
+});
+
+test('the form rounds the increase up to ten baht below the level ceiling', function () {
+    DB::table('person')->where('cid', '1234567890123')->update(['position_level' => 'ชำนาญการ']);
+    insertPromotion(['evaluation_date' => '2025-10-01', 'new_salary' => '27520.00', 'base' => '23930.00']);
+
+    Livewire::actingAs(promotionUser())
+        ->test(SalaryPromotionManagement::class)
+        ->set('evaluation_date', '2026-04-01')
+        ->call('selectPerson', '1234567890123')
+        ->set('promote', 'Y')
+        ->set('percent', '4.1')
+        ->assertSet('new_salary', '28510.00')
+        ->assertSet('extra', '')
+        ->assertSee('ระดับชำนาญการ เพดานเงินเดือน 58,390 บาท')
+        ->assertSee('ยอดเพิ่มขึ้น 990.00 บาท')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(DB::table('data_promote')->where('evaluation_date', '2026-04-01')->first())
+        ->sum->toBe('990.00')
+        ->extra->toBeNull()
+        ->new_salary->toBe('28510.00');
+});
+
+test('a salary at its ceiling stays put and the increase becomes the special compensation', function (string $before, string $sum, string $extra, string $new) {
+    DB::table('person')->where('cid', '1234567890123')->update(['position_level' => 'ระดับชำนาญการ']);
+    insertPromotion(['evaluation_date' => '2025-10-01', 'new_salary' => $before, 'base' => '23930.00']);
+
+    Livewire::actingAs(promotionUser())
+        ->test(SalaryPromotionManagement::class)
+        ->set('evaluation_date', '2026-04-01')
+        ->call('selectPerson', '1234567890123')
+        ->set('promote', 'Y')
+        ->set('percent', '4.1')
+        ->assertSet('new_salary', $new)
+        ->assertSet('extra', $extra)
+        ->set('extra', '99999.00')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(DB::table('data_promote')->where('evaluation_date', '2026-04-01')->first())
+        ->sum->toBe($sum)
+        ->extra->toBe($extra)
+        ->new_salary->toBe($new);
+})->with([
+    'already at the ceiling' => ['58390.00', '0.00', '981.13', '58390.00'],
+    'reaches the ceiling this round' => ['58000.00', '390.00', '591.13', '58390.00'],
+]);
+
+test('the form warns when the person has no level or the type has no ceiling table', function () {
+    insertPromotion(['evaluation_date' => '2025-10-01', 'new_salary' => '58000.00', 'base' => '23930.00']);
+
+    $component = Livewire::actingAs(promotionUser())
+        ->test(SalaryPromotionManagement::class)
+        ->set('evaluation_date', '2026-04-01')
+        ->call('selectPerson', '1234567890123')
+        ->set('percent', '4.1')
+        ->assertSee('ไม่พบระดับของบุคลากร')
+        ->assertSet('new_salary', '58990.00');
+
+    DB::table('person')->where('cid', '1234567890123')->update(['type_id' => 3, 'position_level' => 'ชำนาญการ']);
+    $component->set('percent', '4.0')->set('percent', '4.1')->assertSee('ยังไม่มีตารางเพดานเงินเดือนของพนักงานราชการ');
 });

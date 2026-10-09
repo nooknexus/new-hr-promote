@@ -3,6 +3,7 @@
 namespace App\Livewire\Admin;
 
 use Livewire\Attributes\Title;
+use App\Services\SalaryPromotionCalculator;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use App\Support\PersonnelTypeScope;
@@ -293,6 +294,7 @@ class SalaryPromotionManagement extends Component
                 ->select(['promotions.*', 'people.pname', 'people.fname', 'people.lname', 'people.office_name'])
                 ->paginate(20),
             'previewIncrease' => $this->previewIncrease(),
+            'ceiling' => $this->ceilingContext(),
             'years' => $this->scopedPromotions()
                 ->selectRaw('DISTINCT SUBSTR(promotions.evaluation_date, 1, 7) AS evaluation_month_key')
                 ->pluck('evaluation_month_key')
@@ -456,6 +458,7 @@ class SalaryPromotionManagement extends Component
                 $this->before_salary = (string) ($original->before_salary ?? '');
                 $this->base = (string) ($original->base ?? '');
                 $this->new_salary = (string) ($original->new_salary ?? '');
+                $this->extra = (string) ($original->extra ?? '');
 
                 return;
             }
@@ -474,10 +477,32 @@ class SalaryPromotionManagement extends Component
             }
         }
 
-        $this->new_salary = is_numeric($this->before_salary) && is_numeric($this->base)
-            && is_numeric($this->percent) && (float) $this->percent >= 0 && (float) $this->percent <= 100
-                ? $this->money((string) ((float) $this->before_salary + (float) $this->base * (float) $this->percent / 100))
-                : '';
+        if (is_numeric($this->before_salary) && is_numeric($this->base)
+            && is_numeric($this->percent) && (float) $this->percent >= 0 && (float) $this->percent <= 100) {
+            $result = app(SalaryPromotionCalculator::class)
+                ->calculate($this->before_salary, $this->base, $this->percent, $this->ceilingContext()['ceiling']);
+            $this->new_salary = $result['new_salary'];
+            $this->extra = (float) $result['extra'] > 0 ? $result['extra'] : '';
+        } else {
+            $this->new_salary = $this->extra = '';
+        }
+    }
+
+    /** @return array{ceiling: ?int, level: string, note: ?string} The selected person's salary ceiling. */
+    private function ceilingContext(): array
+    {
+        $person = $this->cid === '' ? null : DB::table('person')->where('cid', $this->cid)->first(['type_id', 'position_level']);
+        if ($person === null) {
+            return ['ceiling' => null, 'level' => '', 'note' => null];
+        }
+        $calculator = app(SalaryPromotionCalculator::class);
+        $type = $person->type_id === null ? null : (int) $person->type_id;
+
+        return [
+            'ceiling' => $calculator->ceilingFor($type, $person->position_level),
+            'level' => SalaryPromotionCalculator::normaliseLevel($person->position_level),
+            'note' => $calculator->describe($type, $person->position_level),
+        ];
     }
 
     private function previewIncrease(): ?string

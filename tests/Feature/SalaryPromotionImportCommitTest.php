@@ -29,6 +29,7 @@ beforeEach(function () {
     });
     Schema::create('person', function (Blueprint $table) {
         $table->string('cid', 13)->primary();
+        $table->unsignedTinyInteger('type_id')->nullable();
         $table->string('no_position')->nullable();
         $table->string('position')->nullable();
         $table->string('position_level')->nullable();
