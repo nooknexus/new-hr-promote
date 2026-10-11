@@ -21,8 +21,8 @@ function accessUser(?string $role, string $staffType = 'STAFF'): User
 test('role permissions are explicit and provider staff type never grants access', function () {
     $abilities = ['users', 'personnel', 'leave', 'leave-sync', 'promotions', 'signatories'];
     foreach ($abilities as $ability) {
-        expect(AdminAccess::allows(accessUser('ADMIN'), $ability))->toBeTrue();
-        expect(AdminAccess::allows(accessUser(null, 'ADMIN'), $ability))->toBeFalse();
+        expect(AdminAccess::allows(accessUser('SUPERADMIN'), $ability))->toBeTrue();
+        expect(AdminAccess::allows(accessUser(null, 'SUPERADMIN'), $ability))->toBeFalse();
         expect(AdminAccess::allows(accessUser('UNKNOWN'), $ability))->toBeFalse();
     }
 
@@ -49,7 +49,7 @@ test('admin routes carry their own permission and a provider administrator witho
         expect(Route::getRoutes()->getByName($name)->gatherMiddleware())->toContain($middleware);
     }
 
-    $this->actingAs(accessUser(null, 'ADMIN'))
+    $this->actingAs(accessUser(null, 'SUPERADMIN'))
         ->get('/admin/personnel/template')
         ->assertForbidden();
 });
@@ -168,7 +168,7 @@ test('a regular user without a role sees no admin menu even with office 00 or a 
         expect($html)->not->toContain(route($route));
         $this->get(route($route))->assertForbidden();
     }
-})->with(['STAFF', 'ADMIN']);
+})->with(['STAFF', 'SUPERADMIN']);
 
 test('the navigation bar shows the Thai label of the signed-in user role', function (?string $role, string $label) {
     $this->actingAs(accessUser($role));
@@ -176,7 +176,7 @@ test('the navigation bar shows the Thai label of the signed-in user role', funct
 
     expect($html)->toContain($label)->not->toContain('ผู้ใช้งานระบบ');
 })->with([
-    'admin' => ['ADMIN', 'ผู้ดูแลระบบ'],
+    'admin' => ['SUPERADMIN', 'ผู้ดูแลระบบ'],
     'leave' => ['LEAVE', 'เจ้าหน้าที่งานลา'],
     'promote' => ['PROMOTE', 'เจ้าหน้าที่งานเลื่อนขั้นเงินเดือน'],
     'finance' => ['FINANCE', 'เจ้าหน้าที่การเงิน'],
@@ -184,7 +184,7 @@ test('the navigation bar shows the Thai label of the signed-in user role', funct
 ]);
 
 test('the browser title shows the page name followed by the system name', function () {
-    $this->actingAs(accessUser('ADMIN'));
+    $this->actingAs(accessUser('SUPERADMIN'));
 
     expect(Blade::render('<x-layouts.app :title="$title"><p>เนื้อหา</p></x-layouts.app>', ['title' => 'สลิปเงินเดือน']))
         ->toContain('<title>สลิปเงินเดือน | MyPPH ระบบข้อมูลบุคลากร</title>')
@@ -195,7 +195,7 @@ test('the browser title shows the page name followed by the system name', functi
 });
 
 test('the layouts use the provincial logo in the sidebar and the ministry logo as favicon', function () {
-    $this->actingAs(accessUser('ADMIN'));
+    $this->actingAs(accessUser('SUPERADMIN'));
     $html = Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>');
 
     expect($html)->toContain('src="'.asset('img/head_logo.png').'"')

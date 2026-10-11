@@ -271,10 +271,12 @@ class SalaryPromotionManagement extends Component
                         ->orWhere('people.lname', 'like', "%{$search}%");
                 });
             })
+            // A promotion year holds the April and October rounds of the same
+            // Buddhist year (2568 = เมษายน 2568, ตุลาคม 2568), as on /salary-promotion.
             ->when($this->yearFilter !== '', function (Builder $query): void {
                 if (ctype_digit($this->yearFilter)) {
-                    $year = (int) $this->yearFilter - 544;
-                    $query->whereBetween('promotions.evaluation_date', ["{$year}-10-01", ($year + 1) . '-09-30']);
+                    $year = (int) $this->yearFilter - 543;
+                    $query->whereBetween('promotions.evaluation_date', ["{$year}-01-01", "{$year}-12-31"]);
                 }
             })
             ->when($this->officeFilter !== '', function (Builder $query): void {
@@ -296,10 +298,9 @@ class SalaryPromotionManagement extends Component
             'previewIncrease' => $this->previewIncrease(),
             'ceiling' => $this->ceilingContext(),
             'years' => $this->scopedPromotions()
-                ->selectRaw('DISTINCT SUBSTR(promotions.evaluation_date, 1, 7) AS evaluation_month_key')
-                ->pluck('evaluation_month_key')
-                ->map(fn (string $yearMonth) => (int) substr($yearMonth, 0, 4)
-                    + ((int) substr($yearMonth, 5, 2) >= 10 ? 544 : 543))
+                ->selectRaw('DISTINCT SUBSTR(promotions.evaluation_date, 1, 4) AS evaluation_year')
+                ->pluck('evaluation_year')
+                ->map(fn (string $year) => (int) $year + 543)
                 ->unique()->sortDesc()->values(),
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'personnelTypes' => PersonnelTypeScope::options(Auth::user()),

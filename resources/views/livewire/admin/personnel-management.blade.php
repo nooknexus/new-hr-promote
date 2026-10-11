@@ -208,9 +208,11 @@
     </div>
 
     @script
+    <script>
         $wire.on('personnel-form-opened', () => window.portalModal.show('personnelFormModal'));
         $wire.on('personnel-form-closed', () => window.portalModal.hide(document.getElementById('personnelFormModal')));
         $wire.on('personnel-delete-confirmation-opened', () => window.portalModal.show('personnelDeleteModal'));
         $wire.on('personnel-delete-confirmation-closed', () => window.portalModal.hide(document.getElementById('personnelDeleteModal')));
+    </script>
     @endscript
 </div>

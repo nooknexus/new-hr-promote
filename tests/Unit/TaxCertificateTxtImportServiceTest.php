@@ -430,6 +430,7 @@ test('it previews a valid TXT row without inserting a tax record', function () {
     Schema::create('data_tax', function (Blueprint $table) {
         $table->string('cid', 13);
         $table->unsignedInteger('income_year');
+        $table->string('source', 3)->default('cgd');
     });
     $path = taxCertificateTxtFile(taxCertificateTxtRecord()."\n");
 

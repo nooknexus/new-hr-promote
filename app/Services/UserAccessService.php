@@ -2,15 +2,20 @@
 
 namespace App\Services;
 
+use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use App\Support\PersonnelTypeScope;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Role, office, status and personnel-type changes made on /admin/users.
+ * SUPERADMIN and ADMIN may change users, but only a SUPERADMIN may grant the
+ * SUPERADMIN role or change a SUPERADMIN account, and the last active
+ * SUPERADMIN can never be demoted or disabled.
+ */
 class UserAccessService
 {
-    private const ROLES = ['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'];
-
     public function update(int $actorId, int $targetUserId, ?string $role, ?string $office): void
     {
         $this->change($actorId, $targetUserId, ['role' => $role, 'office' => $office]);
@@ -45,11 +50,11 @@ class UserAccessService
         }
 
         DB::transaction(function () use ($actorId, $targetUserId, $types): void {
-            // Same lock order as change().
-            $admins = DB::table('users')->where('role', 'ADMIN')->orderBy('id')->lockForUpdate()->get(['id', 'is_active']);
-            abort_unless($admins->filter(fn ($user): bool => (bool) $user->is_active)->contains('id', $actorId), 403);
+            $actor = $this->lockAdministrators()->firstWhere('id', $actorId);
+            abort_unless($actor && $actor->is_active, 403);
             $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);
             abort_unless($target, 404);
+            abort_if($target->role === AdminAccess::SUPERADMIN && $actor->role !== AdminAccess::SUPERADMIN, 403);
 
             $before = PersonnelTypeScope::assignedTo($targetUserId);
             if ($before === $types) {
@@ -72,16 +77,22 @@ class UserAccessService
     private function change(int $actorId, int $targetUserId, array $changes): void
     {
         DB::transaction(function () use ($actorId, $targetUserId, $changes): void {
-            // All administrator mutations share this stable lock order.
-            $admins = DB::table('users')->where('role', 'ADMIN')->orderBy('id')->lockForUpdate()->get(['id', 'is_active']);
-            $activeAdmins = $admins->filter(fn ($user): bool => (bool) $user->is_active);
-            abort_unless($activeAdmins->contains('id', $actorId), 403);
+            $administrators = $this->lockAdministrators();
+            $actor = $administrators->firstWhere('id', $actorId);
+            abort_unless($actor && $actor->is_active, 403);
+            $activeSuperadmins = $administrators->filter(fn ($user): bool => $user->role === AdminAccess::SUPERADMIN && (bool) $user->is_active);
 
-            if (array_key_exists('role', $changes) && $changes['role'] !== null && ! in_array($changes['role'], self::ROLES, true)) {
+            if (array_key_exists('role', $changes) && $changes['role'] !== null && ! in_array($changes['role'], AdminAccess::ROLES, true)) {
                 throw ValidationException::withMessages(['role' => 'บทบาทไม่ถูกต้อง']);
             }
             $target = DB::table('users')->where('id', $targetUserId)->lockForUpdate()->first(['id', 'role', 'office', 'is_active']);
             abort_unless($target, 404);
+
+            // Only a SUPERADMIN grants SUPERADMIN or touches a SUPERADMIN account.
+            if ($actor->role !== AdminAccess::SUPERADMIN
+                && ($target->role === AdminAccess::SUPERADMIN || ($changes['role'] ?? null) === AdminAccess::SUPERADMIN)) {
+                abort(403);
+            }
 
             // A new office must be active in the registry; keeping a user's
             // current (possibly deactivated) office is always allowed.
@@ -97,8 +108,9 @@ class UserAccessService
             if (! $active && $actorId === $targetUserId) {
                 throw ValidationException::withMessages(['status' => 'ไม่สามารถปิดการใช้งานบัญชีของตนเองได้']);
             }
-            if ($target->role === 'ADMIN' && (bool) $target->is_active && ($role !== 'ADMIN' || ! $active) && $activeAdmins->count() === 1) {
-                throw ValidationException::withMessages(['role' => 'ไม่สามารถเปลี่ยนสิทธิ์หรือปิด ADMIN ที่ใช้งานได้คนสุดท้าย']);
+            if ($target->role === AdminAccess::SUPERADMIN && (bool) $target->is_active
+                && ($role !== AdminAccess::SUPERADMIN || ! $active) && $activeSuperadmins->count() === 1) {
+                throw ValidationException::withMessages(['role' => 'ไม่สามารถเปลี่ยนสิทธิ์หรือปิด SUPERADMIN ที่ใช้งานได้คนสุดท้าย']);
             }
             if ($target->role === $role && $target->office === $office && (bool) $target->is_active === $active) {
                 return;
@@ -121,5 +133,12 @@ class UserAccessService
                 'created_at' => now(),
             ]);
         });
+    }
+
+    /** Lock every SUPERADMIN and ADMIN row in a stable order shared by all mutations. */
+    private function lockAdministrators(): \Illuminate\Support\Collection
+    {
+        return DB::table('users')->whereIn('role', [AdminAccess::SUPERADMIN, AdminAccess::ADMIN])
+            ->orderBy('id')->lockForUpdate()->get(['id', 'role', 'is_active']);
     }
 }

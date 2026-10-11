@@ -39,7 +39,8 @@ class UserManagement extends Component
     public function boot(): void
     {
         abort_unless(AdminAccess::allows(Auth::user(), 'users'), 403);
-        abort_unless(DB::table('users')->where('id', Auth::id())->where('role', 'ADMIN')->where('is_active', true)->exists(), 403);
+        abort_unless(DB::table('users')->where('id', Auth::id())
+            ->whereIn('role', [AdminAccess::SUPERADMIN, AdminAccess::ADMIN])->where('is_active', true)->exists(), 403);
     }
 
     public function updatedSearch(): void
@@ -144,6 +145,11 @@ class UserManagement extends Component
         return view('livewire.admin.user-management', [
             'users' => $users,
             'personnelTypes' => PersonnelTypeScope::TYPES,
+            // Only a SUPERADMIN may grant SUPERADMIN or change a SUPERADMIN account.
+            'isSuperadmin' => Auth::user()?->role === AdminAccess::SUPERADMIN,
+            'roles' => Auth::user()?->role === AdminAccess::SUPERADMIN
+                ? AdminAccess::ROLES
+                : array_values(array_diff(AdminAccess::ROLES, [AdminAccess::SUPERADMIN])),
             'assignedTypes' => DB::table('user_personnel_types')
                 ->whereIn('user_id', collect($users->items())->where('role', 'PROMOTE')->pluck('id'))
                 ->orderBy('type_id')->get()->groupBy('user_id')

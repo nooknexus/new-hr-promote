@@ -52,8 +52,8 @@ test('ADMIN and FINANCE in office 00 may manage signatories', function (string $
 
     expect(DB::table('payslip_signatories')->value('name'))->toBe('ผู้ลงนามใหม่');
 })->with([
-    'ADMIN without an office' => ['ADMIN', null],
-    'ADMIN of another office' => ['ADMIN', '01'],
+    'ADMIN without an office' => ['SUPERADMIN', null],
+    'ADMIN of another office' => ['SUPERADMIN', '01'],
     'FINANCE of office 00' => ['FINANCE', '00'],
 ]);
 

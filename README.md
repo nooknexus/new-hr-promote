@@ -103,8 +103,8 @@ npm run build
 - `/login` และ `/register`: เข้าสู่ระบบและลงทะเบียน
 - `/`: หน้าหลักหลัง login
 - `/profile`: ดูและแก้ไขข้อมูลของตนเองผ่าน modal
-- `/profile/payslip`: ดูสลิปเงินเดือน
-- `/profile/salary-promotion`: งานเลื่อนเงินเดือน
+- `/payslip`: ดูสลิปเงินเดือน
+- `/salary-promotion`: งานเลื่อนเงินเดือน
 - `/tax-certificate`: หนังสือรับรองภาษี
 - `/admin/tax-certificates`: จัดการและนำเข้าใบรับรองภาษี (เฉพาะ `ADMIN` และ `FINANCE`)
 - `/provider-info`: ข้อมูล Provider
@@ -177,7 +177,7 @@ key ซ้ำในไฟล์จะถูกข้ามพร้อมสร�
 
 - Frontend runtime ใช้ Tailwind CSS ผ่าน Vite เท่านั้น ไม่โหลด Bootstrap, SB Admin, jQuery หรือ Bootstrap CDN
 - Modal ใช้ `window.portalModal` และ `data-modal-close`; ห้ามเปลี่ยนกลับไปใช้ Bootstrap modal API หรือ jQuery
-- `/profile/payslip` มี modal preview ขนาด A4 และ `/payslip/print-view/{id}` ใช้ geometry เอกสารเดียวกัน
+- `/payslip` มี modal preview ขนาด A4 และ `/payslip/print-view/{id}` ใช้ geometry เอกสารเดียวกัน
 - Payslip preview และ print view ใช้ footer แบบ fixed ที่ขอบล่างกระดาษ และ PDF ต้องเป็น A4 หน้าเดียว
 - ลายเซ็นใน preview และ PDF ใช้ block ชิดขวากว้าง 85 มม. โดยข้อความทุกบรรทัดจัดกึ่งกลางภายใน block; รูปลายเซ็นกว้าง 12 มม. และเพิ่มช่องว่างระหว่างข้อความ 20%
 - PDF ใช้ `App\Services\PayslipPdfService`; ลายเซ็นกำหนดความกว้างโดยไม่บังคับความสูง เพื่อรักษาอัตราส่วนภาพ และชื่อผู้ใช้จะใช้ `user->name` ก่อน fallback ไป `firstname`/`lastname`

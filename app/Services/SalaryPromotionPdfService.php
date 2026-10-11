@@ -8,7 +8,7 @@ use TCPDF;
 
 /**
  * Renders the salary promotion notice (หนังสือแจ้งผลการเลื่อนเงินเดือน) shown
- * on /profile/salary-promotion as an A4 PDF.
+ * on /salary-promotion as an A4 PDF.
  */
 class SalaryPromotionPdfService
 {

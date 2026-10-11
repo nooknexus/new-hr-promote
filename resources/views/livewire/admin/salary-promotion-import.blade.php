@@ -67,7 +67,9 @@
     </div>
 
     @script
+    <script>
         $wire.on('salary-import-confirm-closed', () => window.portalModal.hide(document.getElementById('salaryImportConfirmModal')));
         $wire.on('salary-import-saved', ({ message }) => window.portalToast.show(message));
+    </script>
     @endscript
 </section>

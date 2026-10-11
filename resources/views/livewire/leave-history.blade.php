@@ -39,7 +39,7 @@
             </div>
         </section>
 
-        <section class="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-9" aria-labelledby="leave-history-heading">
+        <section id="leave-history-register" class="min-w-0 scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-9" aria-labelledby="leave-history-heading">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
                 <h2 id="leave-history-heading" class="text-sm font-bold text-brand-700">
                     @if($selectedYear)
@@ -113,7 +113,29 @@
                             <p class="mt-1 text-sm text-slate-500">หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่ฝ่ายบุคคล</p>
                         </div>
                     @else
-                        <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        {{-- Phones get one card per leave so the reason and status fit the screen. --}}
+                        <ul class="space-y-3 md:hidden" id="leaveCards">
+                            @foreach($leaveHistory as $leave)
+                                <li class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" wire:key="leave-card-{{ $leave['id'] }}">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <p class="font-semibold text-slate-900">{{ $leave['leave_type'] }}</p>
+                                        <span @class(['inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset', $leave['status_style']])>{{ $leave['status'] }}</span>
+                                    </div>
+                                    <dl class="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                                        <div>
+                                            <dt class="text-xs text-slate-500">วันที่ลา</dt>
+                                            <dd class="text-slate-900">{{ $leave['start_date'] }}@if($leave['end_date'] !== $leave['start_date']) – {{ $leave['end_date'] }}@endif</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-xs text-slate-500">จำนวนวัน</dt>
+                                            <dd class="font-semibold tabular-nums text-slate-900">{{ rtrim(rtrim(number_format((float) $leave['total_days'], 2), '0'), '.') }}</dd>
+                                        </div>
+                                    </dl>
+                                    <p class="mt-3 text-sm leading-6 text-slate-600"><span class="text-slate-500">เหตุผล:</span> {{ $leave['reason'] ?: '—' }}</p>
+                                </li>
+                            @endforeach
+                        </ul>
+                        <div class="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
                             <table class="min-w-full divide-y divide-slate-200 text-sm">
                                 <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                     <tr>
@@ -149,4 +171,10 @@
             </div>
         </section>
     </div>
+
+    @script
+    <script>
+        $wire.on('year-selected', () => window.portalScrollToOnPhone('leave-history-register'));
+    </script>
+    @endscript
 </div>

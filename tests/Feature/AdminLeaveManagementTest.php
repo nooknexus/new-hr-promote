@@ -69,7 +69,7 @@ beforeEach(function () {
 function leaveAdmin(bool $admin = true): User
 {
     $user = new User;
-    $user->forceFill(['id' => 1, 'name' => 'ผู้ดูแล', 'staff_type' => $admin ? 'ADMIN' : 'STAFF', 'role' => $admin ? 'ADMIN' : null]);
+    $user->forceFill(['id' => 1, 'name' => 'ผู้ดูแล', 'staff_type' => $admin ? 'SUPERADMIN' : 'STAFF', 'role' => $admin ? 'SUPERADMIN' : null]);
     $user->exists = true;
 
     return $user;
@@ -341,8 +341,8 @@ test('ADMIN and LEAVE in office 00 see leave of every office', function (string 
         ->assertSee('ผู้ลาหน่วยหนึ่ง')
         ->assertSee('ผู้ลาหน่วยสอง');
 })->with([
-    'ADMIN without an office' => ['ADMIN', null],
-    'ADMIN of another office' => ['ADMIN', '01'],
+    'ADMIN without an office' => ['SUPERADMIN', null],
+    'ADMIN of another office' => ['SUPERADMIN', '01'],
     'LEAVE of office 00' => ['LEAVE', '00'],
 ]);
 
@@ -470,8 +470,8 @@ test('only ADMIN and office 00 LEAVE users may sync leave from Google Sheets', f
         Livewire::actingAs($user)->test(\App\Livewire\Admin\LeaveSheetSync::class)->assertForbidden();
     }
 })->with([
-    'ADMIN without an office' => ['ADMIN', null, true],
-    'ADMIN of another office' => ['ADMIN', '01', true],
+    'ADMIN without an office' => ['SUPERADMIN', null, true],
+    'ADMIN of another office' => ['SUPERADMIN', '01', true],
     'LEAVE of office 00' => ['LEAVE', '00', true],
     'LEAVE of another office' => ['LEAVE', '01', false],
     'LEAVE without an office' => ['LEAVE', null, false],
@@ -514,7 +514,7 @@ test('the add-leave person search lists only personnel the user may manage', fun
     $seesOfficeOne ? $component->assertSee('คนหน่วยหนึ่ง') : $component->assertDontSee('คนหน่วยหนึ่ง');
     $seesOfficeTwo ? $component->assertSee('คนหน่วยสอง') : $component->assertDontSee('คนหน่วยสอง');
 })->with([
-    'ADMIN of another office' => ['ADMIN', '01', true, true],
+    'ADMIN of another office' => ['SUPERADMIN', '01', true, true],
     'LEAVE of office 00' => ['LEAVE', '00', true, true],
     'LEAVE of office 01' => ['LEAVE', '01', true, false],
     'LEAVE without an office' => ['LEAVE', null, false, false],
@@ -532,7 +532,7 @@ test('the leave register joins person only when an office condition needs it', f
     expect($leaveQueries)->not->toBeEmpty()
         ->and($leaveQueries->contains(fn ($sql) => str_contains($sql, '"person" as "owner"')))->toBe($joinsPerson);
 })->with([
-    'ADMIN without a filter' => ['ADMIN', null, '', false],
+    'ADMIN without a filter' => ['SUPERADMIN', null, '', false],
     'office 00 without a filter' => ['LEAVE', '00', '', false],
     'office 00 filtering by office' => ['LEAVE', '00', '02', true],
     'office-scoped user' => ['LEAVE', '01', '', true],

@@ -20,7 +20,7 @@ test('an authenticated user receives accessible desktop and mobile navigation', 
 
 test('sidebar separates user and administrator navigation for administrators', function () {
     $admin = new User(['name' => 'Admin User']);
-    $admin->forceFill(['staff_type' => 'ADMIN', 'role' => 'ADMIN']);
+    $admin->forceFill(['staff_type' => 'ADMIN', 'role' => 'SUPERADMIN']);
     $this->actingAs($admin);
 
     expect(Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>'))

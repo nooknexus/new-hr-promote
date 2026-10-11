@@ -148,10 +148,12 @@
     </div>
 
     @script
+    <script>
         $wire.on('promotion-form-opened', () => window.portalModal.show('promotionFormModal'));
         $wire.on('promotion-form-closed', () => window.portalModal.hide(document.getElementById('promotionFormModal')));
         $wire.on('promotion-confirm-opened', () => window.portalModal.show('promotionConfirmModal'));
         $wire.on('promotion-confirm-closed', () => window.portalModal.hide(document.getElementById('promotionConfirmModal')));
         $wire.on('promotion-saved', ({ message }) => window.portalToast.show(message));
+    </script>
     @endscript
 </div>

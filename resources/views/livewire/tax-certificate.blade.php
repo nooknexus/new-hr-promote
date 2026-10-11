@@ -37,7 +37,7 @@
             </div>
         </section>
 
-        <section class="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-9" aria-labelledby="tax-certificates-heading">
+        <section id="tax-certificate-register" class="min-w-0 scroll-mt-20 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-9" aria-labelledby="tax-certificates-heading">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
                 <h2 id="tax-certificates-heading" class="text-sm font-bold text-brand-700">
                     @if($selectedYear)
@@ -68,11 +68,41 @@
                         <p class="mt-1 text-sm text-slate-500">ไม่พบรายการในปี{{ $selectedYear }} หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่การเงิน</p>
                     </div>
                 @else
-                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                    {{-- Phones get one card per certificate so every figure and action fits the screen. --}}
+                    <ul class="space-y-3 md:hidden" id="taxCertificateCards">
+                        @foreach($availableCertificates as $index => $certificate)
+                            <li class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" wire:key="tax-certificate-card-{{ $index }}">
+                                <p class="text-xs text-slate-500">เลขที่เอกสาร</p>
+                                <p class="font-semibold text-slate-900">{{ $certificate['certificateNo'] }}</p>
+                                <p class="mt-2 text-sm text-slate-600"><span class="text-slate-500">ผู้จ่ายเงิน:</span> {{ $certificate['payerName'] ?? '—' }}</p>
+                                <dl class="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                                    <div>
+                                        <dt class="text-xs text-slate-500">รายได้ทั้งหมด</dt>
+                                        <dd class="font-semibold tabular-nums text-slate-900">{{ number_format((float) $certificate['totalIncome'], 2) }} บาท</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-slate-500">ภาษีที่ถูกหัก</dt>
+                                        <dd class="font-semibold tabular-nums text-slate-900">{{ number_format((float) $certificate['taxWithheld'], 2) }} บาท</dd>
+                                    </div>
+                                </dl>
+                                <div class="mt-3 grid grid-cols-2 gap-2">
+                                    <button type="button" wire:click="viewCertificate({{ $index }})" class="btn btn-outline-primary btn-sm justify-center">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
+                                    </button>
+                                    <button type="button" wire:click="previewDocument({{ $index }})" class="btn btn-primary btn-sm justify-center">
+                                        <i class="fas fa-download" aria-hidden="true"></i> ดาวน์โหลด
+                                    </button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    <div class="hidden overflow-x-auto rounded-xl border border-slate-200 md:block">
                         <table class="min-w-full divide-y divide-slate-200 text-sm" id="taxCertificateTable">
                             <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                                 <tr>
                                     <th scope="col" class="whitespace-nowrap px-4 py-3">เลขที่เอกสาร</th>
+                                    <th scope="col" class="px-4 py-3">ผู้จ่ายเงิน</th>
                                     <th scope="col" class="whitespace-nowrap px-4 py-3 text-right">รายได้ทั้งหมด</th>
                                     <th scope="col" class="whitespace-nowrap px-4 py-3 text-right">ภาษีที่ถูกหัก</th>
                                     <th scope="col" class="whitespace-nowrap px-4 py-3">การดำเนินการ</th>
@@ -82,6 +112,7 @@
                                 @foreach($availableCertificates as $index => $certificate)
                                     <tr class="hover:bg-slate-50/80">
                                         <td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">{{ $certificate['certificateNo'] }}</td>
+                                        <td class="px-4 py-3 text-slate-700">{{ $certificate['payerName'] ?? '—' }}</td>
                                         <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ number_format((float)$certificate['totalIncome'], 2) }} บาท</td>
                                         <td class="whitespace-nowrap px-4 py-3 text-right tabular-nums">{{ number_format((float)$certificate['taxWithheld'], 2) }} บาท</td>
                                         <td class="px-4 py-3">
@@ -312,6 +343,8 @@
 
     @script
         <script>
+            $wire.on('year-selected', () => window.portalScrollToOnPhone('tax-certificate-register'));
+
             // Print functionality
             $wire.on('print-tax-certificate', () => {
                 window.print();

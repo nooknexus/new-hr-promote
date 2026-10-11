@@ -15,12 +15,32 @@
         <div>
             <p class="text-sm font-semibold text-brand-700">จัดการข้อมูลการเงิน</p>
             <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900">จัดการใบรับรองภาษี</h1>
-            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">ค้นหา เพิ่ม แก้ไข หรือนำเข้าใบรับรองการหักภาษีจากไฟล์ TXT โดยระบบใช้ CID และปีภาษีเป็นรายการอ้างอิงเดียวกัน</p>
+            <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-500">{{ $canIssue
+                ? 'ค้นหา เพิ่ม แก้ไข หรือนำเข้าใบรับรองการหักภาษีจากไฟล์ TXT บันทึกค่าตอบแทนรายเดือน และออกหนังสือรับรองในนามสำนักงานสาธารณสุขจังหวัด'
+                : 'บันทึกค่าตอบแทนรายเดือนของบุคลากรในต้นสังกัด เพื่อให้สำนักงานสาธารณสุขจังหวัดออกหนังสือรับรองการหักภาษี ณ ที่จ่าย' }}</p>
         </div>
-        <button type="button" wire:click="openCreateModal" onclick="window.portalModal.show('taxCertificateFormModal')" class="btn btn-primary">
-            <i class="fas fa-plus" aria-hidden="true"></i><span>เพิ่มใบรับรองภาษี</span>
-        </button>
+        @if($tab === 'certificates')
+            <button type="button" wire:click="openCreateModal" onclick="window.portalModal.show('taxCertificateFormModal')" class="btn btn-primary">
+                <i class="fas fa-plus" aria-hidden="true"></i><span>เพิ่มใบรับรองภาษี</span>
+            </button>
+        @endif
     </header>
+
+    {{-- Offices only see the monthly tab, so the tab bar is for ADMIN and office 00. --}}
+    @if($canIssue)
+    <nav class="flex flex-wrap gap-2 border-b border-slate-200" aria-label="ส่วนของการจัดการใบรับรองภาษี">
+        @foreach(['monthly' => 'ค่าตอบแทนรายเดือน', 'issuance' => 'ออกหนังสือรับรอง สสจ.', 'certificates' => 'หนังสือรับรอง (กรมบัญชีกลาง)'] as $key => $label)
+            {{-- A full page load per tab so each tab's component initialises with its own modal and toast scripts. --}}
+            <a href="{{ route('admin.tax-certificates.index', ['tab' => $key]) }}" @class(['-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition', 'border-brand-600 text-brand-700' => $tab === $key, 'border-transparent text-slate-500 hover:text-slate-800' => $tab !== $key]) @if($tab === $key) aria-current="page" @endif>{{ $label }}</a>
+        @endforeach
+    </nav>
+    @endif
+
+    @if($tab === 'monthly')
+        <livewire:admin.monthly-compensation-management />
+    @elseif($tab === 'issuance')
+        <livewire:admin.compensation-issuance />
+    @else
 
     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="tax-certificate-import-heading">
         <div>
@@ -105,14 +125,25 @@
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="tax-certificate-list-heading">
         <div class="flex flex-col gap-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
             <h2 id="tax-certificate-list-heading" class="font-bold text-brand-700">รายการใบรับรองภาษี</h2>
-            <div class="grid gap-2 lg:grid-cols-3">
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                     <label for="tax-certificate-year-filter" class="sr-only">กรองตามปีภาษี</label>
                     <select id="tax-certificate-year-filter" wire:model.live="yearFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
-                        <option value="">ทุกปีภาษี</option>
-                        @foreach($years as $year)
+                        @forelse($years as $year)
                             <option value="{{ $year }}">ปีภาษี {{ $year }}</option>
+                        @empty
+                            <option value="{{ $yearFilter }}">ปีภาษี {{ $yearFilter }}</option>
+                        @endforelse
+                    </select>
+                </div>
+                <div>
+                    <label for="tax-certificate-office-filter" class="sr-only">กรองตามต้นสังกัด</label>
+                    <select id="tax-certificate-office-filter" wire:model.live="officeFilter" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                        <option value="">ทุกต้นสังกัด</option>
+                        @foreach($offices as $officeOption)
+                            <option value="{{ $officeOption->office_id }}">{{ $officeOption->office_name }}{{ $officeOption->is_active ? '' : ' (ปิดใช้งาน)' }}</option>
                         @endforeach
+                        <option value="unmatched">ไม่พบบุคลากร</option>
                     </select>
                 </div>
                 <div class="relative">
@@ -358,7 +389,10 @@
         </div></div>
     </div>
 
+    @endif
+
     @script
+    <script>
         $wire.on('tax-certificate-form-opened', () => window.portalModal.show('taxCertificateFormModal'));
         $wire.on('tax-certificate-form-closed', () => window.portalModal.hide(document.getElementById('taxCertificateFormModal')));
         $wire.on('tax-certificate-delete-confirm-opened', () => window.portalModal.show('taxCertificateDeleteModal'));
@@ -367,5 +401,6 @@
         $wire.on('tax-certificate-saved', ({ message }) => window.portalToast.show(message));
         $wire.on('tax-certificate-deleted', ({ message }) => window.portalToast.show(message));
         $wire.on('tax-certificate-import-saved', ({ message }) => window.portalToast.show(message));
+    </script>
     @endscript
 </div>

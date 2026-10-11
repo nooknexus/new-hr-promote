@@ -59,7 +59,7 @@ afterEach(function () {
     }
 });
 
-function excelLeaveActor(string $role = 'ADMIN', ?string $office = null, bool $active = true): User
+function excelLeaveActor(string $role = 'SUPERADMIN', ?string $office = null, bool $active = true): User
 {
     $user = new User;
     $user->forceFill(['id' => 10, 'name' => 'ผู้ดูแลทดสอบ', 'role' => $role, 'office' => $office, 'is_active' => $active]);
@@ -132,7 +132,7 @@ test('Excel leave import skips other offices and denies missing office unauthori
     $path = excelLeaveFile($this, [excelLeaveRow(), excelLeaveRow([0 => '1234567890123'])]);
     expect(app(LeaveExcelImportService::class)->import($path, excelLeaveActor('LEAVE', '01')))
         ->toMatchArray(['created' => 1, 'skipped' => 1, 'out_of_office' => 1]);
-    foreach ([excelLeaveActor('LEAVE', ''), excelLeaveActor('FINANCE', '00'), excelLeaveActor('ADMIN', null, false)] as $actor) {
+    foreach ([excelLeaveActor('LEAVE', ''), excelLeaveActor('FINANCE', '00'), excelLeaveActor('SUPERADMIN', null, false)] as $actor) {
         try {
             app(LeaveExcelImportService::class)->import($path, $actor);
             $this->fail('Import authorized');

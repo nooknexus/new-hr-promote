@@ -76,10 +76,33 @@ preview และ PDF โดย key ของข้อมูลคือ `(CID, 
 | `TaxCertificateController` | ตรวจ ownership แล้วส่ง PDF download |
 | `TaxCertificatePdfService` | mapping `data_tax` และสร้าง PDF A4 |
 
+## ค่าตอบแทนรายเดือนและหนังสือรับรองในนาม สสจ.
+
+หน้า `/admin/tax-certificates` แบ่งเป็นแท็บ (`?tab=`):
+
+| แท็บ | ผู้ใช้ | หน้าที่ |
+| --- | --- | --- |
+| `certificates` | ADMIN และ office `00` | ใบรับรองของกรมบัญชีกลาง (`data_tax.source = cgd`) และนำเข้า TXT |
+| `monthly` | ADMIN, FINANCE ตามต้นสังกัด (FINANCE ของต้นสังกัดอื่นเห็นแท็บนี้แท็บเดียว) | บันทึก/นำเข้าค่าตอบแทนรายเดือน และยืนยันข้อมูลปี |
+| `issuance` | ADMIN และ office `00` | สรุปการยืนยัน ออก/ปลดล็อกปี ปลดการยืนยันรายต้นสังกัด และตั้งค่าผู้จ่ายเงิน |
+
+- **ข้อมูล:** `monthly_compensations` (unique `cid, income_year, month`) เก็บยอดของแต่ละรายการใน `App\Support\CompensationItems` และ `office_id` ของต้นสังกัดที่บันทึก
+- **ตารางประกอบ:** `compensation_year_confirmations`, `compensation_years` (ล็อกปี), `tax_payer_settings`, `compensation_audits` (บันทึกเฉพาะ action, ปี, เดือน, ต้นสังกัด, จำนวนแถว ไม่เก็บ CID หรือยอดเงิน)
+- **นำเข้า Excel:** 1 ไฟล์ต่อ 1 เดือน หัวคอลัมน์ต้องตรงกับแม่แบบ (`admin.tax-certificates.compensation-template` ซึ่งเติมรายชื่อบุคลากรในต้นสังกัดให้)
+  - แถวที่ผิดรูปแบบ (เลขบัตร, ตัวเลข, สูตร, เลขบัตรซ้ำ) ทำให้นำเข้าไม่ได้
+  - แถวนอกต้นสังกัด, ไม่พบบุคลากร, ลูกจ้างประจำ, รายการไม่ตรงประเภท หรือต้นสังกัดยืนยันแล้ว ถูกข้ามและแสดงเลขแถว
+- **ออกหนังสือรับรอง (`CompensationCertificateIssuer`):**
+  - รวมทุกเดือนของปี ออกให้คนที่เงินได้รวมมากกว่า 0
+  - เขียน `data_tax` ด้วย `source = pho` และเลขที่ 7 หลัก `ปีพ.ศ. 2 หลัก + รหัสต้นสังกัด + ลำดับ 3 หลักต่อต้นสังกัด` เช่น `6701001` ใช้ต้นสังกัดของเดือนล่าสุดที่บันทึก (คงเลขเดิมเมื่อออกใหม่)
+  - กองทุนพิมพ์เป็น `กสล.พกส` ในช่องกองทุนช่องที่ 2
+  - ที่อยู่ผู้ถูกหักใช้ `users.address` ถ้าไม่มีใช้ที่อยู่ผู้จ่ายเงิน
+  - ผู้ลงนามยังใช้ `PayslipSignatory::forTaxCertificate`
+
 ## การทดสอบที่ต้องรันเมื่อแก้ไข
 
 ```bash
 php artisan test tests/Unit/TaxCertificateTxtImportServiceTest.php \
+  tests/Feature/MonthlyCompensationTest.php \
   tests/Feature/TaxCertificateTxtImportCommitTest.php \
   tests/Feature/AdminTaxCertificateAccessTest.php \
   tests/Feature/AdminTaxCertificateManagementTest.php \

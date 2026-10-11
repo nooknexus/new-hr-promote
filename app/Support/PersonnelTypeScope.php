@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Limits /admin/salary-promotions to the personnel types (person.type_id) a
- * user is responsible for, on top of OfficeScope. ADMIN is unrestricted;
+ * user is responsible for, on top of OfficeScope. SUPERADMIN is unrestricted;
  * anyone else sees only the types assigned in user_personnel_types.
  */
 final class PersonnelTypeScope
@@ -23,7 +23,7 @@ final class PersonnelTypeScope
     /** @return list<int>|null null for every type, [] for none. */
     public static function typesFor(?User $user): ?array
     {
-        if ($user?->role === 'ADMIN') {
+        if ($user?->role === AdminAccess::SUPERADMIN) {
             return null;
         }
 

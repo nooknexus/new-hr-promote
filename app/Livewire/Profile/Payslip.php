@@ -71,6 +71,8 @@ class Payslip extends Component
     {
         $this->selectedYear = $year;
         $this->loadPayslips();
+        // On phones the register sits below the year list, so the page scrolls to it.
+        $this->dispatch('year-selected');
     }
     
     public function loadPayslips()

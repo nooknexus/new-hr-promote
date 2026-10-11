@@ -40,7 +40,11 @@ class SalaryPromotion extends Component
         // Without any promotion the page explains why instead of offering an empty year.
     }
 
-    /** Get fiscal years with active promotion data for the user. */
+    /**
+     * Years with active promotion data for the user. A promotion year holds the
+     * April (round 1) and October (round 2) rounds of the same Buddhist year,
+     * e.g. 2568 = เมษายน 2568 and ตุลาคม 2568, not the government fiscal year.
+     */
     private function getAvailableFiscalYears($pid)
     {
         return DB::table('data_promote')
@@ -50,7 +54,7 @@ class SalaryPromotion extends Component
             ->map(function ($date) {
                 $evaluationDate = Carbon::parse($date);
 
-                return $evaluationDate->year + ($evaluationDate->month >= 10 ? 544 : 543);
+                return $evaluationDate->year + 543;
             })
             ->unique()
             ->sortDesc()
@@ -62,6 +66,8 @@ class SalaryPromotion extends Component
     {
         $this->selectedYear = $year;
         $this->loadPromotions();
+        // On phones the promotion list sits below the year list, so the page scrolls to it.
+        $this->dispatch('year-selected');
     }
 
     public function loadPromotions()
@@ -73,9 +79,10 @@ class SalaryPromotion extends Component
             return;
         }
         
+        // The selected year's April and October rounds (see getAvailableFiscalYears).
         $calendarYear = (int) $this->selectedYear - 543;
-        $startDate = ($calendarYear - 1) . '-10-01';
-        $endDate = "{$calendarYear}-09-30";
+        $startDate = "{$calendarYear}-01-01";
+        $endDate = "{$calendarYear}-12-31";
 
         $promotionData = DB::table('data_promote')
             ->where('CID', $pid)

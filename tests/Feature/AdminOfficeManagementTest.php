@@ -83,7 +83,7 @@ test('ADMIN and office 00 staff may manage offices; others may not', function (?
     $html = Blade::render('<x-layouts.app><p>เนื้อหา</p></x-layouts.app>');
     $allowed ? expect($html)->toContain(route('admin.offices.index')) : expect($html)->not->toContain(route('admin.offices.index'));
 })->with([
-    'ADMIN of another office' => ['ADMIN', '01', true],
+    'ADMIN of another office' => ['SUPERADMIN', '01', true],
     'LEAVE of office 00' => ['LEAVE', '00', true],
     'FINANCE of office 00' => ['FINANCE', '00', true],
     'LEAVE of another office' => ['LEAVE', '01', false],
@@ -91,7 +91,7 @@ test('ADMIN and office 00 staff may manage offices; others may not', function (?
 ]);
 
 test('a new office is selectable immediately and can receive its first person', function () {
-    $admin = officeUser('ADMIN', '00');
+    $admin = officeUser('SUPERADMIN', '00');
 
     Livewire::actingAs($admin)
         ->test(OfficeManagement::class)
@@ -114,7 +114,7 @@ test('a new office is selectable immediately and can receive its first person', 
     expect(DB::table('person')->where('cid', '3333333333333')->first(['office_id', 'office_name']))
         ->toMatchObject(['office_id' => '90', 'office_name' => 'โรงพยาบาลส่งเสริมสุขภาพตำบลใหม่']);
 
-    DB::table('users')->insert(['id' => 1, 'name' => 'ผู้ดูแล', 'role' => 'ADMIN', 'office' => '00']);
+    DB::table('users')->insert(['id' => 1, 'name' => 'ผู้ดูแล', 'role' => 'SUPERADMIN', 'office' => '00']);
     DB::table('users')->insert(['id' => 2, 'name' => 'เจ้าหน้าที่', 'role' => 'LEAVE', 'office' => null]);
     app(UserAccessService::class)->updateOffice(1, 2, '90');
 
@@ -122,7 +122,7 @@ test('a new office is selectable immediately and can receive its first person', 
 });
 
 test('office codes are two digits, unique and fixed after creation', function () {
-    $component = Livewire::actingAs(officeUser('ADMIN', '00'))->test(OfficeManagement::class);
+    $component = Livewire::actingAs(officeUser('SUPERADMIN', '00'))->test(OfficeManagement::class);
 
     $component->set('code', '1')->set('name', 'สั้น')->call('save')->assertHasErrors(['code' => 'digits']);
     $component->set('code', '01')->set('name', 'ซ้ำ')->call('save')->assertHasErrors(['code' => 'unique']);
@@ -132,7 +132,7 @@ test('office codes are two digits, unique and fixed after creation', function ()
 });
 
 test('renaming an office updates the synced person office names', function () {
-    Livewire::actingAs(officeUser('ADMIN', '00'))
+    Livewire::actingAs(officeUser('SUPERADMIN', '00'))
         ->test(OfficeManagement::class)
         ->call('edit', '01')
         ->set('name', 'หน่วยหนึ่ง (ชื่อใหม่)')
@@ -145,7 +145,7 @@ test('renaming an office updates the synced person office names', function () {
 });
 
 test('a deactivated office leaves forms but stays in filters and keeps existing people', function () {
-    $admin = officeUser('ADMIN', '00');
+    $admin = officeUser('SUPERADMIN', '00');
 
     Livewire::actingAs($admin)
         ->test(OfficeManagement::class)
@@ -173,7 +173,7 @@ test('a deactivated office leaves forms but stays in filters and keeps existing 
 });
 
 test('office 00 cannot be deactivated', function () {
-    Livewire::actingAs(officeUser('ADMIN', '00'))
+    Livewire::actingAs(officeUser('SUPERADMIN', '00'))
         ->test(OfficeManagement::class)
         ->assertDontSeeHtml("prepareToggle('00')")
         ->call('prepareToggle', '00')
@@ -183,7 +183,7 @@ test('office 00 cannot be deactivated', function () {
 test('users cannot be moved into an inactive office but keep one they already have', function () {
     DB::table('offices')->where('code', '02')->update(['is_active' => false]);
     DB::table('users')->insert([
-        ['id' => 1, 'name' => 'ผู้ดูแล', 'role' => 'ADMIN', 'office' => '00'],
+        ['id' => 1, 'name' => 'ผู้ดูแล', 'role' => 'SUPERADMIN', 'office' => '00'],
         ['id' => 2, 'name' => 'เจ้าหน้าที่', 'role' => 'LEAVE', 'office' => '02'],
         ['id' => 3, 'name' => 'อีกคน', 'role' => 'LEAVE', 'office' => '01'],
     ]);

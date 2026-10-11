@@ -16,7 +16,7 @@
                 <select id="user-role-filter" wire:model.live="roleFilter" class="{{ $inputClass }}">
                     <option value="">ทุกบทบาท</option>
                     <option value="none">ผู้ใช้ทั่วไป</option>
-                    @foreach(['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'] as $option)
+                    @foreach(\App\Support\AdminAccess::ROLES as $option)
                         <option value="{{ $option }}">{{ $option }}</option>
                     @endforeach
                 </select>
@@ -44,6 +44,8 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($users as $user)
+                        {{-- An ADMIN cannot change a SUPERADMIN account. --}}
+                        @php($locked = $user->role === \App\Support\AdminAccess::SUPERADMIN && ! $isSuperadmin)
                         <tr wire:key="access-user-{{ $user->id }}" class="hover:bg-slate-50">
                             <td class="whitespace-nowrap px-4 py-3">
                                 <p class="font-semibold text-slate-900">{{ $user->name }}</p>
@@ -52,11 +54,15 @@
                             </td>
                             <td class="whitespace-nowrap px-4 py-3">
                                 <label class="sr-only" for="user-role-{{ $user->id }}">บทบาทของ {{ $user->name }}</label>
-                                <select id="user-role-{{ $user->id }}" wire:change="updateRole({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
-                                    <option value="" @selected(!$user->role)>ผู้ใช้ทั่วไป</option>
-                                    @foreach(['ADMIN', 'LEAVE', 'PROMOTE', 'FINANCE'] as $option)
-                                        <option value="{{ $option }}" @selected($user->role === $option)>{{ $option }}</option>
-                                    @endforeach
+                                <select id="user-role-{{ $user->id }}" wire:change="updateRole({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" @disabled($locked) class="{{ $inputClass }}">
+                                    @if($locked)
+                                        <option value="{{ $user->role }}" selected>{{ $user->role }}</option>
+                                    @else
+                                        <option value="" @selected(!$user->role)>ผู้ใช้ทั่วไป</option>
+                                        @foreach($roles as $option)
+                                            <option value="{{ $option }}" @selected($user->role === $option)>{{ $option }}</option>
+                                        @endforeach
+                                    @endif
                                 </select>
                                 @if($user->role === 'PROMOTE')
                                     @php($userTypes = $assignedTypes[$user->id] ?? [])
@@ -68,7 +74,7 @@
                             </td>
                             <td class="px-4 py-3">
                                 <label class="sr-only" for="user-office-{{ $user->id }}">ต้นสังกัดของ {{ $user->name }}</label>
-                                <select id="user-office-{{ $user->id }}" wire:change="updateOffice({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" class="{{ $inputClass }}">
+                                <select id="user-office-{{ $user->id }}" wire:change="updateOffice({{ $user->id }}, $event.target.value)" wire:loading.attr="disabled" @disabled($locked) class="{{ $inputClass }}">
                                     <option value="" @selected(!$user->office)>ยังไม่ระบุต้นสังกัด</option>
                                     @foreach($offices as $option)
                                         @if($option->is_active || $user->office === (string) $option->office_id)
@@ -78,7 +84,7 @@
                                 </select>
                             </td>
                             <td class="whitespace-nowrap px-4 py-3 text-right">
-                                <button type="button" wire:click="requestStatusChange({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})" wire:loading.attr="disabled" @disabled($user->id === auth()->id()) class="btn {{ $user->is_active ? 'bg-rose-600 text-white hover:bg-rose-700' : 'btn-success' }} btn-sm">{{ $user->is_active ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน' }}</button>
+                                <button type="button" wire:click="requestStatusChange({{ $user->id }}, {{ $user->is_active ? 'false' : 'true' }})" wire:loading.attr="disabled" @disabled($user->id === auth()->id() || $locked) class="btn {{ $user->is_active ? 'bg-rose-600 text-white hover:bg-rose-700' : 'btn-success' }} btn-sm">{{ $user->is_active ? 'ปิดการใช้งาน' : 'เปิดการใช้งาน' }}</button>
                             </td>
                         </tr>
                     @empty

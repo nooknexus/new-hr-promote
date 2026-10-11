@@ -86,7 +86,7 @@ test('a user downloads their own salary promotion notice as a PDF', function () 
     $id = insertOwnPromotion();
 
     $response = $this->actingAs(promotionOwner())
-        ->get(route('profile.salary-promotion.download', ['promotion' => $id]))
+        ->get(route('salary-promotion.download', ['promotion' => $id]))
         ->assertOk()
         ->assertHeader('Content-Type', 'application/pdf');
 
@@ -109,9 +109,9 @@ test('a user cannot download another person\'s or an archived salary promotion',
     $archived = insertOwnPromotion(['evaluation_date' => '2024-10-01', 'deleted_at' => now()]);
 
     $this->actingAs(promotionOwner())
-        ->get(route('profile.salary-promotion.download', ['promotion' => $other]))
+        ->get(route('salary-promotion.download', ['promotion' => $other]))
         ->assertNotFound();
-    $this->get(route('profile.salary-promotion.download', ['promotion' => $archived]))
+    $this->get(route('salary-promotion.download', ['promotion' => $archived]))
         ->assertNotFound();
 });
 
@@ -143,7 +143,7 @@ test('the preview shows a download link and the person position instead of place
             ->assertSee('ชำนาญการ')
             ->assertDontSee('นักวิชาการคอมพิวเตอร์')
             ->assertDontSee('DEBUG')
-            ->assertSeeHtml('href="'.route('profile.salary-promotion.download', ['promotion' => $id]).'"');
+            ->assertSeeHtml('href="'.route('salary-promotion.download', ['promotion' => $id]).'"');
     } finally {
         Carbon::setTestNow();
     }

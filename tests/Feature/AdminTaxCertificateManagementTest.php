@@ -23,6 +23,7 @@ beforeEach(function () {
     Schema::create('data_tax', function (Blueprint $table) {
         $table->string('cid', 13);
         $table->unsignedInteger('income_year');
+        $table->string('source', 3)->default('cgd');
         $table->string('running_code1')->nullable();
         $table->string('department_name')->nullable();
         $table->string('department_tax_id')->nullable();
@@ -46,7 +47,7 @@ beforeEach(function () {
         $table->string('date_report')->nullable();
         $table->decimal('socialSecurity', 15, 2)->nullable();
         $table->dateTime('r_update')->nullable();
-        $table->unique(['cid', 'income_year']);
+        $table->unique(['cid', 'income_year', 'source']);
     });
 });
 
@@ -139,11 +140,11 @@ test('finance manages one tax certificate by its cid and income year', function 
     $finance = taxManagementActor('FINANCE');
 
     $this->actingAs($finance)
-        ->get(route('admin.tax-certificates.index'))
+        ->get(route('admin.tax-certificates.index', ['tab' => 'certificates']))
         ->assertOk()
         ->assertSee('จัดการใบรับรองภาษี');
 
-    $component = Livewire::actingAs($finance)
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs($finance)
         ->test(TaxCertificateManagement::class)
         ->call('openCreateModal')
         ->assertDispatched('tax-certificate-form-opened');
@@ -195,7 +196,7 @@ test('finance manages one tax certificate by its cid and income year', function 
 
 // Production break caught: accepting malformed identity, tax year, or money data would persist a certificate that cannot safely map to its source record.
 test('manual certificate validation rejects malformed cid tax year and money values', function () {
-    Livewire::actingAs(taxManagementActor('FINANCE'))
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('openCreateModal')
         ->set('cid', '123')
@@ -216,7 +217,7 @@ test('manual certificate validation rejects malformed cid tax year and money val
 test('manual certificate insert failures return a generic component error', function () {
     DB::unprepared("\n        CREATE TRIGGER reject_tax_certificate_insert\n        BEFORE INSERT ON data_tax\n        BEGIN\n            SELECT RAISE(ABORT, 'tax-certificate-insert-fault');\n        END;\n    ");
 
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('openCreateModal');
 
@@ -239,7 +240,7 @@ test('tax certificate delete failures return a generic component error', functio
     DB::table('data_tax')->insert(taxManagementRecord());
     DB::unprepared("\n        CREATE TRIGGER reject_tax_certificate_delete\n        BEFORE DELETE ON data_tax\n        BEGIN\n            SELECT RAISE(ABORT, 'tax-certificate-delete-fault');\n        END;\n    ");
 
-    Livewire::actingAs(taxManagementActor('FINANCE'))
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('confirmDelete', '1234567890123', 2567)
         ->call('delete')
@@ -252,7 +253,7 @@ test('tax certificate delete failures return a generic component error', functio
 
 // Production break caught: accepting a third fractional digit rounds or truncates a tax amount after validation instead of rejecting the invalid source value.
 test('manual certificate rejects more than two fractional digits for every monetary input', function (string $field, string $cid) {
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('openCreateModal');
 
@@ -281,6 +282,7 @@ test('edit normalizes the legacy uppercase CID column name', function () {
     Schema::create('data_tax', function (Blueprint $table) {
         $table->string('CID', 13);
         $table->unsignedInteger('income_year');
+        $table->string('source', 3)->default('cgd');
         $table->string('running_code1')->nullable();
         $table->string('fullname')->nullable();
         $table->decimal('income_money', 15, 2)->nullable();
@@ -288,7 +290,7 @@ test('edit normalizes the legacy uppercase CID column name', function () {
         $table->string('outcomeName')->nullable();
         $table->decimal('outcomeAmount', 15, 2)->nullable();
         $table->string('date_report')->nullable();
-        $table->unique(['CID', 'income_year']);
+        $table->unique(['CID', 'income_year', 'source']);
     });
     DB::table('data_tax')->insert([
         'CID' => '6666666666666',
@@ -296,7 +298,7 @@ test('edit normalizes the legacy uppercase CID column name', function () {
         'running_code1' => 'LEGACY-CID',
     ]);
 
-    Livewire::actingAs(taxManagementActor('FINANCE'))
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('edit', '6666666666666', 2567)
         ->assertSet('editingCid', '6666666666666')
@@ -312,25 +314,43 @@ test('finance filters certificates by income year cid and name', function () {
         taxManagementRecord(['cid' => '3333333333333', 'income_year' => 2565, 'running_code1' => 'NAME-SEARCH', 'fullname' => 'ค้นหาตามชื่อ']),
     ]);
 
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))->test(TaxCertificateManagement::class);
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))->test(TaxCertificateManagement::class);
 
-    $component->set('yearFilter', '2567')
+    // Only one tax year loads: the latest one with data when the current year has none.
+    $component->assertSet('yearFilter', '2567')
         ->assertSee('YEAR-2567')
         ->assertDontSee('CID-2222')
-        ->set('yearFilter', '')
+        ->assertDontSeeHtml('<option value="">ทุกปีภาษี</option>')
+        ->set('yearFilter', '2566')
         ->set('cidFilter', '2222')
         ->assertSee('CID-2222')
         ->assertDontSee('YEAR-2567')
         ->set('cidFilter', '')
+        ->set('yearFilter', '2565')
         ->set('nameFilter', 'ค้นหาตามชื่อ')
         ->assertSee('NAME-SEARCH')
-        ->assertDontSee('YEAR-2567');
+        ->assertDontSee('YEAR-2567')
+        ->set('yearFilter', '2400')
+        ->assertSet('yearFilter', '2567');
+});
+
+test('certificates filter by the office of the registered person', function () {
+    seedTaxCertificatesInTwoOffices();
+    DB::table('data_tax')->insert(taxManagementRecord(['cid' => '9999999999999', 'running_code1' => 'TC-NO-PERSON']));
+
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE', '00'))
+        ->test(TaxCertificateManagement::class)
+        ->assertSee('TC-OFFICE-01')->assertSee('TC-OFFICE-02')
+        ->set('officeFilter', '02')
+        ->assertSee('TC-OFFICE-02')->assertDontSee('TC-OFFICE-01')->assertDontSee('TC-NO-PERSON')
+        ->set('officeFilter', 'unmatched')
+        ->assertSee('TC-NO-PERSON')->assertDontSee('TC-OFFICE-02');
 });
 
 // Production break caught: an account whose role changes after the component loads must not retain a direct Livewire write capability.
 test('unauthorized roles are rejected by direct management actions', function () {
     $actor = taxManagementActor('FINANCE');
-    $component = Livewire::actingAs($actor)->test(TaxCertificateManagement::class)->assertOk();
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs($actor)->test(TaxCertificateManagement::class)->assertOk();
 
     $actor->role = 'LEAVE';
 
@@ -346,7 +366,7 @@ test('utf8 TXT preview keeps masked diagnostics and confirmation commits only af
         taxManagementTxtRecord([4 => $invalidCid]),
     ])."\n";
 
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->assertSet('importEncoding', 'tis-620')
         ->set('importEncoding', 'utf-8')
@@ -394,7 +414,7 @@ test('utf8 TXT preview keeps masked diagnostics and confirmation commits only af
 
 // Production break caught: changing the charset after preview can make confirmation decode the same source bytes differently and persist corrupted text.
 test('changing the selected import encoding after preview requires a new preview', function () {
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->set('importEncoding', 'utf-8')
         ->set('importFile', taxManagementTxtUpload(taxManagementTxtRecord([
@@ -416,7 +436,7 @@ test('changing the selected import encoding after preview requires a new preview
 test('the edit delete control replaces the form modal with the delete confirmation', function () {
     DB::table('data_tax')->insert(taxManagementRecord());
 
-    Livewire::actingAs(taxManagementActor('FINANCE'))
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('edit', '1234567890123', 2567)
         ->assertSeeHtml("wire:click=\"confirmDelete\" onclick=\"window.portalModal.hide(document.getElementById('taxCertificateFormModal')); window.portalModal.show('taxCertificateDeleteModal')\"");
@@ -426,7 +446,7 @@ test('the edit delete control replaces the form modal with the delete confirmati
 test('delete confirmation and success close every tax certificate dialog before the toast', function () {
     DB::table('data_tax')->insert(taxManagementRecord());
 
-    $component = Livewire::actingAs(taxManagementActor('FINANCE'))
+    $component = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))
         ->test(TaxCertificateManagement::class)
         ->call('edit', '1234567890123', 2567)
         ->call('confirmDelete')
@@ -454,7 +474,7 @@ test('delete confirmation and success close every tax certificate dialog before 
 
 // Production break caught: omitting portal-modal close and toast handlers leaves successful mutations invisible or traps the user in the dialog.
 test('management view uses application modals and toast events for successful mutations', function () {
-    $html = Livewire::actingAs(taxManagementActor('FINANCE'))->test(TaxCertificateManagement::class)->html();
+    $html = Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor('FINANCE'))->test(TaxCertificateManagement::class)->html();
     $view = file_get_contents(resource_path('views/livewire/admin/tax-certificate-management.blade.php'));
 
     expect($view)
@@ -484,79 +504,35 @@ function seedTaxCertificatesInTwoOffices(): void
 test('ADMIN and FINANCE in office 00 see tax certificates of every office', function (string $role, ?string $office) {
     seedTaxCertificatesInTwoOffices();
 
-    Livewire::actingAs(taxManagementActor($role, $office))
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs(taxManagementActor($role, $office))
         ->test(TaxCertificateManagement::class)
         ->assertSee('TC-OFFICE-01')
         ->assertSee('TC-OFFICE-02');
 })->with([
-    'ADMIN without an office' => ['ADMIN', null],
-    'ADMIN of another office' => ['ADMIN', '01'],
+    'ADMIN without an office' => ['SUPERADMIN', null],
+    'ADMIN of another office' => ['SUPERADMIN', '01'],
     'FINANCE of office 00' => ['FINANCE', '00'],
 ]);
 
-test('FINANCE of another office sees only tax certificates of their own office', function () {
+test('FINANCE of another office only reaches the monthly compensation tab', function (?string $office) {
     seedTaxCertificatesInTwoOffices();
+    (require database_path('migrations/2026_10_11_110000_create_monthly_compensation_tables.php'))->up();
+    $finance = taxManagementActor('FINANCE', $office);
 
-    Livewire::actingAs(taxManagementActor('FINANCE', '01'))
-        ->test(TaxCertificateManagement::class)
-        ->assertSee('TC-OFFICE-01')
-        ->assertDontSee('TC-OFFICE-02');
-});
-
-test('FINANCE without an office sees no tax certificates', function () {
-    seedTaxCertificatesInTwoOffices();
-
-    Livewire::actingAs(taxManagementActor('FINANCE', null))
-        ->test(TaxCertificateManagement::class)
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs($finance)->test(TaxCertificateManagement::class)
+        ->assertSet('tab', 'monthly')
         ->assertDontSee('TC-OFFICE-01')
-        ->assertDontSee('TC-OFFICE-02');
-});
+        ->assertDontSee('นำเข้าใบรับรองจาก TXT')
+        ->assertDontSee('หนังสือรับรอง (กรมบัญชีกลาง)')
+        ->assertDontSee('ออกหนังสือรับรอง สสจ.')
+        ->set('tab', 'certificates')->assertSet('tab', 'monthly');
 
-test('FINANCE of another office cannot edit, delete, or add certificates for another office', function () {
-    seedTaxCertificatesInTwoOffices();
-    $finance = taxManagementActor('FINANCE', '01');
-
-    Livewire::actingAs($finance)->test(TaxCertificateManagement::class)
-        ->call('edit', '2222222222222', 2567)->assertNotFound();
-    Livewire::actingAs($finance)->test(TaxCertificateManagement::class)
-        ->call('confirmDelete', '2222222222222', 2567)->assertNotFound();
-
-    $component = Livewire::actingAs($finance)->test(TaxCertificateManagement::class);
-    foreach (taxManagementRecord(['cid' => '2222222222222', 'income_year' => 2568]) as $field => $value) {
-        if (property_exists(TaxCertificateManagement::class, $field)) {
-            $component->set($field, (string) $value);
-        }
+    foreach ([['edit', '1111111111111', 2567], ['confirmDelete', '1111111111111', 2567], ['openCreateModal'], ['save'], ['delete']] as $call) {
+        Livewire::withQueryParams(['tab' => 'certificates'])->actingAs($finance)->test(TaxCertificateManagement::class)->call(...$call)->assertForbidden();
     }
-    $component->call('save')->assertHasErrors('cid');
-
-    expect(DB::table('data_tax')->where('cid', '2222222222222')->count())->toBe(1);
-});
-
-test('an office-scoped TXT import skips personnel outside the importing office', function () {
-    DB::table('person')->insert([
-        ['cid' => '1111111111111', 'office_id' => '01'],
-        ['cid' => '2222222222222', 'office_id' => '02'],
-    ]);
-    $contents = implode("\n", [
-        taxManagementTxtRecord([4 => '1111111111111']),
-        taxManagementTxtRecord([4 => '2222222222222']),
-        taxManagementTxtRecord([4 => '3333333333333']),
-    ])."\n";
-
-    $component = Livewire::actingAs(taxManagementActor('FINANCE', '01'))
-        ->test(TaxCertificateManagement::class)
-        ->set('importEncoding', 'utf-8')
-        ->set('importFile', taxManagementTxtUpload($contents))
-        ->call('previewImport')
-        ->assertSet('importPreviewReady', true)
-        ->assertSee('ข้าม ไม่ใช่บุคลากรในหน่วยงาน')
-        ->assertDontSee('2222222222222');
-
-    expect($component->get('importPreview'))->toMatchArray(['read' => 3, 'valid' => 1, 'skipped' => 2]);
-
-    $component->call('confirmImport')
-        ->assertHasNoErrors()
-        ->assertDispatched('tax-certificate-import-saved', message: 'นำเข้าใบรับรองภาษีแล้ว เพิ่มใหม่ 1 ปรับปรุง 0 ข้าม 2 รายการ');
-
-    expect(DB::table('data_tax')->pluck('cid')->all())->toBe(['1111111111111']);
-});
+    Livewire::withQueryParams(['tab' => 'certificates'])->actingAs($finance)->test(TaxCertificateManagement::class)
+        ->set('importEncoding', 'utf-8')->assertForbidden();
+})->with([
+    'office 01' => ['01'],
+    'no office' => [null],
+]);

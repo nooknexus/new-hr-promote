@@ -12,6 +12,7 @@ beforeEach(function () {
     Schema::create('data_tax', function (Blueprint $table) {
         $table->string('CID', 13);
         $table->unsignedInteger('income_year');
+        $table->string('source', 3)->default('cgd');
         $table->string('running_code1');
         $table->string('department_name')->nullable();
         $table->string('department_tax_id')->nullable();
@@ -363,4 +364,23 @@ test('a user without any tax certificate is told to contact finance staff', func
         ->assertSee('กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน')
         ->assertDontSee('ฝ่ายบุคคล')
         ->assertDontSee('เลือกรายการทางด้านซ้ายเพื่อแสดงใบรับรอง');
+});
+
+test('phones list certificates as cards and wider screens keep the table', function () {
+    $user = new User;
+    $user->forceFill(['id' => 1, 'name' => 'ผู้ทดสอบ', 'pid' => '1571200051606']);
+    $user->exists = true;
+    DB::table('data_tax')->insert(importedTaxCertificateRow(['department_name' => 'PAYER-CARD']));
+    $this->actingAs($user);
+
+    $html = Livewire::test(\App\Livewire\TaxCertificate::class)->html();
+    $document = new DOMDocument;
+    @$document->loadHTML(mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8'));
+    $xpath = new DOMXPath($document);
+    $cards = $xpath->query('//ul[@id="taxCertificateCards"]')->item(0);
+    $table = $xpath->query('//table[@id="taxCertificateTable"]/parent::div')->item(0);
+
+    expect($cards->getAttribute('class'))->toContain('md:hidden')
+        ->and($table->getAttribute('class'))->toContain('hidden')->toContain('md:block')
+        ->and($cards->textContent)->toContain('TAX-2567-01')->toContain('PAYER-CARD')->toContain('ดาวน์โหลด');
 });

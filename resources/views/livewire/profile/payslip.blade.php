@@ -49,13 +49,40 @@
                 </div>
             @else
             <!-- Payslip Card -->
-            <div class="card shadow mb-4">
+            <div id="payslip-register" class="card shadow mb-4 scroll-mt-20">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">ใบรับรองการจ่ายค่าตอบแทน (ปี {{ $selectedYear + 543 }})</h6>
                 </div>
                 <div class="card-body">
                     @if(count($payslips) > 0)
-                    <div class="table-responsive">
+                    {{-- Phones get one card per month so every figure and action fits the screen. --}}
+                    <ul class="space-y-3 md:hidden" id="payslipCards">
+                        @foreach($payslips as $payslip)
+                            <li class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" wire:key="payslip-card-{{ $payslip['id'] }}">
+                                <p class="text-xs text-slate-500">งวดเดือน</p>
+                                <p class="font-semibold text-slate-900">{{ $payslip['month'] }}</p>
+                                <dl class="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                                    <div>
+                                        <dt class="text-xs text-slate-500">เงินเดือน</dt>
+                                        <dd class="font-semibold tabular-nums text-slate-900">{{ number_format($payslip['salary'], 2) }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-slate-500">รับสุทธิ</dt>
+                                        <dd class="font-semibold tabular-nums text-slate-900">{{ number_format($payslip['net'], 2) }}</dd>
+                                    </div>
+                                </dl>
+                                <div class="mt-3 grid grid-cols-2 gap-2">
+                                    <button type="button" wire:click="viewPayslipDetail('{{ $payslip['id'] }}')" class="btn btn-outline-primary btn-sm justify-center">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
+                                    </button>
+                                    <button type="button" wire:click="downloadPayslip('{{ $payslip['id'] }}')" class="btn btn-primary btn-sm justify-center">
+                                        <i class="fas fa-download" aria-hidden="true"></i> ดาวน์โหลด
+                                    </button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="table-responsive hidden md:block">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -421,6 +448,8 @@
 
 @script
 <script>
+    $wire.on('year-selected', () => window.portalScrollToOnPhone('payslip-register'));
+
     $wire.on('show-payslip-detail', () => {
         window.portalModal.show('payslipDetailModal');
     });

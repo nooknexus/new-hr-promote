@@ -68,6 +68,7 @@ function createTaxCertificateCommitTable(): void
     Schema::create('data_tax', function (Blueprint $table) {
         $table->string('cid', 13);
         $table->unsignedInteger('income_year');
+        $table->string('source', 3)->default('cgd');
         $table->string('running_code1')->nullable();
         $table->string('department_name')->nullable();
         $table->string('department_tax_id')->nullable();
@@ -91,7 +92,7 @@ function createTaxCertificateCommitTable(): void
         $table->string('date_report')->nullable();
         $table->decimal('socialSecurity', 15, 2)->nullable();
         $table->dateTime('r_update')->nullable();
-        $table->unique(['cid', 'income_year']);
+        $table->unique(['cid', 'income_year', 'source']);
     });
 }
 

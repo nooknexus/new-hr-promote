@@ -133,6 +133,7 @@
     </div>
 
     @script
+    <script>
         $wire.on('office-form-opened', () => window.portalModal.show('officeFormModal'));
         $wire.on('office-toggle-opened', () => window.portalModal.show('officeToggleModal'));
         $wire.on('office-saved', ({ message }) => {
@@ -142,5 +143,6 @@
             });
             window.portalToast.show(message);
         });
+    </script>
     @endscript
 </div>

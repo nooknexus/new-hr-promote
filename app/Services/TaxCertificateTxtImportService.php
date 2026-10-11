@@ -347,8 +347,12 @@ class TaxCertificateTxtImportService
      */
     private function upsertChunk(array $rows, array &$result): void
     {
+        // TXT files are the Comptroller General's certificates; provincial
+        // health office (pho) certificates share data_tax but are never touched.
+        $rows = array_map(fn (array $row): array => [...$row, 'source' => 'cgd'], $rows);
         $existingKeys = DB::table('data_tax')
             ->select(['cid as import_cid', 'income_year as import_income_year'])
+            ->where('source', 'cgd')
             ->where(function ($query) use ($rows): void {
                 foreach ($rows as $row) {
                     $query->orWhere(function ($query) use ($row): void {
@@ -369,7 +373,7 @@ class TaxCertificateTxtImportService
             }
         }
 
-        DB::table('data_tax')->upsert($rows, ['cid', 'income_year'], [
+        DB::table('data_tax')->upsert($rows, ['cid', 'income_year', 'source'], [
             'running_code1',
             'department_name',
             'department_tax_id',

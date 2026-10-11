@@ -43,7 +43,7 @@ beforeEach(function () {
         $table->timestamp('created_at');
     });
     DB::table('users')->insert([
-        ['id' => 1, 'name' => 'ผู้ดูแล', 'email' => 'admin@example.test', 'hname' => 'สำนักงานสาธารณสุขจังหวัด', 'pid' => null, 'role' => 'ADMIN', 'office' => null],
+        ['id' => 1, 'name' => 'ผู้ดูแล', 'email' => 'admin@example.test', 'hname' => 'สำนักงานสาธารณสุขจังหวัด', 'pid' => null, 'role' => 'SUPERADMIN', 'office' => null],
         ['id' => 2, 'name' => 'บุคลากร', 'email' => 'person@example.test', 'hname' => 'โรงพยาบาลทดสอบ', 'pid' => '1234567890123', 'role' => null, 'office' => null],
     ]);
     DB::table('person')->insert([
@@ -91,13 +91,13 @@ test('unknown roles and offices are rejected and the final ADMIN cannot be remov
     expect(fn () => $service->update(1, 2, 'ROOT', '01'))->toThrow(ValidationException::class)
         ->and(fn () => $service->update(1, 2, 'LEAVE', '99'))->toThrow(ValidationException::class)
         ->and(fn () => $service->update(1, 1, 'LEAVE', null))->toThrow(ValidationException::class);
-    expect(DB::table('users')->where('id', 1)->value('role'))->toBe('ADMIN')
+    expect(DB::table('users')->where('id', 1)->value('role'))->toBe('SUPERADMIN')
         ->and(DB::table('user_access_audits')->count())->toBe(0);
 
-    $service->update(1, 2, 'ADMIN', null);
+    $service->update(1, 2, 'SUPERADMIN', null);
     $service->update(1, 1, 'LEAVE', null);
     expect(fn () => $service->update(2, 2, null, null))->toThrow(ValidationException::class);
-    expect(DB::table('users')->where('role', 'ADMIN')->count())->toBe(1);
+    expect(DB::table('users')->where('role', 'SUPERADMIN')->count())->toBe(1);
 });
 
 test('role and office can be changed directly from the user row', function () {
@@ -127,7 +127,7 @@ test('inline edits validate input and recheck administrator access on every acti
     $component->call('updateOffice', 2, '99')->assertHasErrors('office');
     expect(User::find(2)->role)->toBeNull()->and(User::find(2)->office)->toBeNull();
     DB::table('users')->where('id', 1)->update(['role' => null]);
-    $component->call('updateRole', 2, 'ADMIN')->assertForbidden();
+    $component->call('updateRole', 2, 'SUPERADMIN')->assertForbidden();
 });
 
 test('an inline edit keeps another fields latest value instead of the displayed stale value', function () {

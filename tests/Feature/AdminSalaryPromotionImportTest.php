@@ -79,7 +79,7 @@ test('only ADMIN and PROMOTE may preview or confirm an import', function () {
             ->test(SalaryPromotionImport::class)
             ->assertForbidden();
     }
-    foreach (['ADMIN', 'PROMOTE'] as $role) {
+    foreach (['SUPERADMIN', 'PROMOTE'] as $role) {
         Livewire::actingAs(salaryImportActor($role))
             ->test(SalaryPromotionImport::class)
             ->assertOk()
@@ -114,7 +114,7 @@ test('invalid workbook cannot open confirmation or write', function () {
     $row = SalaryPromotionWorkbook::ROW;
     $row[0] = 'bad-cid';
     $book = new SalaryPromotionWorkbook([$row]);
-    Livewire::actingAs(salaryImportActor('ADMIN'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -127,7 +127,7 @@ test('invalid workbook cannot open confirmation or write', function () {
 
 test('cancelled preview does not write and clears uploaded state', function () {
     $book = new SalaryPromotionWorkbook;
-    Livewire::actingAs(salaryImportActor('ADMIN'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -141,7 +141,7 @@ test('cancelled preview does not write and clears uploaded state', function () {
 
 test('a file changed after preview must be previewed again before confirmation', function () {
     $book = new SalaryPromotionWorkbook;
-    $component = Livewire::actingAs(salaryImportActor('ADMIN'))
+    $component = Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -171,7 +171,7 @@ test('preview reveals the total count when more than ten salary warnings exist',
     }
     $book = new SalaryPromotionWorkbook($rows);
 
-    Livewire::actingAs(salaryImportActor('ADMIN'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -200,7 +200,7 @@ test('import checks figures with the rounded formula and the level ceiling from 
     [$wrong[0], $wrong[14], $wrong[15], $wrong[16]] = ['3333333333333', '990', '', '58,990'];
     $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $belowCeiling, $atCeiling, $wrong]);
 
-    Livewire::actingAs(salaryImportActor('ADMIN'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -231,7 +231,7 @@ test('the management page embeds the importer and confirmation uses portal modal
         ->toContain('window.portalToast.show(message)');
 
     $book = new SalaryPromotionWorkbook;
-    Livewire::actingAs(salaryImportActor('ADMIN'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')
@@ -300,7 +300,7 @@ test('ADMIN imports every row regardless of their office', function () {
     $other[0] = '1111111111111';
     $book = new SalaryPromotionWorkbook([SalaryPromotionWorkbook::ROW, $other]);
 
-    Livewire::actingAs(salaryImportActor('ADMIN', '05'))
+    Livewire::actingAs(salaryImportActor('SUPERADMIN', '05'))
         ->test(SalaryPromotionImport::class)
         ->set('importFile', salaryImportUpload($book))
         ->call('previewUpload')

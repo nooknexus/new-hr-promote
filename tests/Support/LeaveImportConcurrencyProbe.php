@@ -14,7 +14,7 @@ if (!app()->environment('local') || !in_array($original['host'], ['127.0.0.1','l
 $prefix='codex_leave_probe_'.bin2hex(random_bytes(6)).'_';
 config(['database.default'=>'mysql','database.connections.mysql.prefix'=>$prefix,'cache.default'=>'array']);
 DB::purge('mysql');
-$actor=new User; $actor->forceFill(['id'=>10,'name'=>'Fixture','role'=>'ADMIN','is_active'=>true]); $actor->exists=true;
+$actor=new User; $actor->forceFill(['id'=>10,'name'=>'Fixture','role'=>'SUPERADMIN','is_active'=>true]); $actor->exists=true;
 $path=tempnam(sys_get_temp_dir(),'leave-concurrency-'); $pid=null; $exit=1;
 try {
     Schema::create('person', function ($table) {

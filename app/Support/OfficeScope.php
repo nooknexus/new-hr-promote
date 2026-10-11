@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Limits admin screens to the personnel of the user's office.
- * ADMIN and users assigned to office 00 are unrestricted; any other user
+ * SUPERADMIN, ADMIN and users assigned to office 00 are unrestricted; any other user
  * without an assigned office matches nothing.
  */
 final class OfficeScope
@@ -21,7 +21,8 @@ final class OfficeScope
     {
         $office = trim((string) $user?->office);
 
-        return $user?->role === 'ADMIN' || $office === self::ALL_OFFICES ? null : $office;
+        // ADMIN only opens offices, users and signatories, which span every office.
+        return AdminAccess::isAdministrator($user) || $office === self::ALL_OFFICES ? null : $office;
     }
 
     /** Constrain a query on a person office column to the user's office. */

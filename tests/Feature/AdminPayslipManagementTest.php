@@ -95,7 +95,7 @@ test('only ADMIN and FINANCE may open payslip management', function () {
         $this->actingAs(payslipUser($role, '00'))->get(route('admin.payslips.index'))->assertForbidden();
     }
 
-    foreach (['ADMIN', 'FINANCE'] as $role) {
+    foreach (['SUPERADMIN', 'FINANCE'] as $role) {
         expect(\App\Support\AdminAccess::allows(payslipUser($role, '00'), 'payslip'))->toBeTrue();
     }
 });
@@ -115,8 +115,8 @@ test('ADMIN and FINANCE in office 00 see payslips of every office', function (st
         ->assertSee('บุคลากรหน่วยหนึ่ง')
         ->assertSee('บุคลากรหน่วยสอง');
 })->with([
-    'ADMIN without an office' => ['ADMIN', null],
-    'ADMIN of another office' => ['ADMIN', '01'],
+    'ADMIN without an office' => ['SUPERADMIN', null],
+    'ADMIN of another office' => ['SUPERADMIN', '01'],
     'FINANCE of office 00' => ['FINANCE', '00'],
 ]);
 
@@ -165,7 +165,7 @@ test('an unrestricted import keeps every valid row', function () {
 });
 
 test('payslip management starts with the shared admin page header', function () {
-    $html = Livewire::actingAs(payslipUser('ADMIN', null))->test(PayslipManagement::class)->html();
+    $html = Livewire::actingAs(payslipUser('SUPERADMIN', null))->test(PayslipManagement::class)->html();
 
     expect($html)->toContain('<header>')
         ->and(strpos($html, 'จัดการข้อมูลสลิปเงินเดือน'))->toBeLessThan(strpos($html, 'นำเข้าสลิปเงินเดือน'));

@@ -23,7 +23,7 @@ beforeEach(function () {
 function personnelAdmin(): User
 {
     $user = new User;
-    $user->forceFill(['id' => 1, 'name' => 'ผู้ดูแล', 'staff_type' => 'ADMIN', 'role' => 'ADMIN']);
+    $user->forceFill(['id' => 1, 'name' => 'ผู้ดูแล', 'staff_type' => 'ADMIN', 'role' => 'SUPERADMIN']);
     $user->exists = true;
 
     return $user;

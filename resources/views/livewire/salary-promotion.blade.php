@@ -49,7 +49,7 @@
                     </div>
             @else
             <!-- Promotion Card -->
-            <div class="card shadow mb-4">
+            <div id="salary-promotion-register" class="card shadow mb-4 scroll-mt-20">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="m-0 font-weight-bold text-primary">ข้อมูลการเลื่อนขั้นเงินเดือน (ปีงบประมาณ {{ $selectedYear }})</h6>
@@ -57,7 +57,37 @@
                 </div>
                 <div class="card-body">
                     @if(count($promotions) > 0)
-                    <div class="table-responsive">
+                    {{-- Phones get one card per round so every figure and action fits the screen. --}}
+                    <ul class="space-y-3 md:hidden" id="promotionCards">
+                        @foreach($promotions as $promotion)
+                            @php
+                                $regularRound = strpos($promotion['round_type'], 'พิเศษ') === false;
+                            @endphp
+                            <li class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" wire:key="promotion-card-{{ $promotion['id'] }}">
+                                <p class="text-xs text-slate-500">รอบการเลื่อนขั้น</p>
+                                <p class="font-semibold text-slate-900">{{ $promotion['round'] }}</p>
+                                <dl class="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-sm">
+                                    <div>
+                                        <dt class="text-xs text-slate-500">ครั้งที่</dt>
+                                        <dd class="font-semibold text-slate-900">{{ $regularRound ? $promotion['round_number'] : '—' }}</dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-xs text-slate-500">ร้อยละ</dt>
+                                        <dd class="font-semibold tabular-nums text-slate-900">{{ $regularRound && is_numeric($promotion['increase_percent']) ? $promotion['increase_percent'].'%' : '—' }}</dd>
+                                    </div>
+                                </dl>
+                                <div class="mt-3 grid grid-cols-2 gap-2">
+                                    <button type="button" wire:click="viewPromotionDetail('{{ $promotion['id'] }}')" class="btn btn-outline-primary btn-sm justify-center">
+                                        <i class="fas fa-eye" aria-hidden="true"></i> ดูรายละเอียด
+                                    </button>
+                                    <button type="button" wire:click="downloadPromotion('{{ $promotion['id'] }}')" class="btn btn-primary btn-sm justify-center">
+                                        <i class="fas fa-download" aria-hidden="true"></i> ดาวน์โหลด
+                                    </button>
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="table-responsive hidden md:block">
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
@@ -454,7 +484,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-modal-close>ปิด</button>
                     @if($selectedPromotion)
-                        <a href="{{ route('profile.salary-promotion.download', ['promotion' => $selectedPromotion['id']]) }}" class="btn btn-success" id="download-pdf-btn">
+                        <a href="{{ route('salary-promotion.download', ['promotion' => $selectedPromotion['id']]) }}" class="btn btn-success" id="download-pdf-btn">
                             <i class="fas fa-file-pdf mr-1"></i> ดาวน์โหลด PDF
                         </a>
                     @endif
@@ -466,6 +496,7 @@
 
 @script
 <script>
+    $wire.on('year-selected', () => window.portalScrollToOnPhone('salary-promotion-register'));
     $wire.on('show-promotion-detail', () => {
         window.portalModal.show('promotionDetailModal');
     });

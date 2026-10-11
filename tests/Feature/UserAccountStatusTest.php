@@ -54,7 +54,7 @@ beforeEach(function () {
         $table->boolean('after_active')->nullable();
         $table->timestamp('created_at');
     });
-    User::forceCreate(['id' => 1, 'name' => 'Admin', 'email' => 'admin@example.test', 'password' => 'password123', 'role' => 'ADMIN']);
+    User::forceCreate(['id' => 1, 'name' => 'Admin', 'email' => 'admin@example.test', 'password' => 'password123', 'role' => 'SUPERADMIN']);
     User::forceCreate(['id' => 2, 'name' => 'Local Name', 'email' => 'person@example.test', 'password' => 'password123', 'pid' => '1234567890123', 'role' => 'LEAVE', 'office' => '01', 'remember_token' => 'remember-value']);
     DB::table('person')->insert(['cid' => '1234567890123', 'office_id' => '01', 'office_name' => 'Office']);
 });
@@ -108,11 +108,11 @@ test('an inactive admin and a nonadmin cannot change access or account status', 
 });
 
 test('self disable is denied and disabled admins do not count as remaining administrators', function () {
-    User::forceCreate(['id' => 3, 'name' => 'Inactive admin', 'email' => 'inactive@example.test', 'password' => 'password123', 'role' => 'ADMIN', 'is_active' => false]);
+    User::forceCreate(['id' => 3, 'name' => 'Inactive admin', 'email' => 'inactive@example.test', 'password' => 'password123', 'role' => 'SUPERADMIN', 'is_active' => false]);
     $service = app(UserAccessService::class);
     expect(fn () => $service->setActive(1, 1, false))->toThrow(ValidationException::class)
         ->and(fn () => $service->update(1, 1, 'LEAVE', null))->toThrow(ValidationException::class);
-    expect(User::find(1)->is_active)->toBeTrue()->and(User::find(1)->role)->toBe('ADMIN');
+    expect(User::find(1)->is_active)->toBeTrue()->and(User::find(1)->role)->toBe('SUPERADMIN');
 });
 
 test('a disabled CID is rejected before personnel lookup and without refresh writes', function (string $link) {

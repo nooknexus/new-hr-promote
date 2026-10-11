@@ -63,6 +63,19 @@ npm run build
 - Preserve locally assigned `users.role` and `users.office` during SSO refresh.
   Never use remote `staff_type` or profile data to grant local permissions.
 
+### Roles
+
+- `users.role` is one of `AdminAccess::ROLES`: `SUPERADMIN`, `ADMIN`, `LEAVE`,
+  `PROMOTE`, `FINANCE`, or null for a regular user.
+- `SUPERADMIN` has every ability and sees every office. Existing `ADMIN`
+  accounts were migrated to `SUPERADMIN` on 2026-10-11.
+- `ADMIN` only opens `/admin/offices`, `/admin/users`, and `/admin/signatories`
+  (`AdminAccess::ROLE_ABILITIES`), acting on every office there.
+- On `/admin/users` only a `SUPERADMIN` may grant `SUPERADMIN` or change a
+  `SUPERADMIN` account, and the last active `SUPERADMIN` cannot be demoted or
+  disabled (`UserAccessService`). Use `AdminAccess::SUPERADMIN` / `ADMIN`
+  constants instead of role string literals.
+
 ### Office scope
 
 - The `offices` table (`code` 2 digits, `name`, `is_active`, `sort_order`) is
@@ -73,44 +86,47 @@ npm run build
   `OfficeScope::nameFor()`.
 - Offices are deactivated, never deleted, and office `00` cannot be
   deactivated. Forms offer only active offices, except a record's current
-  office. `/admin/offices` (ability `offices`) is limited to `ADMIN` and users
+  office. `/admin/offices` (ability `offices`) is limited to `SUPERADMIN`, `ADMIN`, and users
   of any role with office `00`; renaming an office updates `person.office_name`.
-- Use `App\Support\OfficeScope` for office-limited admin screens: `ADMIN` and
+- Use `App\Support\OfficeScope` for office-limited admin screens: `SUPERADMIN` and
   users with `users.office = 00` see every office; other roles see only
-  `person.office_id` equal to their `users.office`; a non-ADMIN user without an
+  `person.office_id` equal to their `users.office`; a non-SUPERADMIN user without an
   office sees nothing.
-- `/admin/personnel` is open to `ADMIN`, `LEAVE`, `PROMOTE`, and `FINANCE`.
+- `/admin/personnel` is open to `SUPERADMIN`, `LEAVE`, `PROMOTE`, and `FINANCE`.
   Apply the scope to the list, office options, edit, save, delete, and Excel
   import (`PersonnelImportService` office scope).
-- `/admin/payslips` is open to `ADMIN` and `FINANCE` only. The list is scoped by
+- `/admin/payslips` is open to `SUPERADMIN` and `FINANCE` only. The list is scoped by
   joining `data_salary.cid` to `person`; an office-scoped import skips rows whose
   CID is not a person of the importer's office and reports the skipped count.
-- The same scope applies to `/admin/leaves` (`ADMIN`, `LEAVE`),
-  `/admin/salary-promotions` (`ADMIN`, `PROMOTE`), and
-  `/admin/tax-certificates` (`ADMIN`, `FINANCE`): list, person search, edit,
+- On `/admin/tax-certificates` an office-scoped `FINANCE` user reaches only
+  the monthly compensation tab; the Comptroller General certificate tab (list,
+  edit, TXT import) and the สสจ. issuance tab are for `SUPERADMIN` and office `00`
+  (`MonthlyCompensationService::isProvincialOffice`), enforced in every action.
+- The same scope applies to `/admin/leaves` (`SUPERADMIN`, `LEAVE`) and
+  `/admin/salary-promotions` (`SUPERADMIN`, `PROMOTE`): list, person search, edit,
   save, cancel/archive/delete, and imports. Records are scoped by joining their
   CID to `person.office_id`; imports skip out-of-office rows and report them.
 - `/admin/salary-promotions` and its import are also limited by personnel type
   through `App\Support\PersonnelTypeScope` (`person.type_id`, types listed in
   `PersonnelTypeScope::TYPES`). A user must match both the office scope and one
   of their types in `user_personnel_types`; office `00` does not lift the type
-  limit. `ADMIN` is unrestricted, and a `PROMOTE` user without assigned types
-  sees nothing and cannot add or import. Only `ADMIN` assigns types on
+  limit. `SUPERADMIN` is unrestricted, and a `PROMOTE` user without assigned types
+  sees nothing and cannot add or import. `SUPERADMIN` and `ADMIN` assign types on
   `/admin/users` (`UserAccessService::updatePersonnelTypes`, audited). Other
   screens, including `/admin/personnel`, are not limited by type.
 - The leave Google Sheet sync (`/admin/leave-sheet-sync`, ability `leave-sync`)
-  writes leave for every office, so only unrestricted users (`ADMIN` or `LEAVE`
+  writes leave for every office, so only unrestricted users (`SUPERADMIN` or `LEAVE`
   with office `00`) may open it or see its button on `/admin/leaves`.
-- `/admin/signatories` (`ADMIN`, `FINANCE`) has no office data; signatories are
-  shared system-wide. Only unrestricted users (`ADMIN` or office `00`) may create,
+- `/admin/signatories` (`SUPERADMIN`, `ADMIN`, `FINANCE`) has no office data; signatories are
+  shared system-wide. Only unrestricted users (`SUPERADMIN`, `ADMIN`, or office `00`) may create,
   edit, or delete them; other `FINANCE` users with an office have read-only
-  access, and a non-ADMIN user without an office has no menu entry or access.
+  access, and a non-SUPERADMIN user without an office has no menu entry or access.
 
 ### Tax-certificate management
 
 - The management route is `/admin/tax-certificates` (`admin.tax-certificates.index`).
   Enforce `AdminAccess::allows($user, 'tax-certificates')` in both the route
-  and every state-changing Livewire action. Only `ADMIN` and `FINANCE` have
+  and every state-changing Livewire action. Only `SUPERADMIN` and `FINANCE` have
   this ability.
 - `data_tax` is the single source for the management screen, `/tax-certificate`,
   preview, and downloaded PDF. Its identity is `(CID, income_year)`; never
@@ -120,6 +136,23 @@ npm run build
   amounts. Import diagnostics must mask CIDs.
 - A user-facing certificate query must always constrain `data_tax.CID` to the
   authenticated user's `users.pid`, including preview and PDF endpoints.
+- `data_tax.source` separates payers: `cgd` (Comptroller General TXT, the
+  existing tab and import) and `pho` (provincial health office, issued from
+  monthly compensation). The key is `(cid, income_year, source)`. The TXT import
+  and the certificate tab read and write only `cgd`; never edit `pho` rows by
+  hand, reissue them instead.
+- Monthly compensation (`monthly_compensations`, tab "ค่าตอบแทนรายเดือน") is
+  keyed by `FINANCE` within `OfficeScope`; a month keeps the office that keyed
+  it (`office_id`). Items and the personnel types they apply to live in
+  `App\Support\CompensationItems`; ลูกจ้างประจำ is never keyed. Writes go through
+  `MonthlyCompensationService` / `MonthlyCompensationImportService`, which
+  enforce office confirmation and year locks.
+- Only `SUPERADMIN` and office `00` (`MonthlyCompensationService::isProvincialOffice`)
+  set payer details, unconfirm offices, issue, and reopen a year
+  (`CompensationCertificateIssuer`). Issuing totals every keyed month of the
+  calendar year, keeps each person's `YYOOnnn` number (Buddhist year, office of the latest month, 3-digit running number per office), and locks the year;
+  reopening clears every office confirmation but keeps issued certificates
+  until the next issue.
 - Preserve the existing A4 geometry and the issue-date signatory lookup (the signatory for the fiscal year of `date_report`, falling back to income year + 1) when
   changing certificate mapping or PDF rendering. Run the focused tax-certificate
   tests and `npm run build` for such changes.
@@ -155,6 +188,9 @@ The repository contains `Dockerfile.txt`, but its build commands are not the aut
 
 ## Existing References
 
+- `MEMORY.md`: project decisions, environment facts, deployment steps, and open
+  items. Read it with this guide and update it when a decision or open item
+  changes.
 - `SKILL.md`: ThaiD login development notes and authentication flow.
 - `README.md`: scheduler and Docker notes.
 - `composer.json`: PHP dependencies and development scripts.

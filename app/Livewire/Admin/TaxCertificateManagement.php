@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\Url;
+use App\Services\MonthlyCompensationService;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -22,6 +24,10 @@ class TaxCertificateManagement extends Component
 {
     use WithFileUploads;
     use WithPagination;
+
+    /** monthly (office compensation, the main tab), issuance or certificates (Comptroller General TXT); the last two are สสจ. only. */
+    #[Url]
+    public string $tab = 'monthly';
 
     /** @var array<string, string> */
     private const INCOME_TYPES = [
@@ -99,6 +105,9 @@ class TaxCertificateManagement extends Component
 
     public string $nameFilter = '';
 
+    /** Person office code, or 'unmatched' for certificates without a registered person. */
+    public string $officeFilter = '';
+
     public string $cid = '';
 
     public string $income_year = '';
@@ -174,10 +183,16 @@ class TaxCertificateManagement extends Component
 
     public function boot(): void
     {
-        $this->ensureAuthorized();
+        $this->ensurePageAccess();
     }
 
     public function updatedYearFilter(): void
+    {
+        $this->ensureAuthorized();
+        $this->resetPage();
+    }
+
+    public function updatedOfficeFilter(): void
     {
         $this->ensureAuthorized();
         $this->resetPage();
@@ -266,12 +281,14 @@ class TaxCertificateManagement extends Component
                 DB::table('data_tax')
                     ->where('cid', $this->editingCid)
                     ->where('income_year', $this->editingIncomeYear)
+                    ->where('source', 'cgd')
                     ->update($updateValues);
                 $message = 'ปรับปรุงใบรับรองภาษีแล้ว';
             } else {
                 $exists = DB::table('data_tax')
                     ->where('cid', $values['cid'])
                     ->where('income_year', $values['income_year'])
+                    ->where('source', 'cgd')
                     ->exists();
 
                 if ($exists) {
@@ -331,6 +348,7 @@ class TaxCertificateManagement extends Component
             $deleted = DB::table('data_tax')
                 ->where('cid', $this->pendingDeletionCid)
                 ->where('income_year', $this->pendingDeletionIncomeYear)
+                ->where('source', 'cgd')
                 ->delete();
         } catch (QueryException) {
             $this->addError('delete', 'ไม่สามารถลบใบรับรองภาษีได้ กรุณาลองใหม่อีกครั้ง');
@@ -453,12 +471,34 @@ class TaxCertificateManagement extends Component
     #[Title('จัดการใบรับรองภาษี')]
     public function render()
     {
-        $this->ensureAuthorized();
-        $year = trim($this->yearFilter);
+        $this->ensurePageAccess();
+
+        // Offices only key monthly compensation; the Comptroller General's
+        // certificates and the สสจ. issue belong to ADMIN and office 00.
+        $provincial = MonthlyCompensationService::isProvincialOffice(Auth::user());
+        if (! $provincial || ! in_array($this->tab, ['monthly', 'issuance', 'certificates'], true)) {
+            $this->tab = 'monthly';
+        }
+
+        if ($this->tab !== 'certificates') {
+            return view('livewire.admin.tax-certificate-management', ['canIssue' => $provincial]);
+        }
+
+        // Load one tax year at a time: the current Buddhist year when it has
+        // certificates, otherwise the latest year that does.
+        $years = $this->scopedTaxes()->select('taxes.income_year')->distinct()->orderByDesc('taxes.income_year')->pluck('income_year')
+            ->map(fn ($year) => (string) $year)->values();
+        if (! $years->contains(trim($this->yearFilter))) {
+            $current = (string) (now()->year + 543);
+            $this->yearFilter = $years->contains($current) ? $current : (string) ($years->first(fn ($year) => $year <= $current) ?? $years->first() ?? $current);
+        }
+        $year = $this->yearFilter;
         $cid = trim($this->cidFilter);
         $name = trim($this->nameFilter);
+        $office = trim($this->officeFilter);
 
         return view('livewire.admin.tax-certificate-management', [
+            'canIssue' => $provincial,
             'certificates' => $this->scopedTaxes()
                 ->select([
                     'taxes.cid as cid',
@@ -474,7 +514,9 @@ class TaxCertificateManagement extends Component
                     'people.fname as person_fname',
                     'people.lname as person_lname',
                 ])
-                ->when($year !== '' && ctype_digit($year), fn (Builder $query) => $query->where('taxes.income_year', (int) $year))
+                ->where('taxes.income_year', $year)
+                ->when($office === 'unmatched', fn (Builder $query) => $query->whereNull('people.cid'))
+                ->when($office !== '' && $office !== 'unmatched', fn (Builder $query) => $query->where('people.office_id', $office))
                 ->when($cid !== '', fn (Builder $query) => $query->where('taxes.cid', 'like', "%{$cid}%"))
                 ->when($name !== '', function (Builder $query) use ($name): void {
                     $query->where(function (Builder $query) use ($name): void {
@@ -487,7 +529,8 @@ class TaxCertificateManagement extends Component
                 ->orderByDesc('taxes.income_year')
                 ->orderBy('taxes.cid')
                 ->paginate(20),
-            'years' => $this->scopedTaxes()->select('taxes.income_year')->distinct()->orderByDesc('taxes.income_year')->pluck('income_year'),
+            'years' => $years,
+            'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'incomeTypes' => self::INCOME_TYPES,
             'outcomeTypes' => self::OUTCOME_TYPES,
             'taxTypes' => self::TAX_TYPES,
@@ -650,7 +693,10 @@ class TaxCertificateManagement extends Component
     /** Tax certificates of personnel the current user may manage, aliased as taxes/people. */
     private function scopedTaxes(): Builder
     {
-        $query = DB::table('data_tax as taxes')->leftJoin('person as people', 'people.cid', '=', 'taxes.cid');
+        // This tab manages the Comptroller General's certificates; provincial
+        // health office (pho) certificates are issued from monthly compensation.
+        $query = DB::table('data_tax as taxes')->leftJoin('person as people', 'people.cid', '=', 'taxes.cid')
+            ->where('taxes.source', 'cgd');
 
         return OfficeScope::apply($query, Auth::user(), 'people.office_id');
     }
@@ -668,8 +714,15 @@ class TaxCertificateManagement extends Component
         };
     }
 
-    private function ensureAuthorized(): void
+    /** The page itself: every tax-certificate user reaches at least the monthly tab. */
+    private function ensurePageAccess(): void
     {
         abort_unless(AdminAccess::allows(Auth::user(), 'tax-certificates'), 403);
+    }
+
+    /** Certificate list, edits and TXT imports: ADMIN and office 00 only. */
+    private function ensureAuthorized(): void
+    {
+        abort_unless(MonthlyCompensationService::isProvincialOffice(Auth::user()), 403);
     }
 }

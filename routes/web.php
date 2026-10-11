@@ -25,13 +25,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/about', App\Livewire\About::class)->name('about');
     Route::get('/profile', App\Livewire\Profile\Index::class)->name('profile.index');
     Route::get('/profile/{id}/edit', App\Livewire\Profile\Edit::class)->name('profile.edit');
-    Route::get('/profile/payslip', App\Livewire\Profile\Payslip::class)->name('profile.payslip');
-    
-    // New route for salary promotion
-    Route::get('/profile/salary-promotion', App\Livewire\SalaryPromotion::class)->name('profile.salary-promotion');
-    Route::get('/profile/salary-promotion/{promotion}/download', [\App\Http\Controllers\SalaryPromotionController::class, 'download'])
+    Route::get('/payslip', App\Livewire\Profile\Payslip::class)->name('payslip');
+    Route::get('/salary-promotion', App\Livewire\SalaryPromotion::class)->name('salary-promotion');
+    Route::get('/salary-promotion/{promotion}/download', [\App\Http\Controllers\SalaryPromotionController::class, 'download'])
         ->whereNumber('promotion')
-        ->name('profile.salary-promotion.download');
+        ->name('salary-promotion.download');
+    // Former /profile/... addresses keep working for bookmarks and old links.
+    Route::permanentRedirect('/profile/payslip', '/payslip');
+    Route::permanentRedirect('/profile/salary-promotion', '/salary-promotion');
     
     Route::get('/leave-history', App\Livewire\LeaveHistory::class)->name('leave.history');
 
@@ -67,6 +68,10 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/salary-promotions', App\Livewire\Admin\SalaryPromotionManagement::class)->middleware('admin:promotions')->name('salary-promotions.index');
     Route::get('/signatories', App\Livewire\Admin\Signatories::class)->middleware('admin:signatories')->name('signatories');
     Route::get('/tax-certificates', App\Livewire\Admin\TaxCertificateManagement::class)->middleware('admin:tax-certificates')->name('tax-certificates.index');
+    Route::get('/tax-certificates/compensation-template', function (App\Services\MonthlyCompensationImportService $importer) {
+        // Prefilled with the user's own personnel of the keyed types.
+        return response()->download($importer->template(auth()->user()), 'monthly-compensation-template.xlsx')->deleteFileAfterSend();
+    })->middleware('admin:tax-certificates')->name('tax-certificates.compensation-template');
     Route::get('/leave-sheet-sync', App\Livewire\Admin\LeaveSheetSync::class)->middleware('admin:leave-sync')->name('leave-sheet-sync');
     Route::get('/leaves', App\Livewire\Admin\LeaveManagement::class)->middleware('admin:leave')->name('leaves.index');
     Route::get('/personnel', App\Livewire\Admin\PersonnelManagement::class)->middleware('admin:personnel')->name('personnel.index');

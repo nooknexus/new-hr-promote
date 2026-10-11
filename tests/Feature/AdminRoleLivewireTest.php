@@ -67,14 +67,14 @@ function roleLivewireUser(?string $role, string $staffType = 'STAFF'): User
 
 test('direct component entry is allowed only for the matching role', function () {
     foreach ([
-        [PersonnelManagement::class, 'ADMIN'],
+        [PersonnelManagement::class, 'SUPERADMIN'],
         [LeaveManagement::class, 'LEAVE'],
         [LeaveSheetSync::class, 'LEAVE'],
         [SalaryPromotionManagement::class, 'PROMOTE'],
         [Signatories::class, 'FINANCE'],
     ] as [$component, $role]) {
         Livewire::actingAs(roleLivewireUser($role))->test($component)->assertOk();
-        Livewire::actingAs(roleLivewireUser(null, 'ADMIN'))->test($component)->assertForbidden();
+        Livewire::actingAs(roleLivewireUser(null, 'SUPERADMIN'))->test($component)->assertForbidden();
     }
 });
 
@@ -87,7 +87,7 @@ test('role revocation denies a signatory action even after the component opened'
 
 test('role revocation also denies write upload and streamed sync actions', function () {
     foreach ([
-        [PersonnelManagement::class, 'ADMIN', null, 'importExcel'],
+        [PersonnelManagement::class, 'SUPERADMIN', null, 'importExcel'],
         [LeaveManagement::class, 'LEAVE', 'PROMOTE', 'save'],
         [LeaveSheetSync::class, 'LEAVE', 'PROMOTE', 'syncFromGoogleSheet'],
         [SalaryPromotionManagement::class, 'PROMOTE', 'FINANCE', 'save'],

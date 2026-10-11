@@ -65,7 +65,7 @@ test('payslip year buttons expose the selected Buddhist year after switching yea
         return trim($buttons->item(0)->textContent);
     };
     expect($selectedYear())->toBe('ปี2568');
-    $component->call('selectYear', 2024)->assertSet('selectedYear', 2024);
+    $component->call('selectYear', 2024)->assertSet('selectedYear', 2024)->assertDispatched('year-selected');
     expect($selectedYear())->toBe('ปี2567');
 });
 
@@ -172,4 +172,50 @@ test('a user without any payslip sees guidance instead of an empty year', functi
         ->assertSee('กรุณาติดต่อเจ้าหน้าที่การเงินของหน่วยงาน')
         ->assertDontSee('ปี2569')
         ->assertDontSee('ใบรับรองการจ่ายค่าตอบแทน (ปี');
+});
+
+test('choosing a year scrolls to the records on phones on every personal year page', function (string $view, string $target) {
+    $html = file_get_contents(resource_path("views/livewire/{$view}.blade.php"));
+
+    expect($html)->toContain("id=\"{$target}\"")
+        ->toContain("\$wire.on('year-selected', () => window.portalScrollToOnPhone('{$target}'))")
+        ->and(file_get_contents(resource_path('js/app.js')))->toContain("window.matchMedia('(max-width: 1023px)')");
+})->with([
+    'payslip' => ['profile/payslip', 'payslip-register'],
+    'tax certificate' => ['tax-certificate', 'tax-certificate-register'],
+    'salary promotion' => ['salary-promotion', 'salary-promotion-register'],
+    'leave history' => ['leave-history', 'leave-history-register'],
+]);
+
+test('only a chosen year scrolls; opening a page does not', function () {
+    foreach ([App\Livewire\TaxCertificate::class, App\Livewire\LeaveHistory::class, App\Livewire\SalaryPromotion::class] as $component) {
+        $source = file_get_contents((new ReflectionClass($component))->getFileName());
+        expect($source)->toContain("\$this->dispatch('year-selected');")
+            ->and(preg_match('/function mount\(\).*?\n    }\n/s', $source, $mount))->toBe(1)
+            ->and($mount[0])->not->toContain('selectYear(');
+    }
+});
+
+test('personal record pages show cards on phones and tables on wider screens', function (string $view, string $cards) {
+    $html = file_get_contents(resource_path("views/livewire/{$view}.blade.php"));
+
+    expect($html)->toContain("<ul class=\"space-y-3 md:hidden\" id=\"{$cards}\">")
+        ->and(preg_match('/<div class="[^"]*hidden[^"]*md:block[^"]*">\s*<table/', $html))->toBe(1);
+})->with([
+    'payslip' => ['profile/payslip', 'payslipCards'],
+    'salary promotion' => ['salary-promotion', 'promotionCards'],
+    'leave history' => ['leave-history', 'leaveCards'],
+    'tax certificate' => ['tax-certificate', 'taxCertificateCards'],
+]);
+
+test('payslip and salary promotion pages live outside /profile and old addresses redirect', function () {
+    expect(route('payslip', absolute: false))->toBe('/payslip')
+        ->and(route('salary-promotion', absolute: false))->toBe('/salary-promotion')
+        ->and(route('salary-promotion.download', ['promotion' => 5], false))->toBe('/salary-promotion/5/download');
+
+    $user = new User;
+    $user->forceFill(['id' => 1, 'name' => 'ผู้ทดสอบ', 'pid' => '1234567890123']);
+    $user->exists = true;
+    $this->actingAs($user)->get('/profile/payslip')->assertStatus(301)->assertRedirect('/payslip');
+    $this->actingAs($user)->get('/profile/salary-promotion')->assertStatus(301)->assertRedirect('/salary-promotion');
 });

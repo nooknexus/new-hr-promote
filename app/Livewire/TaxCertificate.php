@@ -43,7 +43,7 @@ class TaxCertificate extends Component
             ->all();
 
         if ($this->years !== []) {
-            $this->selectYear($this->years[0]);
+            $this->showYear($this->years[0]);
         }
     }
     
@@ -81,6 +81,13 @@ class TaxCertificate extends Component
     
     public function selectYear(int $year): void
     {
+        $this->showYear($year);
+        // On phones the certificate list sits below the year list, so the page scrolls to it.
+        $this->dispatch('year-selected');
+    }
+
+    private function showYear(int $year): void
+    {
         if (!in_array($year, $this->years, true)) {
             return;
         }
@@ -111,6 +118,8 @@ class TaxCertificate extends Component
                 SELECT
                     income_year AS 'ปีภาษี',
                     running_code1 AS 'เลขที่เอกสาร',
+                    department_name AS 'ผู้จ่ายเงิน',
+                    outcomeType,
                     total_money AS 'เงินได้',
                     withholding_tax AS 'ภาษีที่ถูกหัก',
                     outcomeName AS 'กองทุน',
@@ -135,7 +144,7 @@ class TaxCertificate extends Component
                 // Determine fund type based on outcomeName
                 if ($record->กองทุน == 'กบข.') {
                     $gpfAmount = $record->ยอดเงินกองทุน;
-                } elseif ($record->กองทุน == 'กสล.พกส' || $record->กองทุน == 'กสจ.') {
+                } elseif ($record->กองทุน == 'กสล.พกส' || $record->กองทุน == 'กสจ.' || (string) $record->outcomeType === '2') {
                     // Added 'กสจ.' to also show in provident fund
                     $providentFundAmount = $record->ยอดเงินกองทุน;
                 }
@@ -144,6 +153,7 @@ class TaxCertificate extends Component
                 $this->availableCertificates[] = [
                     'taxYear' => $record->ปีภาษี,
                     'certificateNo' => $record->เลขที่เอกสาร,
+                    'payerName' => $record->ผู้จ่ายเงิน,
                     'totalIncome' => $record->เงินได้,
                     'taxWithheld' => $record->ภาษีที่ถูกหัก,
                     'socialSecurity' => $record->ประกันสังคม,

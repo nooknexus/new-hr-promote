@@ -33,9 +33,9 @@
             <nav class="space-y-6 overflow-y-auto pe-1">
                 @php($navigation = [
                     ['home', 'fa-chart-line', 'หน้าแรก'],
-                    ['profile.payslip', 'fa-file-invoice-dollar', 'PaySlip'],
+                    ['payslip', 'fa-file-invoice-dollar', 'PaySlip'],
                     ['tax.certificate', 'fa-receipt', 'ใบรับรองการหักภาษี'],
-                    ['profile.salary-promotion', 'fa-level-up-alt', 'เลื่อนขั้นเงินเดือน'],
+                    ['salary-promotion', 'fa-level-up-alt', 'เลื่อนขั้นเงินเดือน'],
                     ['leave.history', 'fa-calendar-check', 'ประวัติการลา'],
                 ])
                 <div data-navigation-group="user" class="space-y-1">
@@ -45,7 +45,7 @@
                         </a>
                     @endforeach
                 </div>
-                @if(\App\Support\AdminAccess::allows(auth()->user(), 'offices') || \App\Support\AdminAccess::allows(auth()->user(), 'personnel') || \App\Support\AdminAccess::allows(auth()->user(), 'leave') || \App\Support\AdminAccess::allows(auth()->user(), 'promotions') || \App\Support\AdminAccess::allows(auth()->user(), 'signatories') || \App\Support\AdminAccess::allows(auth()->user(), 'tax-certificates') || \App\Support\AdminAccess::allows(auth()->user(), 'payslip'))
+                @if(\App\Support\AdminAccess::allows(auth()->user(), 'users') || \App\Support\AdminAccess::allows(auth()->user(), 'offices') || \App\Support\AdminAccess::allows(auth()->user(), 'personnel') || \App\Support\AdminAccess::allows(auth()->user(), 'leave') || \App\Support\AdminAccess::allows(auth()->user(), 'promotions') || \App\Support\AdminAccess::allows(auth()->user(), 'signatories') || \App\Support\AdminAccess::allows(auth()->user(), 'tax-certificates') || \App\Support\AdminAccess::allows(auth()->user(), 'payslip'))
                     <section data-navigation-group="admin" aria-labelledby="admin-navigation-heading" class="border-t border-white/15 pt-5">
                         <h2 id="admin-navigation-heading" class="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-100/70">เมนูผู้ดูแลระบบ</h2>
                         <div class="space-y-1">

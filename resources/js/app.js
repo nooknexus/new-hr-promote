@@ -65,6 +65,25 @@ window.portalToast = {
     },
 };
 
+// Phones and tablets stack a page's year list above its records (below the lg
+// breakpoint), so after a year is chosen the records are brought into view.
+// A short page cannot scroll far enough to bring the records to the top, so
+// bottom room is added first (and cleared on the next call).
+window.portalScrollToOnPhone = (id) => {
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    requestAnimationFrame(() => {
+        const target = document.getElementById(id);
+        if (!target) return;
+        document.body.style.paddingBottom = '';
+        const offset = parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+        const targetTop = target.getBoundingClientRect().top + window.scrollY - offset;
+        const missing = targetTop + window.innerHeight - document.documentElement.scrollHeight;
+        if (missing > 0) document.body.style.paddingBottom = `${Math.ceil(missing)}px`;
+        const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+    });
+};
+
 window.addEventListener('personnel-saved', (event) => {
     const modal = document.getElementById('personnelFormModal');
     if (modal) window.portalModal.hide(modal);
@@ -72,11 +91,10 @@ window.addEventListener('personnel-saved', (event) => {
     window.portalToast.show(event.detail.message);
 });
 
-window.addEventListener('leave-saved', (event) => {
+// The leave page's own script shows the toast; this only closes the form.
+window.addEventListener('leave-saved', () => {
     const modal = document.getElementById('leaveFormModal');
     if (modal) window.portalModal.hide(modal);
-
-    window.portalToast.show(event.detail.message);
 });
 
 document.addEventListener('click', (event) => {

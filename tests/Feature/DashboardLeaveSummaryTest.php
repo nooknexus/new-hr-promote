@@ -36,6 +36,7 @@ beforeEach(function () {
         $table->decimal('total_money', 15, 2)->nullable();
         $table->decimal('withholding_tax', 15, 2)->nullable();
         $table->unsignedInteger('income_year')->nullable();
+        $table->string('source', 3)->default('cgd');
     });
     Schema::create('data_promote', function (Blueprint $table) {
         $table->string('CID', 13);

@@ -15,7 +15,7 @@ function taxCertificateAccessUser(string $role): User
 }
 
 test('tax certificate management access is limited to ADMIN and FINANCE while finance retains signatories access', function () {
-    expect(AdminAccess::allows(taxCertificateAccessUser('ADMIN'), 'tax-certificates'))->toBeTrue()
+    expect(AdminAccess::allows(taxCertificateAccessUser('SUPERADMIN'), 'tax-certificates'))->toBeTrue()
         ->and(AdminAccess::allows(taxCertificateAccessUser('FINANCE'), 'tax-certificates'))->toBeTrue()
         ->and(AdminAccess::allows(taxCertificateAccessUser('LEAVE'), 'tax-certificates'))->toBeFalse()
         ->and(AdminAccess::allows(taxCertificateAccessUser('PROMOTE'), 'tax-certificates'))->toBeFalse()

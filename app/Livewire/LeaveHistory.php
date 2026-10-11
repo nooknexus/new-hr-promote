@@ -47,10 +47,17 @@ class LeaveHistory extends Component
             ->values()
             ->all();
 
-        $this->selectYear($this->years[0]);
+        $this->showYear($this->years[0]);
     }
 
     public function selectYear(int $year): void
+    {
+        $this->showYear($year);
+        // On phones the leave list sits below the year list, so the page scrolls to it.
+        $this->dispatch('year-selected');
+    }
+
+    private function showYear(int $year): void
     {
         if (!in_array($year, $this->years, true)) {
             return;

@@ -59,8 +59,8 @@ function promotionUser(bool $admin = true): User
         'id' => $admin ? 9 : 10,
         'name' => 'ผู้ทดสอบ',
         'pid' => '1234567890123',
-        'staff_type' => $admin ? 'ADMIN' : 'STAFF',
-        'role' => $admin ? 'ADMIN' : null,
+        'staff_type' => $admin ? 'SUPERADMIN' : 'STAFF',
+        'role' => $admin ? 'SUPERADMIN' : null,
     ]);
     $user->exists = true;
 
@@ -368,14 +368,15 @@ test('archive and restore retain the row and write audit records', function () {
     expect(DB::table('data_promote_audits')->pluck('action')->all())->toBe(['archived', 'restored']);
 });
 
-test('admin year and office filters use fiscal year and registered office identity', function () {
-    insertPromotion(['evaluation_date' => '2025-09-30', 'new_salary' => '11111.00']);
+test('admin year filter uses the April and October rounds of one Buddhist year and the office filter uses the registered office', function () {
+    insertPromotion(['evaluation_date' => '2024-10-01', 'new_salary' => '11111.00']);
     insertPromotion(['evaluation_date' => '2025-10-01', 'new_salary' => '22222.00']);
-    insertPromotion(['CID' => '9999999999999', 'evaluation_date' => '2025-11-01', 'new_salary' => '33333.00']);
+    insertPromotion(['CID' => '9999999999999', 'evaluation_date' => '2025-04-01', 'new_salary' => '33333.00']);
 
     Livewire::actingAs(promotionUser())
         ->test(SalaryPromotionManagement::class)
-        ->set('yearFilter', '2569')
+        ->assertViewHas('years', fn ($years) => $years->all() === [2568, 2567])
+        ->set('yearFilter', '2568')
         ->assertSee('22,222.00')
         ->assertSee('33,333.00')
         ->assertDontSee('11,111.00')
@@ -484,23 +485,29 @@ test('an edit opened before another administrator changes the row cannot overwri
     expect(DB::table('data_promote_audits')->count())->toBe(0);
 });
 
-test('user promotion history uses fiscal years and omits archived rows', function () {
+test('user promotion years hold the April and October rounds of the same Buddhist year and omit archived rows', function () {
+    $previousOctober = insertPromotion(['evaluation_date' => '2024-10-01']);
     $april = insertPromotion(['evaluation_date' => '2025-04-01']);
     $october = insertPromotion(['evaluation_date' => '2025-10-01']);
 
     Livewire::actingAs(promotionUser(false))
         ->test(SalaryPromotion::class)
-        ->assertSet('years', [2569, 2568])
-        ->assertSet('selectedYear', 2569)
-        ->assertCount('promotions', 1)
-        ->call('selectYear', 2568)
+        ->assertSet('years', [2568, 2567])
+        ->assertSet('selectedYear', 2568)
+        ->assertSet('promotions.0.id', $october)
+        ->assertSet('promotions.0.round', 'ตุลาคม 2568')
+        ->assertSet('promotions.1.id', $april)
+        ->assertSet('promotions.1.round', 'เมษายน 2568')
+        ->assertCount('promotions', 2)
+        ->call('selectYear', 2567)
+        ->assertSet('promotions.0.id', $previousOctober)
         ->assertCount('promotions', 1);
 
     DB::table('data_promote')->where('id', $october)->update(['deleted_at' => now()]);
     Livewire::actingAs(promotionUser(false))
         ->test(SalaryPromotion::class)
-        ->assertSet('years', [2568])
-        ->assertSet('promotions.0.id', $april);
+        ->assertSet('promotions.0.id', $april)
+        ->assertCount('promotions', 1);
 });
 
 function promotionOfficeUser(?string $role, ?string $office): User
@@ -539,8 +546,8 @@ test('ADMIN and PROMOTE in office 00 see promotions of every office', function (
         ->assertSee('สมศรี')
         ->assertSee('บุคลากรหน่วยสอง');
 })->with([
-    'ADMIN without an office' => ['ADMIN', null],
-    'ADMIN of another office' => ['ADMIN', '01'],
+    'ADMIN without an office' => ['SUPERADMIN', null],
+    'ADMIN of another office' => ['SUPERADMIN', '01'],
     'PROMOTE of office 00' => ['PROMOTE', '00'],
 ]);
 
@@ -622,8 +629,9 @@ test('user promotion history labels each round by Thai month and Buddhist year o
         ->assertSet('promotions.0.round_number', 2)
         ->assertSet('promotions.1.round', 'เมษายน 2568')
         ->assertSet('promotions.1.round_number', 1)
-        ->assertSet('promotions.2.round', 'ตุลาคม 2567')
+        ->assertCount('promotions', 2)
         ->assertSee('เมษายน 2568')
+        ->assertDontSee('ตุลาคม 2567')
         ->assertDontSee('รอบ1 เมษายน')
         ->assertDontSee('รอบ2 ตุลาคม');
 });

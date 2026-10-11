@@ -283,10 +283,12 @@
     </div>
 
     @script
+    <script>
         $wire.on('leave-form-opened', () => window.portalModal.show('leaveFormModal'));
         $wire.on('leave-form-closed', () => window.portalModal.hide(document.getElementById('leaveFormModal')));
         $wire.on('leave-cancel-opened', () => window.portalModal.show('leaveCancelModal'));
         $wire.on('leave-cancel-closed', () => window.portalModal.hide(document.getElementById('leaveCancelModal')));
         $wire.on('leave-saved', ({ message }) => window.portalToast.show(message));
+    </script>
     @endscript
 </div>
