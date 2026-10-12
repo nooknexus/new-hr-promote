@@ -1,7 +1,10 @@
 <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="promotion-import-title">
-    <div class="flex flex-col gap-1">
-        <h2 id="promotion-import-title" class="font-bold text-brand-700">นำเข้า Excel การเลื่อนขั้นเงินเดือน</h2>
-        <p class="text-sm leading-6 text-slate-500">ใช้ไฟล์ .xlsx รูปแบบเดิม ตรวจสอบจำนวนรายการก่อนยืนยันนำเข้า ข้อมูลเลขตำแหน่งจะอัปเดตเฉพาะบุคลากรและผู้ใช้ที่จับคู่ได้</p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="flex flex-col gap-1">
+            <h2 id="promotion-import-title" class="font-bold text-brand-700">นำเข้า Excel การเลื่อนขั้นเงินเดือน</h2>
+            <p class="text-sm leading-6 text-slate-500">ใช้ไฟล์ .xlsx รูปแบบเดิม ตรวจสอบจำนวนรายการก่อนยืนยันนำเข้า ข้อมูลเลขตำแหน่งจะอัปเดตเฉพาะบุคลากรและผู้ใช้ที่จับคู่ได้</p>
+        </div>
+        <a href="{{ route('admin.salary-promotions.template') }}" class="btn btn-outline-primary btn-sm whitespace-nowrap"><i class="fas fa-file-excel" aria-hidden="true"></i> ดาวน์โหลดแม่แบบ</a>
     </div>
     <form wire:submit="previewUpload" class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div class="min-w-0 flex-1">

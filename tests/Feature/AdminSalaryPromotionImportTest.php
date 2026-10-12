@@ -307,3 +307,30 @@ test('ADMIN imports every row regardless of their office', function () {
         ->assertSet('previewCounts.insert_count', 2)
         ->assertSet('previewCounts.skipped_count', 0);
 });
+
+test('the import card offers a template that the importer accepts once filled in', function () {
+    Livewire::actingAs(salaryImportActor('PROMOTE'))
+        ->test(SalaryPromotionImport::class)
+        ->assertSeeHtml('href="'.route('admin.salary-promotions.template').'"')
+        ->assertSee('ดาวน์โหลดแม่แบบ');
+
+    $this->actingAs(salaryImportActor('FINANCE'))->get(route('admin.salary-promotions.template'))->assertForbidden();
+    $response = $this->actingAs(salaryImportActor('PROMOTE'))->get(route('admin.salary-promotions.template'))
+        ->assertOk()->assertDownload('salary-promotion-import-template.xlsx');
+
+    $book = PhpOffice\PhpSpreadsheet\IOFactory::load($response->getFile()->getPathname());
+    expect($book->getSheet(0)->rangeToArray('A1:Q1')[0])->toBe(SalaryPromotionWorkbook::HEADERS)
+        ->and($book->getSheetByName('คำอธิบาย'))->not->toBeNull();
+
+    // Fill the template's first sheet with one valid row and run it through the importer.
+    $sheet = $book->getSheet(0);
+    foreach (SalaryPromotionWorkbook::ROW as $index => $value) {
+        $sheet->setCellValueExplicit([$index + 1, 2], $value, PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    }
+    $path = tempnam(sys_get_temp_dir(), 'filled-template').'.xlsx';
+    (new PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($path);
+    DB::table('person')->insert(['cid' => '3650200600388']);
+
+    $preview = app(App\Services\SalaryPromotionImportService::class)->preview($path);
+    expect($preview['errors'])->toBe([])->and($preview['insert_count'])->toBe(1);
+});

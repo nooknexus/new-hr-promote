@@ -329,6 +329,49 @@ class SalaryPromotionImportService
         );
     }
 
+    /** Write an empty import template with this importer's headers and a sheet of filling notes. */
+    public function template(): string
+    {
+        $book = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $sheet = $book->getActiveSheet();
+        $sheet->setTitle('การเลื่อนขั้น');
+        $sheet->fromArray(array_keys(self::HEADERS), null, 'A1');
+        $sheet->getStyle('A1:'.Coordinate::stringFromColumnIndex(count(self::HEADERS)).'1')->getFont()->setBold(true);
+        foreach (array_values(self::HEADERS) as $index => $field) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+            // Keep leading zeros in identifiers and position numbers.
+            if (in_array($field, ['cid', 'code', 'no_position'], true)) {
+                $sheet->getStyle("{$column}2:{$column}5001")->getNumberFormat()
+                    ->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_TEXT);
+            }
+        }
+
+        $notes = $book->createSheet();
+        $notes->setTitle('คำอธิบาย');
+        $notes->fromArray([
+            ['คอลัมน์', 'คำอธิบาย'],
+            ['เลขบัตรประชาชน', 'ตัวเลข 13 หลัก (จำเป็น)'],
+            ['รอบการประเมิน', 'วันที่ประเมินแบบ ค.ศ. YYYY-MM-DD หรือวันที่ของ Excel เช่น 2025-04-01, 2025-10-01 (จำเป็น)'],
+            ['เลขตำแหน่ง', 'จำเป็น ระบบจะอัปเดตเลขตำแหน่งของบุคลากรและผู้ใช้ที่จับคู่ได้'],
+            ['ตำแหน่ง / ระดับ', 'ไม่บังคับ ถ้าเว้นว่างจะคงค่าเดิมของบุคลากร ระดับใช้ตรวจเพดานเงินเดือน'],
+            ['เลื่อน/N', 'Y = ได้เลื่อน, N = ไม่ได้เลื่อน (จำเป็น)'],
+            ['เงินเดือนก่อนเลื่อน, ฐานในการคำนวณ, ร้อยละที่ได้เลื่อน, เงินที่ได้เลื่อน, เงินเดือนที่ได้รับ', 'ตัวเลข (จำเป็น)'],
+            ['เงินค่าตอบแทนพิเศษ', 'ตัวเลข เว้นว่างได้ ใช้เมื่อเงินเดือนถึงเพดาน'],
+            ['สูตร', 'เงินที่ได้เลื่อน = ฐาน × ร้อยละ ÷ 100 ปัดขึ้นหลักสิบ เมื่อถึงเพดานส่วนที่เกินเป็นเงินค่าตอบแทนพิเศษ ระบบจะเตือนแถวที่ไม่ตรงสูตรแต่ยึดค่าจากไฟล์'],
+        ]);
+        $notes->getStyle('A1:B1')->getFont()->setBold(true);
+        $notes->getColumnDimension('A')->setWidth(45);
+        $notes->getColumnDimension('B')->setWidth(110);
+        $book->setActiveSheetIndex(0);
+
+        $path = tempnam(sys_get_temp_dir(), 'salary-promotion-template');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($path);
+        $book->disconnectWorksheets();
+
+        return $path;
+    }
+
     /** Whether the row's person is inside the importer's office and personnel type scope. */
     private function withinScope(string $cid, ?string $officeScope, ?array $typeScope): bool
     {

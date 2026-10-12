@@ -6,7 +6,7 @@ follow; this file records decisions, environment facts, and open items gathered
 while building the system. Keep it free of secrets, CIDs, names, and other
 personal data.
 
-Last updated: 2026-10-11 (through commit `8940014`).
+Last updated: 2026-10-12 (through commit `32fddb4`).
 
 ## Working agreement
 
@@ -22,6 +22,14 @@ Last updated: 2026-10-11 (through commit `8940014`).
   `scratch/`, `output/`, or `docs/assurance/leave-excel-import/`.
 - After each push, give the owner the server deployment steps (below) and call
   out anything that needs manual follow-up.
+- Run the full suite with `php -d memory_limit=1G vendor/bin/pest` (the default
+  128M limit stops it in the Excel tests).
+- Login is SSO only, so the agent cannot sign in to the app. Forging a session
+  for a test user is blocked by the permission system; do not retry it. For
+  visual checks, render a component to HTML with an in-memory user and open it
+  at phone width, using fully synthetic data only (a "sanitized" copy of real
+  data once leaked real amounts into a screenshot). Delete any file copied into
+  `public/` right after the check.
 
 ## Environments
 
@@ -55,7 +63,8 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 
 - `offices` is the registry; codes stay 2 digits. `person.office_name` is kept
   as a synced copy. Offices are deactivated, never deleted.
-- `/admin/offices` is managed by `ADMIN` and users of any role in office `00`.
+- `/admin/offices` is managed by `SUPERADMIN`, `ADMIN`, and users of any role in
+  office `00`.
 - The migration seeded `offices` from `person` and `users.office`. After
   deploying, verify names match with:
 
@@ -110,11 +119,19 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
   ลูกจ้างประจำ is not keyed. Import rows that break these rules are skipped.
 - Certificate: payer from the settings form, ภ.ง.ด.1ก พิเศษ, หัก ณ ที่จ่าย, all
   income as 40(1), recipient address from `users.address` or else the payer's.
-  The fund prints as `กสล.พกส` because the full name overflows the PDF slot;
-  numbers are 7 digits `YYOOnnn` (e.g. 6701001: year 67, office 01, running 001; owner's format, 2026-10-11), using the office of the person's latest month; longer numbers wrap in the PDF number boxes, and CGD numbers are 6 digits so they never collide.
-- Office-scoped `FINANCE` users see only the monthly tab of
-  `/admin/tax-certificates`; the CGD certificate and issuance tabs are for
-  `ADMIN` and office `00` (decided 2026-10-11).
+  The fund prints as `กสล.พกส` because the full name overflows the PDF slot.
+- Certificate numbers are 7 digits `YYOOnnn` (owner's format), e.g. 6701001 =
+  year 67, office 01, running 001 per office per year. The office is the one
+  that keyed the person's latest month. Reissuing keeps each number. Longer
+  numbers wrap in the PDF number boxes; CGD numbers are 6 digits, so they never
+  collide.
+- `/admin/tax-certificates` tabs, in order: monthly (default), สสจ. issuance,
+  CGD certificates. Office-scoped `FINANCE` users only see the monthly tab;
+  the other two are for `SUPERADMIN` and office `00`. The CGD tab loads one tax
+  year at a time (current year, else the latest year with data) and filters
+  by the person's office.
+- Monthly import: one file per month; rows with no amount at all are counted
+  as "ไม่มียอด" and never overwrite a stored month.
 - Workflow: offices confirm their year (locks them; สสจ. can unconfirm); สสจ.
   issues, with an extra confirmation when offices are unconfirmed (their months
   still count); reopening clears all confirmations.
@@ -129,6 +146,37 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
   last active `SUPERADMIN` is protected. Rolling the migration back refuses
   while limited `ADMIN` accounts exist.
 - Older notes in this file that say `ADMIN` for full access mean `SUPERADMIN`.
+
+### Salary promotion years — 2026-10-12
+
+- A promotion year is the Buddhist year of the evaluation date, holding its
+  April (ครั้งที่ 1) and October (ครั้งที่ 2) rounds: 2568 = เมษายน 2568 and
+  ตุลาคม 2568. It is not the government fiscal year (Oct–Sep), even though the
+  screens still call it "ปีงบประมาณ". Both `/salary-promotion` and the admin
+  year filter use this rule.
+
+### Personal record pages — 2026-10-12
+
+- `/payslip` and `/salary-promotion` moved out of `/profile` (route names
+  `payslip`, `salary-promotion`, `salary-promotion.download`); the old
+  `/profile/...` URLs redirect with 301.
+- On `/payslip`, `/tax-certificate`, `/salary-promotion` and `/leave-history`,
+  choosing a year scrolls to the records on screens up to 1023px
+  (`window.portalScrollToOnPhone` in `resources/js/app.js`). It adds bottom
+  padding when the page is too short to scroll. Opening a page never scrolls:
+  `mount()` must not call the public `selectYear()`, which dispatches
+  `year-selected`.
+- Below 768px these pages show one card per record (`md:hidden` list) and keep
+  the table for wider screens (`hidden md:block`).
+
+### Livewire `@script` pitfall — 2026-10-11
+
+- Livewire 3.6 runs only the code inside `<script>` tags of an `@script` block
+  and silently drops anything else. Several admin pages had lost their toasts
+  and modal closing this way. `tests/Unit/LivewireScriptBlocksTest.php` now
+  fails on any `@script` without a `<script>` tag.
+- `app.js` only closes the leave form on `leave-saved`; the leave page shows
+  the toast, so it is not shown twice.
 
 ### Earlier fixes worth remembering
 
@@ -147,7 +195,9 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 - `person`: 2,356 people; `position_level` is empty for all of them locally, so
   salary ceilings cannot apply in the form until levels are imported.
 - `data_promote`: 9,621 rows have no matching person or no `type_id`; only
-  `ADMIN` sees them.
+  `SUPERADMIN` sees them.
+- `data_tax`: 7,172 CGD certificates (2564–2567), all with 6-digit numbers; no
+  certificates for พนักงานราชการ or พนักงานกระทรวง before monthly compensation.
 - Of 5,897 promotion rows since 2024, 5,232 match the rounding rule, 656 are
   ceiling cases, and 9 do not match.
 
@@ -156,7 +206,6 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 - The payer tax ID on every tax certificate PDF (CGD and สสจ.) overlaps the
   "(ให้กรอกกรณีเป็นผู้ไม่มีเลขประจำตัวประชาชน)" hint in the payer block. It
   predates the สสจ. certificates; fix it in `TaxCertificatePdfService` if wanted.
-
 - Ceiling tables for ลูกจ้างประจำ, พนักงานราชการ, and พนักงานกระทรวง are not yet
   supplied (legacy data shows some capped at 54,820). Until added, these types
   round without a ceiling and the form shows a warning.
@@ -165,5 +214,11 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 - The full suite exceeds PHP's default 128M memory in the Excel-writing tests;
   it passes with `php -d memory_limit=1G vendor/bin/pest`. Consider setting
   `memory_limit` in `phpunit.xml`.
+- The four personal record pages (scroll after choosing a year, phone cards)
+  have not been checked on a real phone. Only `/tax-certificate` was rendered
+  at 375px.
+- After deploying `32fddb4`: former ADMIN accounts are SUPERADMIN; สสจ. must
+  enter the payer details before issuing the first year; PROMOTE users still
+  need their personnel types assigned.
 - Re-run the salary import preview on the real file after deployment to confirm
   that warnings drop to the genuinely wrong rows.

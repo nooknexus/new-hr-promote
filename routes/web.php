@@ -66,6 +66,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/offices', App\Livewire\Admin\OfficeManagement::class)->middleware('admin:offices')->name('offices.index');
     Route::get('/payslips', App\Livewire\Admin\PayslipManagement::class)->middleware('admin:payslip')->name('payslips.index');
     Route::get('/salary-promotions', App\Livewire\Admin\SalaryPromotionManagement::class)->middleware('admin:promotions')->name('salary-promotions.index');
+    Route::get('/salary-promotions/template', fn (App\Services\SalaryPromotionImportService $importer) => response()
+        ->download($importer->template(), 'salary-promotion-import-template.xlsx')->deleteFileAfterSend())
+        ->middleware('admin:promotions')->name('salary-promotions.template');
     Route::get('/signatories', App\Livewire\Admin\Signatories::class)->middleware('admin:signatories')->name('signatories');
     Route::get('/tax-certificates', App\Livewire\Admin\TaxCertificateManagement::class)->middleware('admin:tax-certificates')->name('tax-certificates.index');
     Route::get('/tax-certificates/compensation-template', function (App\Services\MonthlyCompensationImportService $importer) {
