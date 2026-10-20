@@ -6,7 +6,7 @@ follow; this file records decisions, environment facts, and open items gathered
 while building the system. Keep it free of secrets, CIDs, names, and other
 personal data.
 
-Last updated: 2026-10-12 (through commit `32fddb4`).
+Last updated: 2026-10-20 (personnel type addition; earlier notes through commit `32fddb4`).
 
 ## Working agreement
 
@@ -83,6 +83,10 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 
 - Types (`person.type_id`): 1 ข้าราชการ, 2 ลูกจ้างประจำ, 3 พนักงานราชการ,
   4 พนักงานกระทรวง (`App\Support\PersonnelTypeScope::TYPES`).
+- Personnel management additionally supports 5 ลูกจ้างชั่วคราว for create,
+  edit, and filtering (`PersonnelManagement::PERSONNEL_TYPES`). This personnel
+  registration option does not extend salary-promotion type permissions or
+  the monthly-compensation types.
 - A `PROMOTE` user may hold several types (`user_personnel_types`); a PROMOTE
   user with none sees nothing. Type and office scopes both apply; office `00`
   does not lift the type limit. Only `/admin/salary-promotions` is
@@ -203,6 +207,10 @@ Then restart PHP 8.3 in aaPanel. Config changes (for example
 
 ## Open items
 
+- `ModernLayoutTest` expects the literal source path `resources/css/app.css`
+  on the login page. With built Vite assets it fails because the rendered CSS
+  URL is hashed. Reproduced on 2026-10-20 with the unchanged HEAD personnel
+  component; personnel-focused tests and the build pass.
 - The payer tax ID on every tax certificate PDF (CGD and สสจ.) overlaps the
   "(ให้กรอกกรณีเป็นผู้ไม่มีเลขประจำตัวประชาชน)" hint in the payer block. It
   predates the สสจ. certificates; fix it in `TaxCertificatePdfService` if wanted.

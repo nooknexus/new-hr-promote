@@ -19,6 +19,9 @@ use RuntimeException;
 
 class PersonnelManagement extends Component
 {
+    // Personnel registration includes types outside salary-promotion permissions.
+    private const PERSONNEL_TYPES = PersonnelTypeScope::TYPES + [5 => 'ลูกจ้างชั่วคราว'];
+
     public function boot(): void
     {
         $this->ensureAdministrator();
@@ -64,7 +67,7 @@ class PersonnelManagement extends Component
             'pname' => ['nullable', 'string', 'max:255'],
             'fname' => ['required', 'string', 'max:255'],
             'lname' => ['required', 'string', 'max:255'],
-            'type_id' => ['nullable', 'integer', Rule::in(array_keys(PersonnelTypeScope::TYPES))],
+            'type_id' => ['nullable', 'integer', Rule::in(array_keys(self::PERSONNEL_TYPES))],
             'type_name' => ['nullable', 'string', 'max:255'],
             'office_id' => $scope === null
                 ? ['nullable', 'string', Rule::in($this->formOffices()->pluck('office_id')->all())]
@@ -213,7 +216,7 @@ class PersonnelManagement extends Component
         return view('livewire.admin.personnel-management', [
             'personnel' => $this->scopedPersonnel()
                 ->when($officeFilter !== '', fn ($query) => $query->where('office_id', $officeFilter))
-                ->when(isset(PersonnelTypeScope::TYPES[(int) $typeFilter]), fn ($query) => $query->where('type_id', (int) $typeFilter))
+                ->when(isset(self::PERSONNEL_TYPES[(int) $typeFilter]), fn ($query) => $query->where('type_id', (int) $typeFilter))
                 ->when($search !== '', function ($query) use ($search) {
                     $query->where(function ($query) use ($search) {
                         $query->where('cid', 'like', "%{$search}%")
@@ -228,7 +231,7 @@ class PersonnelManagement extends Component
                 ->paginate(20),
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'formOffices' => $this->formOffices(),
-            'personnelTypes' => PersonnelTypeScope::TYPES,
+            'personnelTypes' => self::PERSONNEL_TYPES,
         ]);
     }
 
@@ -242,7 +245,7 @@ class PersonnelManagement extends Component
         $data['type_id'] = $data['type_id'] === null ? null : (int) $data['type_id'];
         $data['type_name'] = $data['type_id'] === null
             ? null
-            : PersonnelTypeScope::TYPES[$data['type_id']];
+            : self::PERSONNEL_TYPES[$data['type_id']];
 
         if ($data['office_id'] === null || $data['office_id'] === '') {
             $data['office_id'] = null;

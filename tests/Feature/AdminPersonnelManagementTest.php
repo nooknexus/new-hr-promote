@@ -55,6 +55,40 @@ test('an administrator can add personnel with their employment start date', func
         ->employment_started_at->toBe('2018-10-01');
 });
 
+test('temporary employees can be created and edited with the correct personnel type', function () {
+    $component = Livewire::actingAs(personnelAdmin())->test(PersonnelManagement::class)
+        ->set('cid', '5555555555555')
+        ->set('fname', 'ชั่วคราวทดสอบ')
+        ->set('lname', 'บุคลากร')
+        ->set('type_id', 5)
+        ->call('save')
+        ->assertHasNoErrors()
+        ->assertSeeHtml('<option value="5">ลูกจ้างชั่วคราว</option>');
+
+    expect(DB::table('person')->where('cid', '5555555555555')->first())
+        ->toMatchObject(['type_id' => 5, 'type_name' => 'ลูกจ้างชั่วคราว']);
+
+    $component->call('edit', '5555555555555')
+        ->assertSet('type_id', 5)
+        ->set('fname', 'แก้ไขชั่วคราว')
+        ->call('save')->assertHasNoErrors();
+    expect(DB::table('person')->where('cid', '5555555555555')->first())
+        ->toMatchObject(['fname' => 'แก้ไขชั่วคราว', 'type_id' => 5, 'type_name' => 'ลูกจ้างชั่วคราว']);
+});
+
+test('temporary personnel can be filtered within the current office', function () {
+    DB::table('person')->insert([
+        ['cid' => '5555555555555', 'fname' => 'ชั่วคราวต้นสังกัดหนึ่ง', 'lname' => 'ทดสอบ', 'type_id' => 5, 'type_name' => 'ลูกจ้างชั่วคราว', 'office_id' => '01'],
+        ['cid' => '6666666666666', 'fname' => 'ชั่วคราวต่างต้นสังกัด', 'lname' => 'ทดสอบ', 'type_id' => 5, 'type_name' => 'ลูกจ้างชั่วคราว', 'office_id' => '02'],
+        ['cid' => '7777777777777', 'fname' => 'ข้าราชการต้นสังกัดหนึ่ง', 'lname' => 'ทดสอบ', 'type_id' => 1, 'type_name' => 'ข้าราชการ', 'office_id' => '01'],
+    ]);
+    Livewire::actingAs(personnelOfficeAdmin('01'))->test(PersonnelManagement::class)
+        ->set('typeFilter', '5')
+        ->assertSee('ชั่วคราวต้นสังกัดหนึ่ง')
+        ->assertDontSee('ชั่วคราวต่างต้นสังกัด')
+        ->assertDontSee('ข้าราชการต้นสังกัดหนึ่ง');
+});
+
 test('the personnel form selects readable type and office names without exposing raw codes', function () {
     DB::table('person')->insert([
         'cid' => '1111111111111',
