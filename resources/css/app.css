@@ -53,6 +53,10 @@
 @layer base {
     body { @apply min-h-screen bg-slate-50 font-sans text-slate-700 antialiased; }
     button, a, input, select, textarea { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2; }
+    /* iOS Safari sizes native date fields by their contents: they ignore w-full, run
+       past their column and stand taller than text inputs while empty. */
+    input:is([type='date'], [type='month'], [type='time'], [type='datetime-local']) { @apply min-w-0 appearance-none; }
+    input::-webkit-date-and-time-value { @apply min-h-5 text-start; }
 }
 
 @layer components {
@@ -61,7 +65,8 @@
     html[data-mobile-menu-open='true'] .app-sidebar { @apply translate-x-0; }
     .mobile-menu-backdrop { @apply fixed inset-0 z-40 hidden bg-slate-950/45 lg:hidden; }
     html[data-mobile-menu-open='true'] .mobile-menu-backdrop { @apply block; }
-    .app-nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-50 hover:bg-white/15 hover:text-white; }
+    /* Colours ease in and out so moving across the 4px gaps between links does not blink. */
+    .app-nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-emerald-50 transition-colors duration-150 ease-out hover:bg-white/15 hover:text-white motion-reduce:transition-none; }
     .app-nav-link.is-active { @apply bg-white text-brand-700 shadow-sm; }
     .app-main { @apply min-w-0; }
     .app-topbar { @apply sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-8; }

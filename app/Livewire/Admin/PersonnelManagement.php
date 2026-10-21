@@ -45,6 +45,9 @@ class PersonnelManagement extends Component
     public string $office_id = '';
     public string $office_name = '';
     public ?string $employment_started_at = null;
+    public string $position = '';
+    public string $position_level = '';
+    public string $no_position = '';
 
     public mixed $importFile = null;
     public ?array $importResult = null;
@@ -74,6 +77,9 @@ class PersonnelManagement extends Component
                 : ['required', 'string', Rule::in([$scope])],
             'office_name' => ['nullable', 'string', 'max:255'],
             'employment_started_at' => ['nullable', 'date', 'before_or_equal:today'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'position_level' => ['nullable', 'string', 'max:255'],
+            'no_position' => ['nullable', 'string', 'max:255'],
         ];
     }
 
@@ -87,6 +93,9 @@ class PersonnelManagement extends Component
         'lname.required' => 'กรุณาระบุนามสกุล',
         'employment_started_at.date' => 'รูปแบบวันเริ่มงานไม่ถูกต้อง',
         'employment_started_at.before_or_equal' => 'วันเริ่มงานต้องไม่เกินวันนี้',
+        'position.max' => 'ตำแหน่งต้องไม่เกิน 255 ตัวอักษร',
+        'position_level.max' => 'ระดับต้องไม่เกิน 255 ตัวอักษร',
+        'no_position.max' => 'เลขที่ตำแหน่งต้องไม่เกิน 255 ตัวอักษร',
     ];
 
     public function updatedSearch(): void
@@ -127,6 +136,9 @@ class PersonnelManagement extends Component
         $this->office_id = $person->office_id ?? '';
         $this->office_name = $person->office_name ?? '';
         $this->employment_started_at = $person->employment_started_at;
+        $this->position = $person->position ?? '';
+        $this->position_level = $person->position_level ?? '';
+        $this->no_position = $person->no_position ?? '';
         $this->resetErrorBag();
         $this->dispatch('personnel-form-opened');
     }
@@ -137,14 +149,21 @@ class PersonnelManagement extends Component
         $validated = $this->validate();
         $data = $this->normalisePersonnel($validated);
 
-        if ($this->editingCid !== null) {
-            abort_unless($this->scopedPersonnel()->where('cid', $this->editingCid)->exists(), 404);
-            $this->scopedPersonnel()->where('cid', $this->editingCid)->update($data);
-            $message = 'ปรับปรุงข้อมูลบุคลากรแล้ว';
-        } else {
+        $message = DB::transaction(function () use ($data): string {
+            if ($this->editingCid !== null) {
+                $previousNoPosition = $this->scopedPersonnel()->where('cid', $this->editingCid)->lockForUpdate()->first(['no_position']);
+                abort_unless($previousNoPosition, 404);
+                $this->scopedPersonnel()->where('cid', $this->editingCid)->update($data);
+                $this->syncUserPositionNumber($data['cid'], $previousNoPosition->no_position, $data['no_position']);
+
+                return 'ปรับปรุงข้อมูลบุคลากรแล้ว';
+            }
+
             DB::table('person')->insert($data);
-            $message = 'เพิ่มข้อมูลบุคลากรแล้ว';
-        }
+            $this->syncUserPositionNumber($data['cid'], null, $data['no_position']);
+
+            return 'เพิ่มข้อมูลบุคลากรแล้ว';
+        });
 
         $this->resetForm();
         $this->dispatch('personnel-saved', message: $message);
@@ -232,6 +251,7 @@ class PersonnelManagement extends Component
             'offices' => OfficeScope::options(Auth::user(), includeInactive: true),
             'formOffices' => $this->formOffices(),
             'personnelTypes' => self::PERSONNEL_TYPES,
+            'positionLevels' => array_keys(config('salary_ceilings.1', [])),
         ]);
     }
 
@@ -240,6 +260,9 @@ class PersonnelManagement extends Component
     {
         foreach (['pname', 'employment_started_at'] as $field) {
             $data[$field] = $data[$field] === '' ? null : $data[$field];
+        }
+        foreach (['position', 'position_level', 'no_position'] as $field) {
+            $data[$field] = trim((string) $data[$field]) === '' ? null : trim($data[$field]);
         }
 
         $data['type_id'] = $data['type_id'] === null ? null : (int) $data['type_id'];
@@ -258,6 +281,24 @@ class PersonnelManagement extends Component
         $data['office_name'] = OfficeScope::nameFor($data['office_id']);
 
         return $data;
+    }
+
+    /**
+     * Payslips read the position number from users.no_position, so keep the
+     * linked account in step when the number changes here, as the salary
+     * promotion import does. An unchanged number never touches the account,
+     * and an ambiguous link (several accounts for one CID) is left alone.
+     */
+    private function syncUserPositionNumber(string $cid, ?string $previous, ?string $current): void
+    {
+        if ($previous === $current) {
+            return;
+        }
+
+        $users = DB::table('users')->where('pid', $cid)->orWhere('thaid_pid', $cid)->limit(2)->pluck('id');
+        if ($users->count() === 1) {
+            DB::table('users')->where('id', $users->first())->update(['no_position' => $current]);
+        }
     }
 
     /**
@@ -288,6 +329,7 @@ class PersonnelManagement extends Component
         $this->reset([
             'editingCid', 'cid', 'pname', 'fname', 'lname', 'type_id',
             'type_name', 'office_id', 'office_name', 'employment_started_at',
+            'position', 'position_level', 'no_position',
         ]);
         $this->resetErrorBag();
     }

@@ -99,7 +99,12 @@
                     @forelse($personnel as $person)
                         @php($startedAt = $person->employment_started_at ? \Illuminate\Support\Carbon::parse($person->employment_started_at) : null)
                         <tr wire:key="person-{{ $person->cid }}" class="hover:bg-slate-50/80">
-                            <td class="whitespace-nowrap px-4 py-3.5 font-semibold text-slate-800">{{ trim(implode(' ', array_filter([$person->pname, $person->fname, $person->lname]))) }}</td>
+                            <td class="whitespace-nowrap px-4 py-3.5">
+                                <p class="font-semibold text-slate-800">{{ trim(implode(' ', array_filter([$person->pname, $person->fname, $person->lname]))) }}</p>
+                                @if($person->position || $person->position_level || $person->no_position)
+                                    <p class="mt-0.5 text-xs text-slate-500">{{ implode(' · ', array_filter([$person->position, $person->position_level, $person->no_position ? 'เลขที่ '.$person->no_position : null])) }}</p>
+                                @endif
+                            </td>
                             <td class="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-600">{{ $person->cid }}</td>
                             <td class="px-4 py-3.5 text-slate-600">
                                 <p>{{ $person->type_name ?: 'ไม่ระบุประเภท' }}</p>
@@ -186,6 +191,26 @@
                                 @endforeach
                             </select>
                             @error('office_id') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label for="person-position" class="block text-sm font-semibold text-slate-700">ตำแหน่ง</label>
+                            <input id="person-position" type="text" wire:model="position" maxlength="255" placeholder="เช่น นักวิชาการสาธารณสุข" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                            @error('position') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="person-position-level" class="block text-sm font-semibold text-slate-700">ระดับ</label>
+                            <input id="person-position-level" type="text" wire:model="position_level" maxlength="255" list="person-position-level-options" placeholder="เช่น ชำนาญการ" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                            <datalist id="person-position-level-options">
+                                @foreach($positionLevels as $level)
+                                    <option value="{{ $level }}"></option>
+                                @endforeach
+                            </datalist>
+                            @error('position_level') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label for="person-no-position" class="block text-sm font-semibold text-slate-700">เลขที่ตำแหน่ง</label>
+                            <input id="person-no-position" type="text" wire:model="no_position" maxlength="255" class="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100">
+                            @error('no_position') <p class="mt-1.5 text-sm text-rose-700" role="alert">{{ $message }}</p> @enderror
                         </div>
                     </div>
                     <div class="modal-footer">

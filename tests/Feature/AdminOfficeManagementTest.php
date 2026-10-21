@@ -23,6 +23,9 @@ beforeEach(function () {
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
         $table->date('employment_started_at')->nullable();
+        $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
     });
     Schema::create('users', function (Blueprint $table) {
         $table->id();

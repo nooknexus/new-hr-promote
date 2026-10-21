@@ -17,6 +17,15 @@ beforeEach(function () {
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
         $table->date('employment_started_at')->nullable();
+        $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
+    });
+    Schema::create('users', function ($table) {
+        $table->id();
+        $table->string('pid', 13)->nullable();
+        $table->string('thaid_pid', 13)->nullable();
+        $table->string('no_position')->nullable();
     });
 });
 
@@ -146,6 +155,71 @@ test('an administrator can load a personnel record into the edit form', function
         ->assertSet('fname', 'ทดสอบ')
         ->assertSet('office_name', 'หน่วยบริการหนึ่ง')
         ->assertSet('employment_started_at', '2018-10-01');
+});
+
+test('the personnel form edits position, level and position number', function () {
+    DB::table('person')->insert([
+        'cid' => '1234567890123',
+        'fname' => 'ทดสอบ',
+        'lname' => 'บุคลากร',
+        'position' => 'นักวิชาการสาธารณสุข',
+        'position_level' => 'ปฏิบัติการ',
+        'no_position' => '1001',
+    ]);
+
+    $component = Livewire::actingAs(personnelAdmin())
+        ->test(PersonnelManagement::class)
+        ->assertSeeHtml('id="person-position"')
+        ->assertSeeHtml('id="person-position-level"')
+        ->assertSeeHtml('id="person-no-position"')
+        ->assertSeeHtml('<option value="ชำนาญการ"></option>')
+        ->assertSee('นักวิชาการสาธารณสุข · ปฏิบัติการ · เลขที่ 1001')
+        ->call('edit', '1234567890123')
+        ->assertSet('position', 'นักวิชาการสาธารณสุข')
+        ->assertSet('position_level', 'ปฏิบัติการ')
+        ->assertSet('no_position', '1001')
+        ->set('position', '  พยาบาลวิชาชีพ ')
+        ->set('position_level', 'ชำนาญการ')
+        ->set('no_position', '')
+        ->call('save')
+        ->assertHasNoErrors();
+
+    expect(DB::table('person')->where('cid', '1234567890123')->first(['position', 'position_level', 'no_position']))
+        ->toMatchObject(['position' => 'พยาบาลวิชาชีพ', 'position_level' => 'ชำนาญการ', 'no_position' => null]);
+
+    $component->set('cid', '9876543210987')
+        ->set('fname', 'ใหม่')
+        ->set('lname', 'บุคลากร')
+        ->set('position', str_repeat('ก', 256))
+        ->call('save')
+        ->assertHasErrors(['position' => 'max']);
+});
+
+test('changing a position number updates the linked account used by payslips', function () {
+    DB::table('person')->insert([
+        ['cid' => '1234567890123', 'fname' => 'ทดสอบ', 'lname' => 'บุคลากร', 'no_position' => '1001'],
+        ['cid' => '2222222222222', 'fname' => 'ซ้ำ', 'lname' => 'บัญชี', 'no_position' => '2002'],
+    ]);
+    DB::table('users')->insert([
+        ['id' => 10, 'pid' => '1234567890123', 'thaid_pid' => null, 'no_position' => '1001'],
+        ['id' => 11, 'pid' => '2222222222222', 'thaid_pid' => null, 'no_position' => '2002'],
+        ['id' => 12, 'pid' => null, 'thaid_pid' => '2222222222222', 'no_position' => '2002'],
+        ['id' => 13, 'pid' => '3333333333333', 'thaid_pid' => null, 'no_position' => 'เดิม'],
+    ]);
+
+    $component = Livewire::actingAs(personnelAdmin())->test(PersonnelManagement::class);
+
+    $component->call('edit', '1234567890123')->set('no_position', '1005')->call('save')->assertHasNoErrors();
+    expect(DB::table('users')->where('id', 10)->value('no_position'))->toBe('1005');
+
+    // An ambiguous link is left untouched.
+    $component->call('edit', '2222222222222')->set('no_position', '2009')->call('save')->assertHasNoErrors();
+    expect(DB::table('users')->whereIn('id', [11, 12])->pluck('no_position')->all())->toBe(['2002', '2002']);
+
+    // Saving other fields without changing the number never touches the account.
+    DB::table('person')->insert(['cid' => '3333333333333', 'fname' => 'ไม่มีเลข', 'lname' => 'ตำแหน่ง']);
+    $component->call('edit', '3333333333333')->set('fname', 'แก้ชื่อ')->call('save')->assertHasNoErrors();
+    expect(DB::table('users')->where('id', 13)->value('no_position'))->toBe('เดิม');
 });
 
 test('saving selected personnel type and office keeps their codes and names in sync', function () {
