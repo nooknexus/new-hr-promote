@@ -15,7 +15,7 @@
             <div>
                 <h2 id="personnel-import-heading" class="font-bold text-slate-900">นำเข้าข้อมูลจาก Excel</h2>
                 <p class="mt-1 max-w-2xl text-sm leading-6 text-slate-500">ระบบอ่านข้อมูลตามตำแหน่งคอลัมน์ ไม่ตรวจชื่อหัวตาราง และข้ามแถวที่ 1 เสมอ ระบบสร้างบุคลากรใหม่จาก CID ที่ยังไม่มี และอัปเดต CID ที่มีอยู่แล้ว ช่องข้อมูลเสริมที่ปล่อยว่างจะไม่ลบข้อมูลเดิม</p>
-                <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A เลขประจำตัวประชาชน · B คำนำหน้า · C ชื่อ · D นามสกุล · E ประเภท (ตัวเลข) · F ชื่อประเภทเจ้าหน้าที่ · G ต้นสังกัด (ตัวเลข 2 หลัก) · H ชื่อต้นสังกัด · I วันเริ่มงาน</p>
+                <p class="mt-1 max-w-2xl text-xs leading-5 text-slate-500">A เลขประจำตัวประชาชน · B คำนำหน้า · C ชื่อ · D นามสกุล · E ประเภท (ตัวเลข) · F ชื่อประเภทเจ้าหน้าที่ · G ต้นสังกัด (ตัวเลข 2 หลัก) · H ชื่อต้นสังกัด · I วันเริ่มงาน · J ตำแหน่ง · K ระดับ · L เลขที่ตำแหน่ง</p>
             </div>
             <a href="{{ route('admin.personnel.template') }}" class="btn btn-secondary shrink-0">
                 <i class="fas fa-file-download" aria-hidden="true"></i><span>ดาวน์โหลด template</span>

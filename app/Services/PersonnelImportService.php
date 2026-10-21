@@ -2,13 +2,18 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Support\OfficeScope;
+use App\Support\PersonnelTypeScope;
+use App\Support\UserPositionNumber;
 use DateTimeImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx as XlsxWriter;
 use RuntimeException;
 
 class PersonnelImportService
@@ -31,7 +36,71 @@ class PersonnelImportService
         'office_id' => 'G',
         'office_name' => 'H',
         'employment_started_at' => 'I',
+        'position' => 'J',
+        'position_level' => 'K',
+        'no_position' => 'L',
     ];
+
+    /**
+     * The import template with a 'รหัสอ้างอิง' sheet listing the personnel type
+     * codes and the active office codes the user may import into. The office
+     * list is read from the offices registry on every download so it never
+     * goes stale.
+     */
+    public function template(?User $user): string
+    {
+        $book = IOFactory::load(resource_path('templates/personnel-import-template.xlsx'));
+        $data = $book->getSheet(0);
+        $headerStyle = $data->getStyle('A1')->exportArray();
+        $bodyStyle = $data->getStyle('H2')->exportArray();
+
+        $codes = new Worksheet($book, 'รหัสอ้างอิง');
+        $book->addSheet($codes, 1);
+        $codes->fromArray(['รหัสประเภท', 'ประเภทเจ้าหน้าที่', 'รหัสหน่วยงาน', 'หน่วยงาน'], null, 'A1');
+
+        $row = 2;
+        foreach (PersonnelTypeScope::ALL_TYPES as $id => $name) {
+            $codes->setCellValue('A'.$row, $id);
+            $codes->setCellValue('B'.$row, $name);
+            $row++;
+        }
+        $lastRow = $row - 1;
+
+        $row = 2;
+        foreach (OfficeScope::options($user) as $office) {
+            $codes->setCellValueExplicit('C'.$row, $office->office_id, DataType::TYPE_STRING);
+            $codes->setCellValue('D'.$row, $office->office_name);
+            $row++;
+        }
+        $lastRow = max($lastRow, $row - 1);
+
+        $codes->getStyle('A1:D1')->applyFromArray($headerStyle);
+        $codes->getRowDimension(1)->setRowHeight(32);
+        if ($lastRow >= 2) {
+            $codes->getStyle('A2:D'.$lastRow)->applyFromArray($bodyStyle);
+            $codes->getStyle('A2:A'.$lastRow)->getAlignment()->setHorizontal('center');
+            $codes->getStyle('C2:C'.$lastRow)->getAlignment()->setHorizontal('center');
+            $codes->getStyle('C2:C'.$lastRow)->getNumberFormat()->setFormatCode('@');
+        }
+        foreach (['A' => 14, 'B' => 22, 'C' => 14, 'D' => 40] as $column => $width) {
+            $codes->getColumnDimension($column)->setWidth($width);
+        }
+        $codes->freezePane('A2');
+
+        $guide = $book->getSheetByName('คำแนะนำ');
+        if ($guide !== null) {
+            $line = $guide->getHighestDataRow() + 1;
+            $guide->setCellValue('A'.$line, ($line - 2).'. รหัสประเภท (คอลัมน์ E) และรหัสหน่วยงาน (คอลัมน์ G) ดูได้ในชีต ‘รหัสอ้างอิง’ รหัสหน่วยงานเป็นตัวเลข 2 หลัก เช่น 05');
+            $guide->duplicateStyle($guide->getStyle('A'.($line - 1)), 'A'.$line);
+        }
+
+        $book->setActiveSheetIndex(0);
+        $path = tempnam(sys_get_temp_dir(), 'personnel-template');
+        (new XlsxWriter($book))->save($path);
+        $book->disconnectWorksheets();
+
+        return $path;
+    }
 
     /**
      * @param  string|null  $officeScope  When set, every row must belong to this office; null allows every office.
@@ -74,6 +143,9 @@ class PersonnelImportService
                 'office_id' => ['nullable', 'string', 'max:2'],
                 'office_name' => ['nullable', 'string', 'max:255'],
                 'employment_started_at' => ['nullable', 'date', 'before_or_equal:today'],
+                'position' => ['nullable', 'string', 'max:255'],
+                'position_level' => ['nullable', 'string', 'max:255'],
+                'no_position' => ['nullable', 'string', 'max:255'],
             ], [
                 'cid.required' => 'ต้องระบุเลขประจำตัวประชาชน',
                 'cid.digits' => 'เลขประจำตัวประชาชนต้องมี 13 หลัก',
@@ -81,6 +153,9 @@ class PersonnelImportService
                 'lname.required' => 'ต้องระบุนามสกุล',
                 'employment_started_at.date' => 'วันเริ่มงานไม่ถูกต้อง',
                 'employment_started_at.before_or_equal' => 'วันเริ่มงานต้องไม่เกินวันนี้',
+                'position.max' => 'ตำแหน่งต้องไม่เกิน 255 ตัวอักษร',
+                'position_level.max' => 'ระดับต้องไม่เกิน 255 ตัวอักษร',
+                'no_position.max' => 'เลขที่ตำแหน่งต้องไม่เกิน 255 ตัวอักษร',
             ]);
 
             if ($validator->fails()) {
@@ -133,9 +208,15 @@ class PersonnelImportService
 
         DB::transaction(function () use ($records, &$created, &$updated): void {
             foreach ($records as $record) {
-                $exists = DB::table('person')->where('cid', $record['cid'])->exists();
+                $existing = DB::table('person')->where('cid', $record['cid'])->first(['no_position']);
 
-                if ($exists) {
+                // A blank position number cell keeps the current number, so only a
+                // filled cell can change the linked account.
+                if ($record['no_position'] !== null) {
+                    UserPositionNumber::syncFromPerson($record['cid'], $existing?->no_position, $record['no_position']);
+                }
+
+                if ($existing !== null) {
                     // Blank optional cells do not erase profile data. Administrators can clear
                     // a value deliberately from the personnel form when necessary.
                     $update = array_filter($record, fn ($value) => $value !== null);
@@ -166,6 +247,9 @@ class PersonnelImportService
             'office_id' => null,
             'office_name' => null,
             'employment_started_at' => null,
+            'position' => null,
+            'position_level' => null,
+            'no_position' => null,
         ];
 
         foreach (self::COLUMNS as $field => $column) {
@@ -184,6 +268,14 @@ class PersonnelImportService
 
         $record['cid'] = $record['cid'] === null ? null : preg_replace('/\s+/', '', (string) $record['cid']);
         $record['type_id'] = $record['type_id'] === null ? null : (int) $record['type_id'];
+        // Excel stores typed numbers such as position number 1001 as numbers.
+        foreach (['position', 'position_level', 'no_position'] as $field) {
+            if (is_float($record[$field]) && floor($record[$field]) === $record[$field]) {
+                $record[$field] = (string) (int) $record[$field];
+            } elseif (is_int($record[$field]) || is_float($record[$field])) {
+                $record[$field] = (string) $record[$field];
+            }
+        }
         // Excel turns typed office codes such as 05 into the number 5.
         if (is_int($record['office_id']) || is_float($record['office_id']) || (is_string($record['office_id']) && ctype_digit($record['office_id']))) {
             $record['office_id'] = str_pad((string) (int) $record['office_id'], 2, '0', STR_PAD_LEFT);

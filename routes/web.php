@@ -78,11 +78,9 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function () {
     Route::get('/leave-sheet-sync', App\Livewire\Admin\LeaveSheetSync::class)->middleware('admin:leave-sync')->name('leave-sheet-sync');
     Route::get('/leaves', App\Livewire\Admin\LeaveManagement::class)->middleware('admin:leave')->name('leaves.index');
     Route::get('/personnel', App\Livewire\Admin\PersonnelManagement::class)->middleware('admin:personnel')->name('personnel.index');
-    Route::get('/personnel/template', function () {
-        $path = resource_path('templates/personnel-import-template.xlsx');
-        abort_unless(is_file($path), 404);
-
-        return response()->download($path, 'personnel-import-template.xlsx');
+    Route::get('/personnel/template', function (App\Services\PersonnelImportService $importer) {
+        // Includes a sheet of type codes and the offices the user may import into.
+        return response()->download($importer->template(auth()->user()), 'personnel-import-template.xlsx')->deleteFileAfterSend();
     })->middleware('admin:personnel')->name('personnel.template');
     
     Route::get('/payslips/template', function () {

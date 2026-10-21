@@ -20,6 +20,9 @@ final class PersonnelTypeScope
         4 => 'พนักงานกระทรวง',
     ];
 
+    // Personnel registration includes types outside salary-promotion permissions.
+    public const ALL_TYPES = self::TYPES + [5 => 'ลูกจ้างชั่วคราว'];
+
     /** @return list<int>|null null for every type, [] for none. */
     public static function typesFor(?User $user): ?array
     {

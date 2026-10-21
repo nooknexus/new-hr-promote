@@ -6,6 +6,7 @@ use Livewire\Attributes\Title;
 use App\Support\AdminAccess;
 use App\Support\OfficeScope;
 use App\Support\PersonnelTypeScope;
+use App\Support\UserPositionNumber;
 use App\Services\PersonnelImportService;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
@@ -19,8 +20,7 @@ use RuntimeException;
 
 class PersonnelManagement extends Component
 {
-    // Personnel registration includes types outside salary-promotion permissions.
-    private const PERSONNEL_TYPES = PersonnelTypeScope::TYPES + [5 => 'ลูกจ้างชั่วคราว'];
+    private const PERSONNEL_TYPES = PersonnelTypeScope::ALL_TYPES;
 
     public function boot(): void
     {
@@ -154,13 +154,13 @@ class PersonnelManagement extends Component
                 $previousNoPosition = $this->scopedPersonnel()->where('cid', $this->editingCid)->lockForUpdate()->first(['no_position']);
                 abort_unless($previousNoPosition, 404);
                 $this->scopedPersonnel()->where('cid', $this->editingCid)->update($data);
-                $this->syncUserPositionNumber($data['cid'], $previousNoPosition->no_position, $data['no_position']);
+                UserPositionNumber::syncFromPerson($data['cid'], $previousNoPosition->no_position, $data['no_position']);
 
                 return 'ปรับปรุงข้อมูลบุคลากรแล้ว';
             }
 
             DB::table('person')->insert($data);
-            $this->syncUserPositionNumber($data['cid'], null, $data['no_position']);
+            UserPositionNumber::syncFromPerson($data['cid'], null, $data['no_position']);
 
             return 'เพิ่มข้อมูลบุคลากรแล้ว';
         });
@@ -281,24 +281,6 @@ class PersonnelManagement extends Component
         $data['office_name'] = OfficeScope::nameFor($data['office_id']);
 
         return $data;
-    }
-
-    /**
-     * Payslips read the position number from users.no_position, so keep the
-     * linked account in step when the number changes here, as the salary
-     * promotion import does. An unchanged number never touches the account,
-     * and an ambiguous link (several accounts for one CID) is left alone.
-     */
-    private function syncUserPositionNumber(string $cid, ?string $previous, ?string $current): void
-    {
-        if ($previous === $current) {
-            return;
-        }
-
-        $users = DB::table('users')->where('pid', $cid)->orWhere('thaid_pid', $cid)->limit(2)->pluck('id');
-        if ($users->count() === 1) {
-            DB::table('users')->where('id', $users->first())->update(['no_position' => $current]);
-        }
     }
 
     /**

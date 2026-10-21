@@ -17,6 +17,15 @@ beforeEach(function () {
         $table->string('office_id', 2)->nullable();
         $table->string('office_name')->nullable();
         $table->date('employment_started_at')->nullable();
+        $table->string('no_position')->nullable();
+        $table->string('position')->nullable();
+        $table->string('position_level')->nullable();
+    });
+    Schema::create('users', function ($table) {
+        $table->id();
+        $table->string('pid', 13)->nullable();
+        $table->string('thaid_pid', 13)->nullable();
+        $table->string('no_position')->nullable();
     });
     seedOffices(['01' => 'สำนักงานสาธารณสุข', '02' => 'โรงพยาบาล']);
 });
@@ -152,4 +161,51 @@ test('numeric office codes from Excel are read as two-digit codes', function () 
         ->toMatchObject(['office_id' => '05', 'office_name' => 'โรงพยาบาลห้า']);
 
     @unlink($path);
+});
+
+test('it imports position, level and position number from columns J to L', function () {
+    DB::table('person')->insert([
+        'cid' => '1234567890123', 'fname' => 'เดิม', 'lname' => 'บุคลากร',
+        'position' => 'นักวิชาการสาธารณสุข', 'position_level' => 'ปฏิบัติการ', 'no_position' => '1001',
+    ]);
+    DB::table('person')->insert([
+        'cid' => '2222222222222', 'fname' => 'คงเดิม', 'lname' => 'บุคลากร',
+        'position' => 'พยาบาลวิชาชีพ', 'position_level' => 'ชำนาญการ', 'no_position' => '2002',
+    ]);
+    DB::table('users')->insert([
+        ['id' => 10, 'pid' => '1234567890123', 'thaid_pid' => null, 'no_position' => '1001'],
+        ['id' => 11, 'pid' => '2222222222222', 'thaid_pid' => null, 'no_position' => '2002'],
+    ]);
+
+    $spreadsheet = new Spreadsheet;
+    $spreadsheet->getActiveSheet()->fromArray([
+        ['CID', 'Prefix', 'First', 'Last', 'TypeId', 'Type', 'OfficeId', 'Office', 'Start', 'Position', 'Level', 'No'],
+        ['1234567890123', null, 'เดิม', 'บุคลากร', null, null, null, null, null, ' นักวิชาการสาธารณสุข ', 'ชำนาญการ', 1005],
+        ['2222222222222', null, 'คงเดิม', 'บุคลากร', null, null, null, null, null, null, null, null],
+        ['9876543210987', null, 'ใหม่', 'บุคลากร', null, null, null, null, null, 'เจ้าพนักงานธุรการ', 'ปฏิบัติงาน', '0123'],
+    ]);
+    $temporaryPath = tempnam(sys_get_temp_dir(), 'personnel-import-');
+    $path = $temporaryPath.'.xlsx';
+    @unlink($temporaryPath);
+    (new Xlsx($spreadsheet))->save($path);
+
+    expect((new PersonnelImportService)->import($path))->toMatchArray(['created' => 1, 'updated' => 2]);
+
+    $positions = fn (string $cid) => (array) DB::table('person')->where('cid', $cid)->first(['position', 'position_level', 'no_position']);
+    expect($positions('1234567890123'))->toBe(['position' => 'นักวิชาการสาธารณสุข', 'position_level' => 'ชำนาญการ', 'no_position' => '1005'])
+        // Blank cells keep the current values.
+        ->and($positions('2222222222222'))->toBe(['position' => 'พยาบาลวิชาชีพ', 'position_level' => 'ชำนาญการ', 'no_position' => '2002'])
+        ->and($positions('9876543210987'))->toBe(['position' => 'เจ้าพนักงานธุรการ', 'position_level' => 'ปฏิบัติงาน', 'no_position' => '0123'])
+        // Payslips read the number from the linked account.
+        ->and(DB::table('users')->where('id', 10)->value('no_position'))->toBe('1005')
+        ->and(DB::table('users')->where('id', 11)->value('no_position'))->toBe('2002');
+
+    @unlink($path);
+});
+
+test('the downloadable personnel template has columns J to L for positions', function () {
+    $sheet = \PhpOffice\PhpSpreadsheet\IOFactory::load(resource_path('templates/personnel-import-template.xlsx'))->getSheet(0);
+
+    expect($sheet->rangeToArray('J1:L1')[0])->toBe(['ตำแหน่ง', 'ระดับ', 'เลขที่ตำแหน่ง'])
+        ->and($sheet->getStyle('L2')->getNumberFormat()->getFormatCode())->toBe('@');
 });

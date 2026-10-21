@@ -340,6 +340,32 @@ test('only an administrator can open personnel management and download its Excel
         ->assertDownload('personnel-import-template.xlsx');
 });
 
+test('the downloaded template lists type codes and the offices the user may import into', function () {
+    seedOffices(['00' => 'สำนักงานสาธารณสุขจังหวัดพิษณุโลก', '05' => 'โรงพยาบาลสมเด็จพระยุพราชนครไทย']);
+    seedOffices(['99' => 'หน่วยที่ปิดแล้ว'], active: false);
+
+    $codesSheet = function (User $user) {
+        $response = $this->actingAs($user)->get(route('admin.personnel.template'))->assertOk();
+        $book = \PhpOffice\PhpSpreadsheet\IOFactory::load($response->baseResponse->getFile()->getPathname());
+
+        return [$book->getSheetNames(), $book->getSheetByName('รหัสอ้างอิง')->toArray(), $book->getSheetByName('คำแนะนำ')->toArray()];
+    };
+
+    [$sheets, $codes, $guide] = $codesSheet(personnelAdmin());
+    expect($sheets)->toBe(['ข้อมูลบุคลากร', 'รหัสอ้างอิง', 'คำแนะนำ'])
+        ->and(array_slice($codes, 0, 3))->toBe([
+            ['รหัสประเภท', 'ประเภทเจ้าหน้าที่', 'รหัสหน่วยงาน', 'หน่วยงาน'],
+            ['1', 'ข้าราชการ', '00', 'สำนักงานสาธารณสุขจังหวัดพิษณุโลก'],
+            ['2', 'ลูกจ้างประจำ', '05', 'โรงพยาบาลสมเด็จพระยุพราชนครไทย'],
+        ])
+        ->and(array_column($codes, 1))->toContain('ลูกจ้างชั่วคราว')
+        ->and(array_column($codes, 2))->not->toContain('99')
+        ->and(collect($guide)->flatten()->implode(' '))->toContain('รหัสอ้างอิง');
+
+    [, $codes] = $codesSheet(personnelOfficeAdmin('05'));
+    expect(array_values(array_filter(array_column($codes, 2))))->toBe(['รหัสหน่วยงาน', '05']);
+});
+
 function personnelOfficeAdmin(?string $office): User
 {
     $user = personnelAdmin();
