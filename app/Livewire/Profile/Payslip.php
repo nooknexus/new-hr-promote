@@ -342,9 +342,11 @@ class Payslip extends Component
             }
             
             // Fetch detailed payslip data
+            // person.no_position is maintained on /admin/personnel and its import;
+            // users.no_position is only a fallback for numbers recorded before that.
             $detailedData = DB::select("
                 SELECT
-                    u.no_position as 'position_number',
+                    COALESCE(NULLIF(p.no_position, ''), u.no_position) as 'position_number',
                     s.ministry as 'ministry',
                     s.depart as 'department',
                     s.bankName as 'bank_name',

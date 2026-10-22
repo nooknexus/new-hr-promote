@@ -17,6 +17,7 @@ beforeEach(function () {
         $table->string('cid', 13);
         $table->string('type_name')->nullable();
         $table->string('office_name')->nullable();
+        $table->string('no_position')->nullable();
     });
 
     Schema::dropIfExists('users');
